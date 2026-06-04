@@ -10,33 +10,103 @@
 
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as IndexRouteImport } from "./routes/index"
+import { Route as SubjectsIndexRouteImport } from "./routes/subjects/index"
+import { Route as SettingsIndexRouteImport } from "./routes/settings/index"
+import { Route as BookmarksIndexRouteImport } from "./routes/bookmarks/index"
+import { Route as SubjectsSubjectIdIndexRouteImport } from "./routes/subjects.$subjectId/index"
+import { Route as SubjectsSubjectIdMaterialsMaterialIdIndexRouteImport } from "./routes/subjects.$subjectId.materials.$materialId/index"
 
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => rootRouteImport,
 } as any)
+const SubjectsIndexRoute = SubjectsIndexRouteImport.update({
+  id: "/subjects/",
+  path: "/subjects/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: "/settings/",
+  path: "/settings/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookmarksIndexRoute = BookmarksIndexRouteImport.update({
+  id: "/bookmarks/",
+  path: "/bookmarks/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubjectsSubjectIdIndexRoute = SubjectsSubjectIdIndexRouteImport.update({
+  id: "/subjects/$subjectId/",
+  path: "/subjects/$subjectId/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubjectsSubjectIdMaterialsMaterialIdIndexRoute =
+  SubjectsSubjectIdMaterialsMaterialIdIndexRouteImport.update({
+    id: "/subjects/$subjectId/materials/$materialId/",
+    path: "/subjects/$subjectId/materials/$materialId/",
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
+  "/bookmarks/": typeof BookmarksIndexRoute
+  "/settings/": typeof SettingsIndexRoute
+  "/subjects/": typeof SubjectsIndexRoute
+  "/subjects/$subjectId/": typeof SubjectsSubjectIdIndexRoute
+  "/subjects/$subjectId/materials/$materialId/": typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/bookmarks": typeof BookmarksIndexRoute
+  "/settings": typeof SettingsIndexRoute
+  "/subjects": typeof SubjectsIndexRoute
+  "/subjects/$subjectId": typeof SubjectsSubjectIdIndexRoute
+  "/subjects/$subjectId/materials/$materialId": typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
+  "/bookmarks/": typeof BookmarksIndexRoute
+  "/settings/": typeof SettingsIndexRoute
+  "/subjects/": typeof SubjectsIndexRoute
+  "/subjects/$subjectId/": typeof SubjectsSubjectIdIndexRoute
+  "/subjects/$subjectId/materials/$materialId/": typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/"
+  fullPaths:
+    | "/"
+    | "/bookmarks/"
+    | "/settings/"
+    | "/subjects/"
+    | "/subjects/$subjectId/"
+    | "/subjects/$subjectId/materials/$materialId/"
   fileRoutesByTo: FileRoutesByTo
-  to: "/"
-  id: "__root__" | "/"
+  to:
+    | "/"
+    | "/bookmarks"
+    | "/settings"
+    | "/subjects"
+    | "/subjects/$subjectId"
+    | "/subjects/$subjectId/materials/$materialId"
+  id:
+    | "__root__"
+    | "/"
+    | "/bookmarks/"
+    | "/settings/"
+    | "/subjects/"
+    | "/subjects/$subjectId/"
+    | "/subjects/$subjectId/materials/$materialId/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BookmarksIndexRoute: typeof BookmarksIndexRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+  SubjectsIndexRoute: typeof SubjectsIndexRoute
+  SubjectsSubjectIdIndexRoute: typeof SubjectsSubjectIdIndexRoute
+  SubjectsSubjectIdMaterialsMaterialIdIndexRoute: typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
 }
 
 declare module "@tanstack/react-router" {
@@ -48,11 +118,51 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/subjects/": {
+      id: "/subjects/"
+      path: "/subjects"
+      fullPath: "/subjects/"
+      preLoaderRoute: typeof SubjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/settings/": {
+      id: "/settings/"
+      path: "/settings"
+      fullPath: "/settings/"
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/bookmarks/": {
+      id: "/bookmarks/"
+      path: "/bookmarks"
+      fullPath: "/bookmarks/"
+      preLoaderRoute: typeof BookmarksIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/subjects/$subjectId/": {
+      id: "/subjects/$subjectId/"
+      path: "/subjects/$subjectId"
+      fullPath: "/subjects/$subjectId/"
+      preLoaderRoute: typeof SubjectsSubjectIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/subjects/$subjectId/materials/$materialId/": {
+      id: "/subjects/$subjectId/materials/$materialId/"
+      path: "/subjects/$subjectId/materials/$materialId"
+      fullPath: "/subjects/$subjectId/materials/$materialId/"
+      preLoaderRoute: typeof SubjectsSubjectIdMaterialsMaterialIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BookmarksIndexRoute: BookmarksIndexRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+  SubjectsIndexRoute: SubjectsIndexRoute,
+  SubjectsSubjectIdIndexRoute: SubjectsSubjectIdIndexRoute,
+  SubjectsSubjectIdMaterialsMaterialIdIndexRoute: SubjectsSubjectIdMaterialsMaterialIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
