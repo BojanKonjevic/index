@@ -12,6 +12,7 @@ import {
 
 import { fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
+import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import type { Material } from "@index/shared"
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import * as pdfjs from "pdfjs-dist"
@@ -44,6 +45,19 @@ function ViewerPage() {
     () => materials.find((m) => m.id === materialId),
     [materials, materialId],
   )
+
+  const { addRecent } = useRecentlyOpened()
+
+  useEffect(() => {
+    if (!material) return
+    addRecent({
+      materialId: material.id,
+      subjectId,
+      title: material.title,
+      subjectName: subject.name,
+      timestamp: Date.now(),
+    })
+  }, [materialId])
 
   useEffect(() => {
     if (!material?.url) {
