@@ -1,0 +1,15 @@
+{
+  "subject": {
+    "id": "matematicka-analiza-2",
+    "name": "Matematička analiza 2",
+    "semester": 4,
+    "espb": 8,
+    "elective": false,
+    "electiveGroup": null,
+    "description": "",
+    "professors": [""],
+    "assistants": [""]
+  },
+  "materials": [],
+  "exams": []
+}
