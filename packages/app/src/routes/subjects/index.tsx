@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { Search, Star, LayoutGrid, List } from "lucide-react"
 import { fetchSubjects } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
+import { useFuseSearch } from "@/hooks/useFuseSearch"
+import { useDebounce } from "@/hooks/useDebounce"
 import type { SubjectListItem } from "@index/shared"
 import { useState, useMemo } from "react"
 
@@ -29,17 +31,17 @@ function SubjectsPage() {
   const [electiveOnly, setElectiveOnly] = useState(false)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
+  const debouncedQuery = useDebounce(searchQuery, 200)
+
+  const fuseFiltered = useFuseSearch(subjects, { keys: ["name"], threshold: 0.4 }, debouncedQuery)
+
   const filtered = useMemo(() => {
-    return subjects.filter((s) => {
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase()
-        if (!s.name.toLowerCase().includes(q)) return false
-      }
+    return fuseFiltered.filter((s) => {
       if (semesterFilter !== null && s.semester !== semesterFilter) return false
       if (electiveOnly && !s.elective) return false
       return true
     })
-  }, [subjects, searchQuery, semesterFilter, electiveOnly])
+  }, [fuseFiltered, semesterFilter, electiveOnly])
 
   const grouped = useMemo(() => {
     const groups: Record<number, SubjectListItem[]> = {}

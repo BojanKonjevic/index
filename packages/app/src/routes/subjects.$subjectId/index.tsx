@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { Search, Star, BookOpen, Pencil, FileText, Folder } from "lucide-react"
 import { fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
+import { useFuseSearch } from "@/hooks/useFuseSearch"
+import { useDebounce } from "@/hooks/useDebounce"
 import { formatDate, daysUntil } from "@/lib/utils"
 import type { Material } from "@index/shared"
 import { useState, useMemo } from "react"
@@ -109,8 +111,12 @@ function SubjectPage() {
   const [examStatusFilter, setExamStatusFilter] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
 
+  const debouncedQuery = useDebounce(searchQuery, 200)
+
+  const fuseFiltered = useFuseSearch(materials, { keys: ["title"], threshold: 0.4 }, debouncedQuery)
+
   const filteredMaterials = useMemo(() => {
-    return materials.filter((m) => {
+    return fuseFiltered.filter((m) => {
       if (fileTypeFilter !== "all" && m.fileType !== fileTypeFilter) return false
       if (categoryFilter !== "all" && m.category !== categoryFilter) return false
       if (examStatusFilter !== "all") {
@@ -118,13 +124,9 @@ function SubjectPage() {
         if (examStatusFilter === "solved" && m.solved !== true) return false
         if (examStatusFilter === "unsolved" && m.solved !== false) return false
       }
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase()
-        if (!m.title.toLowerCase().includes(q)) return false
-      }
       return true
     })
-  }, [materials, fileTypeFilter, categoryFilter, examStatusFilter, searchQuery])
+  }, [fuseFiltered, fileTypeFilter, categoryFilter, examStatusFilter])
 
   const grouped = useMemo(() => {
     const groups: Record<string, Material[]> = {}

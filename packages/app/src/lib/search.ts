@@ -1,0 +1,78 @@
+import Fuse from "fuse.js"
+import { useMemo } from "react"
+import type { Material, ExamEvent } from "@index/shared"
+
+export type SearchResultItem = {
+  id: string
+  label: string
+  description: string
+  type: "subject" | "material" | "exam"
+  to: string
+  params: Record<string, string>
+}
+
+type GlobalData = {
+  subjects: Array<{ id: string; name: string; semester: number; espb: number }>
+  materials: Material[]
+  exams: ExamEvent[]
+  subjectName: string
+}
+
+function buildGlobalIndex(data: GlobalData): SearchResultItem[] {
+  const items: SearchResultItem[] = []
+
+  for (const subject of data.subjects) {
+    items.push({
+      id: subject.id,
+      label: subject.name,
+      description: `${subject.semester}. semestar · ${subject.espb} ESPB`,
+      type: "subject",
+      to: "/subjects/$subjectId",
+      params: { subjectId: subject.id },
+    })
+  }
+
+  for (const material of data.materials) {
+    items.push({
+      id: material.id,
+      label: material.title,
+      description: data.subjectName,
+      type: "material",
+      to: "/subjects/$subjectId/materials/$materialId",
+      params: { subjectId: material.subjectId, materialId: material.id },
+    })
+  }
+
+  for (const exam of data.exams) {
+    items.push({
+      id: exam.id,
+      label: exam.title,
+      description: data.subjectName,
+      type: "exam",
+      to: "/subjects/$subjectId",
+      params: { subjectId: exam.subjectId },
+    })
+  }
+
+  return items
+}
+
+export function useGlobalSearch(data: GlobalData | null, query: string, limit = 8) {
+  const index = useMemo(() => {
+    if (!data) return [] as SearchResultItem[]
+    return buildGlobalIndex(data)
+  }, [data])
+
+  const fuse = useMemo(
+    () => new Fuse(index, { keys: ["label", "description"], threshold: 0.4 }),
+    [index],
+  )
+
+  return useMemo(() => {
+    if (!query.trim()) return []
+    return fuse
+      .search(query)
+      .slice(0, limit)
+      .map((r) => r.item)
+  }, [fuse, query, limit])
+}
