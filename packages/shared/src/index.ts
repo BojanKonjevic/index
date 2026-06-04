@@ -33,7 +33,18 @@ export interface ExamEvent {
   location: string
 }
 
-export interface SubjectData {
+export interface SubjectListItem {
+  id: string
+  name: string
+  semester: number
+  espb: number
+  elective: boolean
+  electiveGroup: string | null
+  professors: string[]
+  materialCount: number
+}
+
+export interface SubjectDetail {
   subject: Subject
   materials: Material[]
   exams: ExamEvent[]

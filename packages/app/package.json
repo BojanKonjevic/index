@@ -15,6 +15,7 @@
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@fontsource-variable/geist": "^5.2.9",
+    "@index/shared": "workspace:*",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-router": "^1.170.11",
     "class-variance-authority": "^0.7.1",

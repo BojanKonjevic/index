@@ -1,10 +1,11 @@
 import { Hono } from "hono"
+import type { SubjectListItem, SubjectDetail } from "@index/shared"
 import data from "../data/matematicka-analiza-2.json"
 
 const app = new Hono()
 
 app.get("/subjects", (c) => {
-  const subjects = [
+  const subjects: SubjectListItem[] = [
     {
       id: data.subject.id,
       name: data.subject.name,
@@ -24,11 +25,12 @@ app.get("/subject/:id", (c) => {
   if (id !== data.subject.id) {
     return c.json({ error: "Not found" }, 404)
   }
-  return c.json({
+  const detail: SubjectDetail = {
     subject: data.subject,
     materials: data.materials,
     exams: data.exams,
-  })
+  }
+  return c.json(detail)
 })
 
 export default app

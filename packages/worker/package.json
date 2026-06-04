@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@index/shared": "workspace:*",
     "hono": "^4.12.23"
   },
   "devDependencies": {
