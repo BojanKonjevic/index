@@ -3,6 +3,7 @@ dist/
 build/
 .wrangler/
 *.tsbuildinfo
+.tanstack/tmp/
 AGENTS.md
 
 .env

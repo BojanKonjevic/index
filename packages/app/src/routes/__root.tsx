@@ -133,6 +133,15 @@ export const Route = createRootRoute({
   component: () => {
     const location = useLocation()
     const isHome = location.pathname === "/"
+    const isViewer = location.pathname.includes("/materials/")
+
+    if (isViewer) {
+      return (
+        <div className="min-h-screen">
+          <Outlet />
+        </div>
+      )
+    }
 
     return (
       <div className="min-h-screen bg-[#f5f5f4]">
