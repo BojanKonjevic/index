@@ -1,5 +1,5 @@
 import { createRootRoute, Outlet, Link, useLocation } from "@tanstack/react-router"
-import { Home, BookOpen, Bookmark, Settings, User, GraduationCap, ChevronDown } from "lucide-react"
+import { Home, BookOpen, Bookmark, User, GraduationCap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   Select,
@@ -31,10 +31,7 @@ function Sidebar() {
     },
     {
       label: "Lično",
-      items: [
-        { to: "/bookmarks", label: "Obeleženo", icon: Bookmark },
-        { to: "/settings", label: "Podešavanja", icon: Settings },
-      ],
+      items: [{ to: "/bookmarks", label: "Obeleženo", icon: Bookmark }],
     },
   ]
 
@@ -77,34 +74,29 @@ function Sidebar() {
       </nav>
 
       <div className="border-t border-[#f0f0f0] px-2 py-3">
-        <div className="flex items-center gap-2 rounded-md bg-[#f5f5f4] px-3 py-2">
-          <User className="size-4 text-[#888]" />
-          <div className="flex-1">
-            <div className="text-xs text-[#888]">Trenutna grupa</div>
-            <div className="flex items-center gap-1">
-              <Select
-                value={String(group)}
-                onValueChange={(v) => {
-                  if (!v) return
-                  setGroup(Number(v))
-                  localStorage.setItem("group", v)
-                }}
-              >
-                <SelectTrigger className="h-6 border-none bg-transparent p-0 text-[13px] font-medium shadow-none focus:ring-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {groups.map((g) => (
-                    <SelectItem key={g} value={String(g)}>
-                      Grupa {g}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <Select
+          value={String(group)}
+          onValueChange={(v) => {
+            if (!v) return
+            setGroup(Number(v))
+            localStorage.setItem("group", v)
+          }}
+        >
+          <SelectTrigger className="flex w-full items-center gap-2 rounded-md bg-[#f5f5f4] px-3 py-2 text-xs shadow-none hover:bg-[#eee]">
+            <User className="size-4 text-[#888]" />
+            <div className="flex flex-1 flex-col items-start text-left">
+              <span className="text-[11px] text-[#888]">Trenutna grupa</span>
+              <SelectValue className="text-[13px] font-medium text-[#111]" />
             </div>
-          </div>
-          <ChevronDown className="size-3.5 text-[#bbb]" />
-        </div>
+          </SelectTrigger>
+          <SelectContent>
+            {groups.map((g) => (
+              <SelectItem key={g} value={String(g)}>
+                Grupa {g}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </aside>
   )
@@ -121,8 +113,8 @@ function TopBar() {
           Predmeti
         </Link>
         <span className="rounded bg-[#f0f0f0] px-2 py-0.5 text-xs font-medium">Grupa {group}</span>
-        <Link to="/settings" className="hover:text-[#111]">
-          <Settings className="size-4" />
+        <Link to="/bookmarks" className="hover:text-[#111]">
+          <Bookmark className="size-4" />
         </Link>
       </div>
     </header>

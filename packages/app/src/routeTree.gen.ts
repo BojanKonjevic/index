@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SubjectsIndexRouteImport } from './routes/subjects/index'
-import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as BookmarksIndexRouteImport } from './routes/bookmarks/index'
 import { Route as SubjectsSubjectIdIndexRouteImport } from './routes/subjects.$subjectId/index'
 import { Route as SubjectsSubjectIdMaterialsMaterialIdIndexRouteImport } from './routes/subjects.$subjectId.materials.$materialId/index'
@@ -24,11 +23,6 @@ const IndexRoute = IndexRouteImport.update({
 const SubjectsIndexRoute = SubjectsIndexRouteImport.update({
   id: '/subjects/',
   path: '/subjects/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsIndexRoute = SettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookmarksIndexRoute = BookmarksIndexRouteImport.update({
@@ -51,7 +45,6 @@ const SubjectsSubjectIdMaterialsMaterialIdIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/bookmarks/': typeof BookmarksIndexRoute
-  '/settings/': typeof SettingsIndexRoute
   '/subjects/': typeof SubjectsIndexRoute
   '/subjects/$subjectId/': typeof SubjectsSubjectIdIndexRoute
   '/subjects/$subjectId/materials/$materialId/': typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
@@ -59,7 +52,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bookmarks': typeof BookmarksIndexRoute
-  '/settings': typeof SettingsIndexRoute
   '/subjects': typeof SubjectsIndexRoute
   '/subjects/$subjectId': typeof SubjectsSubjectIdIndexRoute
   '/subjects/$subjectId/materials/$materialId': typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
@@ -68,7 +60,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/bookmarks/': typeof BookmarksIndexRoute
-  '/settings/': typeof SettingsIndexRoute
   '/subjects/': typeof SubjectsIndexRoute
   '/subjects/$subjectId/': typeof SubjectsSubjectIdIndexRoute
   '/subjects/$subjectId/materials/$materialId/': typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
@@ -78,7 +69,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/bookmarks/'
-    | '/settings/'
     | '/subjects/'
     | '/subjects/$subjectId/'
     | '/subjects/$subjectId/materials/$materialId/'
@@ -86,7 +76,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/bookmarks'
-    | '/settings'
     | '/subjects'
     | '/subjects/$subjectId'
     | '/subjects/$subjectId/materials/$materialId'
@@ -94,7 +83,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/bookmarks/'
-    | '/settings/'
     | '/subjects/'
     | '/subjects/$subjectId/'
     | '/subjects/$subjectId/materials/$materialId/'
@@ -103,7 +91,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BookmarksIndexRoute: typeof BookmarksIndexRoute
-  SettingsIndexRoute: typeof SettingsIndexRoute
   SubjectsIndexRoute: typeof SubjectsIndexRoute
   SubjectsSubjectIdIndexRoute: typeof SubjectsSubjectIdIndexRoute
   SubjectsSubjectIdMaterialsMaterialIdIndexRoute: typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
@@ -123,13 +110,6 @@ declare module '@tanstack/react-router' {
       path: '/subjects'
       fullPath: '/subjects/'
       preLoaderRoute: typeof SubjectsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/': {
-      id: '/settings/'
-      path: '/settings'
-      fullPath: '/settings/'
-      preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bookmarks/': {
@@ -159,7 +139,6 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BookmarksIndexRoute: BookmarksIndexRoute,
-  SettingsIndexRoute: SettingsIndexRoute,
   SubjectsIndexRoute: SubjectsIndexRoute,
   SubjectsSubjectIdIndexRoute: SubjectsSubjectIdIndexRoute,
   SubjectsSubjectIdMaterialsMaterialIdIndexRoute:
