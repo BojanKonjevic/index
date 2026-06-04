@@ -1,5 +1,5 @@
 import { Hono } from "hono"
-import type { SubjectListItem, SubjectDetail } from "@index/shared"
+import type { SubjectListItem, SubjectDetail, Material, ExamEvent } from "@index/shared"
 import data from "../data/matematicka-analiza-2.json"
 
 const app = new Hono()
@@ -27,8 +27,8 @@ app.get("/subject/:id", (c) => {
   }
   const detail: SubjectDetail = {
     subject: data.subject,
-    materials: data.materials,
-    exams: data.exams,
+    materials: data.materials as Material[],
+    exams: data.exams as ExamEvent[],
   }
   return c.json(detail)
 })
