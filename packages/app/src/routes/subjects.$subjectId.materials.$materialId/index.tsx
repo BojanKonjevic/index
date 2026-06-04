@@ -1,20 +1,22 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import {
   ArrowLeft,
-  ChevronUp,
-  ChevronDown,
   ZoomIn,
   ZoomOut,
   Maximize,
   SunMoon,
-  Fullscreen,
   Star,
   FileText,
+  Loader2,
 } from "lucide-react"
+
 import { fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import type { Material } from "@index/shared"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef, useEffect, useCallback } from "react"
+import * as pdfjs from "pdfjs-dist"
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
 export const Route = createFileRoute("/subjects/$subjectId/materials/$materialId/")({
   loader: ({ params }) => fetchSubject(params.subjectId),
@@ -28,10 +30,219 @@ function ViewerPage() {
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
   const [sidebarMode, setSidebarMode] = useState<"category" | "all">("category")
 
+  const [pdf, setPdf] = useState<pdfjs.PDFDocumentProxy | null>(null)
+  const [pageNum, setPageNum] = useState(1)
+  const [totalPages, setTotalPages] = useState(0)
+  const [zoom, setZoom] = useState(1)
+  const [inverted, setInverted] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [renderError, setRenderError] = useState<string | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const baseZoomRef = useRef(1)
+
   const material = useMemo(
     () => materials.find((m) => m.id === materialId),
     [materials, materialId],
   )
+
+  useEffect(() => {
+    if (!material?.url) {
+      setRenderError("URL nije postavljen.")
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setRenderError(null)
+    setPdf(null)
+    setPageNum(1)
+    setTotalPages(0)
+
+    pdfjs
+      .getDocument({ url: material.url })
+      .promise.then((doc) => {
+        setPdf(doc)
+        setTotalPages(doc.numPages)
+        setPageNum(1)
+        setLoading(false)
+        setRenderError(null)
+      })
+      .catch(() => {
+        setRenderError("Neuspešno učitavanje PDF-a.")
+        setLoading(false)
+      })
+  }, [material?.url])
+
+  useEffect(() => {
+    if (!pdf || !containerRef.current) return
+
+    const container = containerRef.current
+    container.querySelectorAll(".pdf-page-wrapper").forEach((el) => el.remove())
+
+    const dpr = window.devicePixelRatio || 1
+    const renderScale = zoom * dpr
+    const displayScale = zoom
+
+    let cancelled = false
+
+    ;(async () => {
+      for (let num = 1; num <= pdf.numPages; num++) {
+        if (cancelled) break
+        const page = await pdf.getPage(num)
+        if (cancelled) break
+        const renderVp = page.getViewport({ scale: renderScale })
+        const displayVp = page.getViewport({ scale: displayScale })
+
+        const wrapper = document.createElement("div")
+        wrapper.className = "pdf-page-wrapper"
+        wrapper.dataset.pageNum = String(num)
+        wrapper.style.width = `${displayVp.width}px`
+        wrapper.style.maxWidth = "100%"
+        wrapper.style.margin = "0 auto 16px auto"
+        wrapper.style.boxShadow = "0 2px 12px rgba(0,0,0,0.4)"
+        wrapper.style.position = "relative"
+
+        const canvas = document.createElement("canvas")
+        canvas.className = "pdf-page"
+        canvas.dataset.pageNum = String(num)
+        canvas.width = renderVp.width
+        canvas.height = renderVp.height
+        canvas.style.display = "block"
+        canvas.style.width = "100%"
+        canvas.style.height = "auto"
+        canvas.style.filter = inverted ? "invert(1)" : "none"
+        wrapper.appendChild(canvas)
+
+        await page.render({ canvas, viewport: renderVp }).promise
+        if (cancelled) break
+
+        container.appendChild(wrapper)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [pdf, zoom, inverted])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || !pdf) return
+
+    const onScroll = () => {
+      const pages = container.querySelectorAll<HTMLCanvasElement>(".pdf-page")
+      if (pages.length === 0) return
+      const containerRect = container.getBoundingClientRect()
+      const mid = containerRect.top + containerRect.height / 2
+      let closest = 1
+      let closestDist = Infinity
+      pages.forEach((canvas) => {
+        const num = parseInt(canvas.dataset.pageNum || "1")
+        const rect = canvas.getBoundingClientRect()
+        const canvasMid = rect.top + rect.height / 2
+        const dist = Math.abs(canvasMid - mid)
+        if (dist < closestDist) {
+          closestDist = dist
+          closest = num
+        }
+      })
+      setPageNum(closest)
+    }
+
+    container.addEventListener("scroll", onScroll)
+    return () => container.removeEventListener("scroll", onScroll)
+  }, [pdf])
+
+  const goToPage = useCallback(
+    (num: number) => {
+      if (!containerRef.current || num < 1 || num > totalPages) return
+      const canvas = containerRef.current.querySelector<HTMLCanvasElement>(
+        `.pdf-page[data-page-num="${num}"]`,
+      )
+      if (canvas) {
+        canvas.scrollIntoView({ block: "start" })
+      }
+      setPageNum(num)
+    },
+    [totalPages],
+  )
+
+  const [pageInput, setPageInput] = useState("1")
+
+  useEffect(() => {
+    setPageInput(String(pageNum))
+  }, [pageNum])
+
+  const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPageInput(e.target.value)
+  }
+
+  const handlePageInputCommit = () => {
+    const num = parseInt(pageInput, 10)
+    if (!isNaN(num)) goToPage(num)
+    else setPageInput(String(pageNum))
+  }
+
+  const handlePageInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handlePageInputCommit()
+  }
+
+  const maxZoom = Math.min(baseZoomRef.current * 3, 5)
+  const minZoom = Math.max(baseZoomRef.current * 0.2, 0.1)
+  const atMaxZoom = zoom * 1.25 >= maxZoom
+  const atMinZoom = zoom / 1.25 <= minZoom
+  const zoomIn = () => setZoom((z) => (z * 1.25 >= maxZoom ? z : Math.min(z * 1.25, maxZoom)))
+  const zoomOut = () => setZoom((z) => (z / 1.25 <= minZoom ? z : Math.max(z * 0.75, minZoom)))
+
+  const fitWidth = useCallback(async () => {
+    if (!pdf || !containerRef.current) return
+    const page = await pdf.getPage(pageNum)
+    const viewport = page.getViewport({ scale: 1 })
+    const containerWidth = containerRef.current.clientWidth - 64
+    setZoom(Math.max(minZoom, Math.min(containerWidth / viewport.width, maxZoom)))
+  }, [pdf, pageNum, minZoom, maxZoom])
+
+  useEffect(() => {
+    if (!pdf || !containerRef.current) return
+    const container = containerRef.current
+    ;(async () => {
+      const page = await pdf.getPage(pageNum)
+      const viewport = page.getViewport({ scale: 1 })
+      const containerWidth = container.clientWidth - 64
+      baseZoomRef.current = containerWidth / viewport.width
+      const fit = baseZoomRef.current
+      setZoom(Math.max(minZoom, Math.min(fit * 0.75, maxZoom)))
+    })()
+  }, [pdf])
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.key === "ArrowUp") {
+        e.preventDefault()
+        containerRef.current?.scrollBy({ top: -100, behavior: "auto" })
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault()
+        containerRef.current?.scrollBy({ top: 100, behavior: "auto" })
+      } else if (e.key === "PageUp") {
+        e.preventDefault()
+        goToPage(pageNum - 1)
+      } else if (e.key === "PageDown") {
+        e.preventDefault()
+        goToPage(pageNum + 1)
+      } else if (e.key === "Home") {
+        e.preventDefault()
+        goToPage(1)
+      } else if (e.key === "End") {
+        e.preventDefault()
+        goToPage(totalPages)
+      } else if (e.key === "b" && material) {
+        e.preventDefault()
+        isBookmarked(material.id) ? removeBookmark(material.id) : addBookmark(material.id)
+      }
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [pageNum, totalPages, material, isBookmarked, addBookmark, removeBookmark, goToPage])
 
   const categoryName =
     material?.category === "theory"
@@ -52,7 +263,6 @@ function ViewerPage() {
   const groupedByExamPart = useMemo(() => {
     const groups: Record<string, Material[]> = {}
     const noPart: Material[] = []
-
     sidebarMaterials.forEach((m) => {
       if (m.examPart) {
         if (!groups[m.examPart]) groups[m.examPart] = []
@@ -61,7 +271,6 @@ function ViewerPage() {
         noPart.push(m)
       }
     })
-
     const ordered: { label: string; items: Material[] }[] = []
     const partOrder = ["K1", "K2", "final"]
     partOrder.forEach((part) => {
@@ -71,11 +280,6 @@ function ViewerPage() {
       if (!partOrder.includes(part)) ordered.push({ label: part, items })
     })
     if (noPart.length > 0) ordered.push({ label: "", items: noPart })
-
-    if (sidebarMode === "all") {
-      return ordered
-    }
-
     return ordered
   }, [sidebarMaterials, sidebarMode])
 
@@ -83,9 +287,8 @@ function ViewerPage() {
     if (sidebarMode !== "all") return null
     const groups: Record<string, Material[]> = {}
     materials.forEach((m) => {
-      const cat = m.category
-      if (!groups[cat]) groups[cat] = []
-      groups[cat].push(m)
+      if (!groups[m.category]) groups[m.category] = []
+      groups[m.category].push(m)
     })
     return groups
   }, [materials, sidebarMode])
@@ -102,7 +305,7 @@ function ViewerPage() {
         className="cursor-pointer"
       >
         <Star
-          className={`size-4 ${b ? "fill-amber-400 text-amber-400" : "text-[#ddd] hover:text-[#aaa]"}`}
+          className={`size-6 ${b ? "fill-amber-400 text-amber-400" : "text-[#ddd] hover:text-[#aaa]"}`}
         />
       </button>
     )
@@ -119,18 +322,18 @@ function ViewerPage() {
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       {/* ── Top bar ── */}
-      <div className="flex h-11 shrink-0 items-center border-b bg-white">
+      <div className="flex h-20 shrink-0 items-center border-b bg-white">
         <div className="flex items-center gap-0 border-r border-[#f0f0f0] px-2">
           <button
             onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
-            className="flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] text-[#555] hover:bg-[#f5f5f5] hover:text-[#111]"
+            className="flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-[#555] hover:bg-[#f5f5f5] hover:text-[#111]"
           >
-            <ArrowLeft className="size-3.5" />
+            <ArrowLeft className="size-6" />
             Nazad
           </button>
         </div>
 
-        <div className="flex items-center gap-1.5 border-r border-[#f0f0f0] px-4 text-[12.5px] text-[#aaa]">
+        <div className="flex items-center gap-1.5 border-r border-[#f0f0f0] px-4 text-sm text-[#aaa]">
           <Link to="/subjects" className="hover:text-[#555]">
             Predmeti
           </Link>
@@ -139,94 +342,95 @@ function ViewerPage() {
             {subject.name}
           </Link>
           <span>›</span>
-          <span className="text-[#333] font-medium">{categoryName}</span>
+          <span className="font-medium text-[#333]">{categoryName}</span>
         </div>
 
-        <div className="min-w-0 flex-1 truncate px-5 text-[13.5px] font-medium text-[#222]">
+        <div className="min-w-0 flex-1 truncate px-5 text-base font-medium text-[#222]">
           {material.title}
         </div>
 
-        <div className="flex items-center gap-0.5 px-3">
-          <span className="flex items-center gap-1 whitespace-nowrap px-2 text-xs text-[#888]">
+        <div className="flex items-center gap-0.5 px-2">
+          <span className="flex items-center gap-1 whitespace-nowrap px-1.5 text-[13px] text-[#888]">
             <input
               type="text"
-              defaultValue="1"
-              className="w-9 rounded border border-[#e0e0e0] px-1 py-0.5 text-center text-xs outline-none"
+              value={pageInput}
+              onChange={handlePageInputChange}
+              onBlur={handlePageInputCommit}
+              onKeyDown={handlePageInputKeyDown}
+              className="w-12 rounded border border-[#e0e0e0] px-1 py-1 text-center text-sm outline-none"
             />
             <span className="text-[#aaa]">/</span>
-            <span>{material.pageCount || "?"}</span>
+            <span>{totalPages || material.pageCount || "?"}</span>
           </span>
 
-          <span className="mx-1 h-5 w-px bg-[#eee]" />
+          <span className="mx-1 h-7 w-px bg-[#eee]" />
 
           <span className="flex gap-0.5">
-            {[
-              { icon: ChevronUp, title: "Prethodna strana" },
-              { icon: ChevronDown, title: "Sledeća strana" },
-            ].map(({ icon: Icon, title }) => (
-              <button key={title} title={title} className="ctrl-btn">
-                <Icon className="size-3.5" />
-              </button>
-            ))}
+            <button
+              onClick={zoomOut}
+              disabled={atMinZoom}
+              title="Umanji"
+              className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ZoomOut className="size-6" />
+            </button>
+            <button
+              onClick={zoomIn}
+              disabled={atMaxZoom}
+              title="Uvećaj"
+              className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ZoomIn className="size-6" />
+            </button>
+            <button
+              onClick={fitWidth}
+              title="Podesi širinu"
+              className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111]"
+            >
+              <Maximize className="size-6" />
+            </button>
           </span>
 
-          <span className="mx-1 h-5 w-px bg-[#eee]" />
+          <span className="mx-1 h-7 w-px bg-[#eee]" />
 
           <span className="flex gap-0.5">
-            {[
-              { icon: ZoomOut, title: "Umanji" },
-              { icon: ZoomIn, title: "Uvećaj" },
-              { icon: Maximize, title: "Podesi širinu" },
-            ].map(({ icon: Icon, title }) => (
-              <button key={title} title={title} className="ctrl-btn">
-                <Icon className="size-3.5" />
-              </button>
-            ))}
-          </span>
-
-          <span className="mx-1 h-5 w-px bg-[#eee]" />
-
-          <span className="flex gap-0.5">
-            {[
-              { icon: SunMoon, title: "Invertuj boje" },
-              { icon: Fullscreen, title: "Ceo ekran" },
-            ].map(({ icon: Icon, title }) => (
-              <button key={title} title={title} className="ctrl-btn">
-                <Icon className="size-3.5" />
-              </button>
-            ))}
+            <button
+              onClick={() => setInverted((v) => !v)}
+              title="Invertuj boje"
+              className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111]"
+            >
+              <SunMoon className="size-6" />
+            </button>
           </span>
         </div>
 
-        <div className="flex items-center border-l border-[#f0f0f0] px-3">
+        <div className="flex items-center border-l border-[#f0f0f0] px-4">
           {bookmarkStar(material.id)}
         </div>
       </div>
 
-      {/* ── Main viewer ── */}
+      {/* ── PDF viewer ── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* PDF area */}
-        <div className="flex flex-1 flex-col items-center gap-4 overflow-y-auto bg-[#2c2c2c] px-8 py-6">
-          <div className="flex h-[600px] w-[700px] items-center justify-center rounded bg-white shadow-lg">
-            <p className="text-sm text-muted-foreground">PDF pregledač (dodaje se u fazi 5.1)</p>
-          </div>
-          <div className="flex h-[600px] w-[700px] items-center justify-center rounded bg-white shadow-lg opacity-70">
-            <p className="text-sm text-muted-foreground">Stranica 2</p>
-          </div>
+        <div
+          ref={containerRef}
+          className="flex flex-1 flex-col items-center gap-0 overflow-y-auto px-8 py-6 transition-colors"
+          style={{ backgroundColor: inverted ? "#fff" : "#2c2c2c" }}
+        >
+          {loading && (
+            <div className="flex items-center gap-2 pt-20 text-sm text-[#999]">
+              <Loader2 className="size-5 animate-spin" />
+              Učitavanje PDF-a…
+            </div>
+          )}
+          {renderError && <div className="pt-20 text-sm text-[#999]">{renderError}</div>}
         </div>
 
         {/* ── Right sidebar ── */}
-        <div className="flex w-[264px] shrink-0 flex-col overflow-hidden border-l bg-white">
+        <div className="flex w-[300px] shrink-0 flex-col overflow-hidden border-l bg-white">
           <div className="flex items-center justify-between border-b border-[#f0f0f0] px-4 py-3.5">
-            {sidebarMode === "category" ? (
-              <span className="text-xs font-semibold uppercase tracking-[0.6px] text-[#888]">
-                {categoryName}
-              </span>
-            ) : (
-              <span className="text-xs font-semibold uppercase tracking-[0.6px] text-[#888]">
-                Svi materijali
-              </span>
-            )}
+            <span className="text-xs font-semibold uppercase tracking-[0.6px] text-[#888]">
+              {sidebarMode === "category" ? categoryName : "Svi materijali"}
+            </span>
             <button
               onClick={() => setSidebarMode(sidebarMode === "category" ? "all" : "category")}
               className="cursor-pointer text-[11px] text-[#aaa] hover:text-[#555]"
@@ -280,15 +484,10 @@ function ViewerPage() {
 
           <div className="flex flex-wrap gap-2 border-t border-[#f0f0f0] px-3 py-2.5 text-[11px] text-[#ccc]">
             <span>
-              <kbd className="kbd-shortcut">j</kbd>
-              <kbd className="kbd-shortcut">k</kbd> strana
-            </span>
-            <span>
-              <kbd className="kbd-shortcut">g</kbd>
-              <kbd className="kbd-shortcut">G</kbd> prva/zadnja
-            </span>
-            <span>
-              <kbd className="kbd-shortcut">b</kbd> obeleži
+              <kbd className="rounded border border-[#bbb] bg-[#ddd] px-1.5 text-[11px] font-medium text-[#333]">
+                b
+              </kbd>{" "}
+              <span className="text-[#888]">obeleži</span>
             </span>
           </div>
         </div>
@@ -310,11 +509,9 @@ function SidebarItem({
     <Link
       to="/subjects/$subjectId/materials/$materialId"
       params={{ subjectId: material.subjectId, materialId: material.id }}
-      className={`flex items-start gap-2.5 rounded-md px-2.5 py-2 text-left ${
-        isActive ? "bg-[#111] text-white" : "hover:bg-[#f5f5f5]"
-      }`}
+      className={`flex items-start gap-2.5 rounded-md px-2.5 py-2 text-left ${isActive ? "bg-[#111] text-white" : "hover:bg-[#f5f5f5]"}`}
     >
-      <FileText className={`mt-0.5 size-3.5 shrink-0 ${isActive ? "text-white" : "text-[#888]"}`} />
+      <FileText className={`mt-0.5 size-6 shrink-0 ${isActive ? "text-white" : "text-[#888]"}`} />
       <div className="min-w-0 flex-1">
         <div className={`truncate text-[12.5px] font-medium ${isActive ? "text-white" : ""}`}>
           {material.title}
