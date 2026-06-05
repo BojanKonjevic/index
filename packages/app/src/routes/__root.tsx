@@ -1,5 +1,5 @@
 import { createRootRoute, Outlet, Link, useLocation } from "@tanstack/react-router"
-import { Home, BookOpen, Bookmark, User, GraduationCap } from "lucide-react"
+import { Home, BookOpen, Bookmark, User, GraduationCap, LogIn, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   Select,
@@ -9,17 +9,22 @@ import {
   SelectItem,
 } from "@/components/ui/select"
 import { useState } from "react"
+import { AuthProvider, useAuth } from "@/hooks/useAuth"
+import { AuthModal } from "@/components/AuthModal"
+import { WelcomeScreen } from "@/components/WelcomeScreen"
 
 const groups = Array.from({ length: 14 }, (_, i) => i + 1)
 
-function getGroup(): number {
-  if (typeof window === "undefined") return 7
-  return Number(localStorage.getItem("group")) || 7
+function getGroup(): string | null {
+  if (typeof window === "undefined") return null
+  return localStorage.getItem("group")
 }
 
 function Sidebar() {
   const location = useLocation()
-  const [group, setGroup] = useState(getGroup)
+  const [group, setGroup] = useState<string | null>(getGroup)
+  const { user, isGuest, logout } = useAuth()
+  const [authOpen, setAuthOpen] = useState(false)
 
   const navSections = [
     {
@@ -73,12 +78,12 @@ function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-[#f0f0f0] px-2 py-3">
+      <div className="mt-auto border-t border-[#f0f0f0] px-2 py-3">
         <Select
-          value={String(group)}
+          value={group}
           onValueChange={(v) => {
             if (!v) return
-            setGroup(Number(v))
+            setGroup(v)
             localStorage.setItem("group", v)
           }}
         >
@@ -86,7 +91,10 @@ function Sidebar() {
             <User className="size-4 text-[#888]" />
             <div className="flex flex-1 flex-col items-start text-left">
               <span className="text-[11px] text-[#888]">Trenutna grupa</span>
-              <SelectValue className="text-[13px] font-medium text-[#111]" />
+              <SelectValue
+                placeholder="Nije odabrano"
+                className="text-[13px] font-medium text-[#333]"
+              />
             </div>
           </SelectTrigger>
           <SelectContent>
@@ -97,13 +105,40 @@ function Sidebar() {
             ))}
           </SelectContent>
         </Select>
+
+        {!user && isGuest && (
+          <button
+            onClick={() => setAuthOpen(true)}
+            className="mt-2 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-[13px] text-[#555] transition-colors hover:bg-[#f5f5f4]"
+          >
+            <LogIn className="size-4" />
+            Prijavi se / Registruj se
+          </button>
+        )}
+
+        {user && (
+          <div className="mt-2 flex items-center justify-between rounded-md bg-[#f5f5f4] px-3 py-2">
+            <span className="text-[13px] font-medium text-[#333]">{user.name}</span>
+            <button
+              onClick={logout}
+              className="cursor-pointer text-[#888] hover:text-[#111]"
+              title="Odjavi se"
+            >
+              <LogOut className="size-4" />
+            </button>
+          </div>
+        )}
       </div>
+
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </aside>
   )
 }
 
 function TopBar() {
   const group = getGroup()
+  const { user, isGuest, logout } = useAuth()
+  const [authOpen, setAuthOpen] = useState(false)
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex h-12 items-center justify-between border-b bg-white px-6">
@@ -112,47 +147,86 @@ function TopBar() {
         <Link to="/subjects" className="hover:text-[#111]">
           Predmeti
         </Link>
-        <span className="rounded bg-[#f0f0f0] px-2 py-0.5 text-xs font-medium">Grupa {group}</span>
+        {group && (
+          <span className="rounded bg-[#f0f0f0] px-2 py-0.5 text-xs font-medium">
+            Grupa {group}
+          </span>
+        )}
+        {user ? (
+          <span className="flex items-center gap-2">
+            <span className="text-xs text-[#888]">{user.name}</span>
+            <button onClick={logout} className="cursor-pointer hover:text-[#111]" title="Odjavi se">
+              <LogOut className="size-4" />
+            </button>
+          </span>
+        ) : isGuest ? (
+          <button
+            onClick={() => setAuthOpen(true)}
+            className="flex cursor-pointer items-center gap-1 hover:text-[#111]"
+          >
+            <LogIn className="size-4" />
+            Prijavi se
+          </button>
+        ) : null}
         <Link to="/bookmarks" className="hover:text-[#111]">
           <Bookmark className="size-4" />
         </Link>
       </div>
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </header>
   )
 }
 
 export const Route = createRootRoute({
-  component: () => {
-    const location = useLocation()
-    const isHome = location.pathname === "/"
-    const isViewer = location.pathname.includes("/materials/")
+  component: RootLayout,
+})
 
-    if (isViewer) {
-      return (
-        <div className="min-h-screen">
-          <Outlet />
-        </div>
-      )
-    }
+function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootContent />
+    </AuthProvider>
+  )
+}
 
+function RootContent() {
+  const { user, isGuest, loading } = useAuth()
+  const location = useLocation()
+
+  if (loading) return null
+
+  if (!user && !isGuest) {
+    return <WelcomeScreen />
+  }
+
+  const isViewer = location.pathname.includes("/materials/")
+  const isHome = location.pathname === "/"
+
+  if (isViewer) {
     return (
-      <div className="min-h-screen bg-[#f5f5f4]">
-        {isHome ? (
-          <>
-            <TopBar />
-            <main className="pt-12">
-              <Outlet />
-            </main>
-          </>
-        ) : (
-          <>
-            <Sidebar />
-            <main className="ml-56 min-h-screen p-8">
-              <Outlet />
-            </main>
-          </>
-        )}
+      <div className="min-h-screen">
+        <Outlet />
       </div>
     )
-  },
-})
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f5f5f4]">
+      {isHome ? (
+        <>
+          <TopBar />
+          <main className="pt-12">
+            <Outlet />
+          </main>
+        </>
+      ) : (
+        <>
+          <Sidebar />
+          <main className="ml-56 min-h-screen p-8">
+            <Outlet />
+          </main>
+        </>
+      )}
+    </div>
+  )
+}

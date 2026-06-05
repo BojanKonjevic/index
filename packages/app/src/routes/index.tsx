@@ -61,7 +61,7 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   const data = Route.useLoaderData()
   const { recent } = useRecentlyOpened()
-  const group = typeof window !== "undefined" ? (localStorage.getItem("group") ?? "7") : "7"
+  const group = typeof window !== "undefined" ? localStorage.getItem("group") : null
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -114,7 +114,9 @@ function HomePage() {
   return (
     <div className="mx-auto max-w-[560px] px-6 pb-16 pt-[100px]">
       <h1 className="mb-1 text-[22px] font-semibold tracking-tight">Dobar dan.</h1>
-      <p className="mb-5 text-[13px] text-[#666]">4. semestar · 1 predmet · Grupa {group}</p>
+      <p className="mb-5 text-[13px] text-[#666]">
+        4. semestar · 1 predmet{group ? ` · Grupa ${group}` : ""}
+      </p>
 
       <div className="relative mb-12" ref={searchRef}>
         <div className="relative">
