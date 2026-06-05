@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import subjects from "./routes/subjects"
 import pdf from "./routes/pdf"
 import auth from "./routes/auth"
+import user from "./routes/user"
 
 export type Bindings = {
   ASSETS: Fetcher
@@ -13,6 +14,7 @@ const app = new Hono<{ Bindings: Bindings }>()
 app.route("/api", subjects)
 app.route("/api", pdf)
 app.route("/api", auth)
+app.route("/api", user)
 
 app.get("/api/health", (c) => c.json({ status: "ok" }))
 

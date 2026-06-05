@@ -8,7 +8,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AuthProvider, useAuth } from "@/hooks/useAuth"
 import { AuthModal } from "@/components/AuthModal"
 import { WelcomeScreen } from "@/components/WelcomeScreen"
@@ -25,6 +25,32 @@ function Sidebar() {
   const [group, setGroup] = useState<string | null>(getGroup)
   const { user, isGuest, logout } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    fetch("/api/preferences")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.group) {
+          setGroup(data.group)
+          localStorage.setItem("group", data.group)
+        }
+      })
+      .catch(() => {})
+  }, [user])
+
+  const handleGroupChange = (v: string | null) => {
+    if (!v) return
+    setGroup(v)
+    localStorage.setItem("group", v)
+    if (user) {
+      fetch("/api/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ group: v }),
+      }).catch(() => {})
+    }
+  }
 
   const navSections = [
     {
@@ -79,14 +105,7 @@ function Sidebar() {
       </nav>
 
       <div className="mt-auto border-t border-[#f0f0f0] px-2 py-3">
-        <Select
-          value={group}
-          onValueChange={(v) => {
-            if (!v) return
-            setGroup(v)
-            localStorage.setItem("group", v)
-          }}
-        >
+        <Select value={group} onValueChange={handleGroupChange}>
           <SelectTrigger className="flex w-full items-center gap-2 rounded-md bg-[#f5f5f4] px-3 py-2 text-xs shadow-none hover:bg-[#eee]">
             <User className="size-4 text-[#888]" />
             <div className="flex flex-1 flex-col items-start text-left">
