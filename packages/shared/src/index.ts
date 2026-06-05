@@ -18,7 +18,7 @@ export interface Material {
   category: "theory" | "problems" | "exam" | "misc"
   examPart: string | null
   solved: boolean | null
-  fileType: "pdf" | "video"
+  fileType: "pdf" | "video" | "image"
   url: string
   pageCount: number
   tags: string[]
