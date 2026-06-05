@@ -15,7 +15,10 @@ import { useBookmarks } from "@/hooks/useBookmarks"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import type { Material } from "@index/shared"
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
-import * as pdfjs from "pdfjs-dist"
+import { Document, Page, pdfjs } from "react-pdf"
+import "react-pdf/dist/Page/TextLayer.css"
+import "react-pdf/dist/Page/AnnotationLayer.css"
+import { useVirtualizer } from "@tanstack/react-virtual"
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
@@ -31,15 +34,16 @@ function ViewerPage() {
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
   const [sidebarMode, setSidebarMode] = useState<"category" | "all">("category")
 
-  const [pdf, setPdf] = useState<pdfjs.PDFDocumentProxy | null>(null)
   const [pageNum, setPageNum] = useState(1)
-  const [totalPages, setTotalPages] = useState(0)
+  const [numPages, setNumPages] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [inverted, setInverted] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [renderError, setRenderError] = useState<string | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const baseZoomRef = useRef(1)
+  const [pdfLoading, setPdfLoading] = useState(true)
+  const [pdfError, setPdfError] = useState<string | null>(null)
+  const [pageInput, setPageInput] = useState("1")
+  const [naturalPageWidth, setNaturalPageWidth] = useState<number | null>(null)
+  const [containerWidth, setContainerWidth] = useState(0)
+  const parentRef = useRef<HTMLDivElement>(null)
 
   const material = useMemo(
     () => materials.find((m) => m.id === materialId),
@@ -60,127 +64,63 @@ function ViewerPage() {
   }, [materialId])
 
   useEffect(() => {
-    if (!material?.url) {
-      setRenderError("URL nije postavljen.")
-      setLoading(false)
-      return
-    }
-    setLoading(true)
-    setRenderError(null)
-    setPdf(null)
+    setNumPages(0)
+    setPdfLoading(true)
+    setPdfError(null)
+    setNaturalPageWidth(null)
     setPageNum(1)
-    setTotalPages(0)
-
-    pdfjs
-      .getDocument({ url: material.url })
-      .promise.then((doc) => {
-        setPdf(doc)
-        setTotalPages(doc.numPages)
-        setPageNum(1)
-        setLoading(false)
-        setRenderError(null)
-      })
-      .catch(() => {
-        setRenderError("Neuspešno učitavanje PDF-a.")
-        setLoading(false)
-      })
   }, [material?.url])
 
   useEffect(() => {
-    if (!pdf || !containerRef.current) return
+    const el = parentRef.current
+    if (!el) return
+    const update = () => setContainerWidth(el.clientWidth)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
-    const container = containerRef.current
-    container.querySelectorAll(".pdf-page-wrapper").forEach((el) => el.remove())
+  const virtualizer = useVirtualizer({
+    count: numPages,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 842,
+    overscan: 2,
+  })
 
-    const dpr = window.devicePixelRatio || 1
-    const renderScale = zoom * dpr
-    const displayScale = zoom
-
-    let cancelled = false
-
-    ;(async () => {
-      for (let num = 1; num <= pdf.numPages; num++) {
-        if (cancelled) break
-        const page = await pdf.getPage(num)
-        if (cancelled) break
-        const renderVp = page.getViewport({ scale: renderScale })
-        const displayVp = page.getViewport({ scale: displayScale })
-
-        const wrapper = document.createElement("div")
-        wrapper.className = "pdf-page-wrapper"
-        wrapper.dataset.pageNum = String(num)
-        wrapper.style.width = `${displayVp.width}px`
-        wrapper.style.maxWidth = "100%"
-        wrapper.style.margin = "0 auto 16px auto"
-        wrapper.style.boxShadow = "0 2px 12px rgba(0,0,0,0.4)"
-        wrapper.style.position = "relative"
-
-        const canvas = document.createElement("canvas")
-        canvas.className = "pdf-page"
-        canvas.dataset.pageNum = String(num)
-        canvas.width = renderVp.width
-        canvas.height = renderVp.height
-        canvas.style.display = "block"
-        canvas.style.width = "100%"
-        canvas.style.height = "auto"
-        canvas.style.filter = inverted ? "invert(1)" : "none"
-        wrapper.appendChild(canvas)
-
-        await page.render({ canvas, viewport: renderVp }).promise
-        if (cancelled) break
-
-        container.appendChild(wrapper)
-      }
-    })()
-
-    return () => {
-      cancelled = true
+  const handleScroll = () => {
+    const range = virtualizer.range
+    if (range) {
+      setPageNum(range.startIndex + 1)
     }
-  }, [pdf, zoom, inverted])
+  }
+
+  const maxZoom =
+    naturalPageWidth && containerWidth > 0 ? (containerWidth - 64) / naturalPageWidth : 5
+  const minZoom = 0.1
+  const atMaxZoom = zoom * 1.25 >= maxZoom
+  const atMinZoom = zoom / 1.25 <= minZoom
+  const zoomIn = () => setZoom((z) => (z * 1.25 >= maxZoom ? z : Math.min(z * 1.25, maxZoom)))
+  const zoomOut = () => setZoom((z) => (z / 1.25 <= minZoom ? z : Math.max(z * 0.75, minZoom)))
+
+  const fitWidth = useCallback(() => {
+    if (!naturalPageWidth || containerWidth <= 0) return
+    const fit = (containerWidth - 64) / naturalPageWidth
+    setZoom(fit)
+  }, [naturalPageWidth, containerWidth])
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container || !pdf) return
-
-    const onScroll = () => {
-      const pages = container.querySelectorAll<HTMLCanvasElement>(".pdf-page")
-      if (pages.length === 0) return
-      const containerRect = container.getBoundingClientRect()
-      const mid = containerRect.top + containerRect.height / 2
-      let closest = 1
-      let closestDist = Infinity
-      pages.forEach((canvas) => {
-        const num = parseInt(canvas.dataset.pageNum || "1")
-        const rect = canvas.getBoundingClientRect()
-        const canvasMid = rect.top + rect.height / 2
-        const dist = Math.abs(canvasMid - mid)
-        if (dist < closestDist) {
-          closestDist = dist
-          closest = num
-        }
-      })
-      setPageNum(closest)
-    }
-
-    container.addEventListener("scroll", onScroll)
-    return () => container.removeEventListener("scroll", onScroll)
-  }, [pdf])
+    virtualizer.measure()
+  }, [zoom, virtualizer])
 
   const goToPage = useCallback(
     (num: number) => {
-      if (!containerRef.current || num < 1 || num > totalPages) return
-      const canvas = containerRef.current.querySelector<HTMLCanvasElement>(
-        `.pdf-page[data-page-num="${num}"]`,
-      )
-      if (canvas) {
-        canvas.scrollIntoView({ block: "start" })
-      }
+      if (num < 1 || num > numPages) return
+      virtualizer.scrollToIndex(num - 1, { align: "start" })
       setPageNum(num)
     },
-    [totalPages],
+    [numPages, virtualizer],
   )
-
-  const [pageInput, setPageInput] = useState("1")
 
   useEffect(() => {
     setPageInput(String(pageNum))
@@ -200,43 +140,15 @@ function ViewerPage() {
     if (e.key === "Enter") handlePageInputCommit()
   }
 
-  const maxZoom = Math.min(baseZoomRef.current * 3, 5)
-  const minZoom = Math.max(baseZoomRef.current * 0.2, 0.1)
-  const atMaxZoom = zoom * 1.25 >= maxZoom
-  const atMinZoom = zoom / 1.25 <= minZoom
-  const zoomIn = () => setZoom((z) => (z * 1.25 >= maxZoom ? z : Math.min(z * 1.25, maxZoom)))
-  const zoomOut = () => setZoom((z) => (z / 1.25 <= minZoom ? z : Math.max(z * 0.75, minZoom)))
-
-  const fitWidth = useCallback(async () => {
-    if (!pdf || !containerRef.current) return
-    const page = await pdf.getPage(pageNum)
-    const viewport = page.getViewport({ scale: 1 })
-    const containerWidth = containerRef.current.clientWidth - 64
-    setZoom(Math.max(minZoom, Math.min(containerWidth / viewport.width, maxZoom)))
-  }, [pdf, pageNum, minZoom, maxZoom])
-
-  useEffect(() => {
-    if (!pdf || !containerRef.current) return
-    const container = containerRef.current
-    ;(async () => {
-      const page = await pdf.getPage(pageNum)
-      const viewport = page.getViewport({ scale: 1 })
-      const containerWidth = container.clientWidth - 64
-      baseZoomRef.current = containerWidth / viewport.width
-      const fit = baseZoomRef.current
-      setZoom(Math.max(minZoom, Math.min(fit * 0.75, maxZoom)))
-    })()
-  }, [pdf])
-
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.key === "ArrowUp") {
         e.preventDefault()
-        containerRef.current?.scrollBy({ top: -100, behavior: "auto" })
+        parentRef.current?.scrollBy({ top: -100, behavior: "auto" })
       } else if (e.key === "ArrowDown") {
         e.preventDefault()
-        containerRef.current?.scrollBy({ top: 100, behavior: "auto" })
+        parentRef.current?.scrollBy({ top: 100, behavior: "auto" })
       } else if (e.key === "PageUp") {
         e.preventDefault()
         goToPage(pageNum - 1)
@@ -248,7 +160,7 @@ function ViewerPage() {
         goToPage(1)
       } else if (e.key === "End") {
         e.preventDefault()
-        goToPage(totalPages)
+        goToPage(numPages)
       } else if (e.key === "b" && material) {
         e.preventDefault()
         isBookmarked(material.id) ? removeBookmark(material.id) : addBookmark(material.id)
@@ -256,7 +168,7 @@ function ViewerPage() {
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [pageNum, totalPages, material, isBookmarked, addBookmark, removeBookmark, goToPage])
+  }, [pageNum, numPages, material, isBookmarked, addBookmark, removeBookmark, goToPage])
 
   const categoryName =
     material?.category === "theory"
@@ -374,7 +286,7 @@ function ViewerPage() {
               className="w-12 rounded border border-[#e0e0e0] px-1 py-1 text-center text-sm outline-none"
             />
             <span className="text-[#aaa]">/</span>
-            <span>{totalPages || material.pageCount || "?"}</span>
+            <span>{numPages || material.pageCount || "?"}</span>
           </span>
 
           <span className="mx-1 h-7 w-px bg-[#eee]" />
@@ -426,17 +338,75 @@ function ViewerPage() {
       {/* ── PDF viewer ── */}
       <div className="flex flex-1 overflow-hidden">
         <div
-          ref={containerRef}
-          className="flex flex-1 flex-col items-center gap-0 overflow-y-auto px-8 py-6 transition-colors"
+          ref={parentRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto px-8 py-6 transition-colors"
           style={{ backgroundColor: inverted ? "#fff" : "#2c2c2c" }}
         >
-          {loading && (
-            <div className="flex items-center gap-2 pt-20 text-sm text-[#999]">
-              <Loader2 className="size-5 animate-spin" />
-              Učitavanje PDF-a…
-            </div>
+          {!material.url ? (
+            <div className="pt-20 text-sm text-[#999]">URL nije postavljen.</div>
+          ) : (
+            <Document
+              file={material.url}
+              onLoadSuccess={async (pdf) => {
+                setNumPages(pdf.numPages)
+                setPdfLoading(false)
+                const page = await pdf.getPage(1)
+                const vp = page.getViewport({ scale: 1 })
+                setNaturalPageWidth(vp.width)
+                if (parentRef.current) {
+                  setZoom((parentRef.current.clientWidth - 64) / vp.width)
+                }
+              }}
+              onLoadError={() => {
+                setPdfError("Neuspešno učitavanje PDF-a.")
+                setPdfLoading(false)
+              }}
+              loading={null}
+            >
+              {pdfLoading && (
+                <div className="flex items-center gap-2 pt-20 text-sm text-[#999]">
+                  <Loader2 className="size-5 animate-spin" />
+                  Učitavanje PDF-a…
+                </div>
+              )}
+              {pdfError && <div className="pt-20 text-sm text-[#999]">{pdfError}</div>}
+
+              <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+                {virtualizer.getVirtualItems().map((virtualItem) => (
+                  <div
+                    key={virtualItem.key}
+                    data-index={virtualItem.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: "absolute",
+                      top: virtualItem.start,
+                      left: 0,
+                      right: 0,
+                      display: "flex",
+                      justifyContent: "center",
+                      paddingBottom: "16px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+                        filter: inverted ? "invert(1)" : "none",
+                      }}
+                    >
+                      <Page
+                        pageNumber={virtualItem.index + 1}
+                        scale={zoom}
+                        renderTextLayer={true}
+                        renderAnnotationLayer={true}
+                        loading={null}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Document>
           )}
-          {renderError && <div className="pt-20 text-sm text-[#999]">{renderError}</div>}
         </div>
 
         {/* ── Right sidebar ── */}
