@@ -125,6 +125,18 @@ function BookmarksPage() {
                     {material.title}
                   </div>
                   <div className="mt-0.5 text-xs text-[var(--text-secondary)]">{subjectName}</div>
+                  {material.tags.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {material.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-block rounded-full bg-[var(--bg-subtle)] px-[0.375rem] py-[0.094rem] text-[0.625rem] font-medium text-[var(--text-hint)]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="shrink-0 text-right">
@@ -133,11 +145,6 @@ function BookmarksPage() {
                   >
                     {typeLabelMap[material.fileType] || material.fileType}
                   </span>
-                  {material.pageCount > 0 && (
-                    <div className="mt-0.5 text-[0.688rem] text-[var(--text-hint)]">
-                      {t("bookmarks.pages_fmt", { n: material.pageCount })}
-                    </div>
-                  )}
                 </div>
 
                 <button

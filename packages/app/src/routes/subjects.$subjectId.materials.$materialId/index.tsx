@@ -312,7 +312,7 @@ function ViewerPage() {
               className="w-12 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
             />
             <span className="text-[var(--text-hint)]">/</span>
-            <span>{numPages || material.pageCount || "?"}</span>
+            <span>{numPages || "?"}</span>
           </span>
 
           <span className="mx-1 h-7 w-px bg-[var(--border-faint)]" />
@@ -385,7 +385,16 @@ function ViewerPage() {
                 }
               }}
               onLoadError={() => {
-                setPdfError(t("viewer.load_error"))
+                const typeLabels: Record<string, string> = {
+                  pdf: "PDF",
+                  video: "Video",
+                  image: "Slika",
+                }
+                setPdfError(
+                  t("viewer.load_error_fmt", {
+                    type: typeLabels[material?.fileType || "pdf"] || "PDF",
+                  }),
+                )
                 setPdfLoading(false)
               }}
               loading={null}
@@ -397,7 +406,9 @@ function ViewerPage() {
                 </div>
               )}
               {pdfError && (
-                <div className="pt-20 text-sm text-[var(--text-secondary)]">{pdfError}</div>
+                <div className="flex items-center justify-center pt-20 text-sm text-[var(--text-secondary)]">
+                  {pdfError}
+                </div>
               )}
 
               <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
@@ -530,12 +541,7 @@ function SidebarItem({
         <div
           className={`text-[0.688rem] ${isActive ? "text-[var(--text-hint)]" : "text-[var(--text-hint)]"}`}
         >
-          {material.pageCount > 0 ? t("viewer.pages_fmt", { n: material.pageCount }) : ""}
-          {isActive
-            ? material.pageCount > 0
-              ? ` · ${t("viewer.current")}`
-              : t("viewer.current")
-            : ""}
+          {isActive ? t("viewer.current") : ""}
         </div>
       </div>
       <span onClick={(e) => e.preventDefault()} className="shrink-0">

@@ -20,7 +20,6 @@ export interface Material {
   solved: boolean | null
   fileType: "pdf" | "video" | "image"
   url: string
-  pageCount: number
   tags: string[]
 }
 

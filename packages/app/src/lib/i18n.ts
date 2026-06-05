@@ -115,12 +115,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.fit_width": "Podesi širinu",
     "viewer.invert": "Invertuj boje",
     "viewer.no_url": "URL nije postavljen.",
-    "viewer.load_error": "Neuspešno učitavanje PDF-a.",
+    "viewer.load_error_fmt": "Neuspešno učitavanje {type}.",
     "viewer.loading": "Učitavanje PDF-a…",
     "viewer.not_found": "Materijal nije pronađen.",
     "viewer.sidebar_all": "Svi materijali",
     "viewer.shortcut_bookmark": "obeleži",
-    "viewer.pages_fmt": "{n} strana",
     "viewer.current": "trenutno",
 
     // Bookmarks
@@ -129,7 +128,6 @@ const translations: Record<Locale, Record<string, string>> = {
     "bookmarks.count_plural_fmt": "{n} materijala",
     "bookmarks.empty": "Još uvek nemate obeleženih materijala.",
     "bookmarks.browse": "Pregledaj predmete",
-    "bookmarks.pages_fmt": "{n} str.",
 
     // Months
     "month.0": "januar",
@@ -256,12 +254,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.fit_width": "Fit width",
     "viewer.invert": "Invert colors",
     "viewer.no_url": "URL not set.",
-    "viewer.load_error": "Failed to load PDF.",
+    "viewer.load_error_fmt": "Failed to load {type}.",
     "viewer.loading": "Loading PDF…",
     "viewer.not_found": "Material not found.",
     "viewer.sidebar_all": "All materials",
     "viewer.shortcut_bookmark": "bookmark",
-    "viewer.pages_fmt": "{n} pages",
     "viewer.current": "current",
 
     "bookmarks.title": "Bookmarked materials",
@@ -269,7 +266,6 @@ const translations: Record<Locale, Record<string, string>> = {
     "bookmarks.count_plural_fmt": "{n} materials",
     "bookmarks.empty": "No bookmarked materials yet.",
     "bookmarks.browse": "Browse subjects",
-    "bookmarks.pages_fmt": "{n} pg.",
 
     "month.0": "January",
     "month.1": "February",
