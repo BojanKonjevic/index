@@ -25,6 +25,8 @@ import { useI18n } from "@/hooks/useI18n"
 
 const groups = Array.from({ length: 14 }, (_, i) => i + 1)
 
+let cachedGroup: string | null = null
+
 function getGroup(): string | null {
   if (typeof window === "undefined") return null
   return localStorage.getItem("group")
@@ -32,17 +34,19 @@ function getGroup(): string | null {
 
 function Sidebar() {
   const location = useLocation()
-  const [group, setGroup] = useState<string | null>(getGroup)
+  const [group, setGroup] = useState<string | null>(cachedGroup ?? getGroup())
   const { user, isGuest, logout } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
   const { t, toggleLocale, locale } = useI18n()
 
   useEffect(() => {
     if (!user) return
+    if (cachedGroup) return
     fetch("/api/preferences")
       .then((r) => r.json())
       .then((data) => {
         if (data.group) {
+          cachedGroup = data.group
           setGroup(data.group)
           localStorage.setItem("group", data.group)
         }
@@ -52,6 +56,7 @@ function Sidebar() {
 
   const handleGroupChange = (v: string | null) => {
     if (!v) return
+    cachedGroup = v
     setGroup(v)
     localStorage.setItem("group", v)
     if (user) {

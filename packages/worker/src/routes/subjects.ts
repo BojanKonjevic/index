@@ -4,6 +4,8 @@ import data from "../data/matematicka-analiza-2.json"
 
 const app = new Hono()
 
+const CACHE_HEADERS = { "Cache-Control": "public, max-age=3600" }
+
 app.get("/subjects", (c) => {
   const subjects: SubjectListItem[] = [
     {
@@ -17,7 +19,7 @@ app.get("/subjects", (c) => {
       materialCount: data.materials.length,
     },
   ]
-  return c.json(subjects)
+  return c.json(subjects, 200, CACHE_HEADERS)
 })
 
 app.get("/subject/:id", (c) => {
@@ -30,7 +32,7 @@ app.get("/subject/:id", (c) => {
     materials: data.materials as Material[],
     exams: data.exams as ExamEvent[],
   }
-  return c.json(detail)
+  return c.json(detail, 200, CACHE_HEADERS)
 })
 
 export default app

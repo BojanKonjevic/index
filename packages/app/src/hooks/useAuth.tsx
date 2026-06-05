@@ -28,6 +28,11 @@ export function useAuth(): AuthContextType {
   return ctx
 }
 
+function localeHeaders(extra?: Record<string, string>): Record<string, string> {
+  const locale = typeof window !== "undefined" ? localStorage.getItem("locale") : null
+  return { ...(locale ? { "x-locale": locale } : {}), ...extra }
+}
+
 function useAuthLogic(): AuthContextType {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -54,22 +59,17 @@ function useAuthLogic(): AuthContextType {
     if (payload.bookmarks || payload.group) {
       await fetch("/api/sync", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: localeHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(payload),
       })
       localStorage.removeItem("bookmarks")
     }
   }
 
-  function localeHeaders(): Record<string, string> {
-    const locale = typeof window !== "undefined" ? localStorage.getItem("locale") : null
-    return locale ? { "x-locale": locale } : {}
-  }
-
   const login = async (name: string, password: string) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...localeHeaders() },
+      headers: localeHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ name, password }),
     })
     const data = await res.json()
@@ -83,7 +83,7 @@ function useAuthLogic(): AuthContextType {
   const register = async (name: string, password: string) => {
     const res = await fetch("/api/auth/register", {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...localeHeaders() },
+      headers: localeHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ name, password }),
     })
     const data = await res.json()

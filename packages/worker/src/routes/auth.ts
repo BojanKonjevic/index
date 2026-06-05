@@ -1,6 +1,6 @@
 import { Hono } from "hono"
-import { setCookie, getCookie, deleteCookie } from "hono/cookie"
 import { msg } from "../lib/i18n"
+import { createSessionCookie, clearSessionCookie, getSessionUser } from "../lib/session"
 
 const ITERATIONS = 100_000
 
@@ -42,42 +42,7 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   return computedHex === keyHex
 }
 
-function setSessionCookie(c: Parameters<typeof setCookie>[0], sessionId: string) {
-  setCookie(c, "session", sessionId, {
-    path: "/",
-    httpOnly: true,
-    secure: true,
-    sameSite: "Lax",
-    maxAge: 60 * 60 * 24 * 30,
-  })
-}
-
-function clearSessionCookie(c: Parameters<typeof setCookie>[0]) {
-  deleteCookie(c, "session", { path: "/" })
-}
-
-async function createSession(db: D1Database, userId: string): Promise<string> {
-  const sessionId = crypto.randomUUID()
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-  await db
-    .prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)")
-    .bind(sessionId, userId, expiresAt)
-    .run()
-  return sessionId
-}
-
-async function getSessionUser(db: D1Database, sessionId: string | undefined) {
-  if (!sessionId) return null
-  const row = await db
-    .prepare(
-      "SELECT u.id, u.name FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ? AND s.expires_at > datetime('now')",
-    )
-    .bind(sessionId)
-    .first<{ id: string; name: string }>()
-  return row ?? null
-}
-
-const app = new Hono<{ Bindings: { DB: D1Database } }>()
+const app = new Hono<{ Bindings: { DB: D1Database; SESSION_SECRET: string } }>()
 
 app.post("/auth/register", async (c) => {
   const { name, password } = await c.req.json()
@@ -94,8 +59,7 @@ app.post("/auth/register", async (c) => {
     .bind(userId, name, passwordHash)
     .run()
 
-  const sessionId = await createSession(c.env.DB, userId)
-  setSessionCookie(c, sessionId)
+  await createSessionCookie(c, userId, name, c.env.SESSION_SECRET)
 
   return c.json({ user: { id: userId, name: name } }, 201)
 })
@@ -112,23 +76,17 @@ app.post("/auth/login", async (c) => {
   const valid = await verifyPassword(password, user.password_hash)
   if (!valid) return c.json({ error: msg(c, "auth.invalid_credentials") }, 401)
 
-  const sessionId = await createSession(c.env.DB, user.id)
-  setSessionCookie(c, sessionId)
+  await createSessionCookie(c, user.id, user.name, c.env.SESSION_SECRET)
 
   return c.json({ user: { id: user.id, name: user.name } })
 })
 
 app.get("/auth/me", async (c) => {
-  const sessionId = getCookie(c, "session")
-  const user = await getSessionUser(c.env.DB, sessionId)
+  const user = await getSessionUser(c, c.env.SESSION_SECRET)
   return c.json({ user })
 })
 
 app.post("/auth/logout", async (c) => {
-  const sessionId = getCookie(c, "session")
-  if (sessionId) {
-    await c.env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(sessionId).run()
-  }
   clearSessionCookie(c)
   return c.json({ ok: true })
 })

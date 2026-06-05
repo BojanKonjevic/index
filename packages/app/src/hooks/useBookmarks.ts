@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/hooks/useAuth"
 
+function localeHeaders(): Record<string, string> {
+  const locale = typeof window !== "undefined" ? localStorage.getItem("locale") : null
+  return locale
+    ? { "x-locale": locale, "Content-Type": "application/json" }
+    : { "Content-Type": "application/json" }
+}
+
 export function useBookmarks() {
   const { user } = useAuth()
   const [bookmarks, setBookmarks] = useState<string[]>(() => {
@@ -10,14 +17,12 @@ export function useBookmarks() {
 
   useEffect(() => {
     if (!user) return
-    fetch("/api/bookmarks")
+    fetch("/api/bookmarks", { headers: localeHeaders() })
       .then((r) => r.json())
       .then((data) => {
         if (data.ids) {
-          const local: string[] = JSON.parse(localStorage.getItem("bookmarks") || "[]")
-          const merged = [...new Set([...data.ids, ...local])]
-          setBookmarks(merged)
-          localStorage.setItem("bookmarks", JSON.stringify(merged))
+          setBookmarks(data.ids)
+          localStorage.setItem("bookmarks", JSON.stringify(data.ids))
         }
       })
       .catch(() => {
@@ -37,7 +42,7 @@ export function useBookmarks() {
       if (user) {
         await fetch("/api/bookmarks/add", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: localeHeaders(),
           body: JSON.stringify({ materialId: id }),
         }).catch(() => {})
       }
@@ -55,7 +60,7 @@ export function useBookmarks() {
       if (user) {
         await fetch("/api/bookmarks/remove", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: localeHeaders(),
           body: JSON.stringify({ materialId: id }),
         }).catch(() => {})
       }

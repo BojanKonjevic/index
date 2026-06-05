@@ -12,3 +12,6 @@ directory = "../app/dist"
 binding = "ASSETS"
 html_handling = "auto-trailing-slash"
 not_found_handling = "single-page-application"
+
+[vars]
+SESSION_SECRET = "dev-secret-replace-in-production"

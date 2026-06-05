@@ -7,9 +7,15 @@ import user from "./routes/user"
 export type Bindings = {
   ASSETS: Fetcher
   DB: D1Database
+  SESSION_SECRET: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
+
+app.onError((err, c) => {
+  console.error(err)
+  return c.json({ error: "Internal server error" }, 500)
+})
 
 app.route("/api", subjects)
 app.route("/api", pdf)
