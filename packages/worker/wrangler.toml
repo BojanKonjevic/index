@@ -2,6 +2,11 @@ name = "app"
 main = "src/index.ts"
 compatibility_date = "2026-06-05"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "index-db"
+database_id = "dc88caa9-8d1a-4b10-b43a-6189a7aaf87a"
+
 [assets]
 directory = "../app/dist"
 binding = "ASSETS"
