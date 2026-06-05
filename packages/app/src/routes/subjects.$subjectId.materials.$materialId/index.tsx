@@ -43,6 +43,7 @@ function ViewerPage() {
   const [pageInput, setPageInput] = useState("1")
   const [naturalPageWidth, setNaturalPageWidth] = useState<number | null>(null)
   const [containerWidth, setContainerWidth] = useState(0)
+  const [fitWidthMode, setFitWidthMode] = useState(true)
   const parentRef = useRef<HTMLDivElement>(null)
 
   const material = useMemo(
@@ -68,6 +69,7 @@ function ViewerPage() {
     setPdfLoading(true)
     setPdfError(null)
     setNaturalPageWidth(null)
+    setFitWidthMode(true)
     setPageNum(1)
   }, [material?.url])
 
@@ -95,19 +97,34 @@ function ViewerPage() {
     }
   }
 
-  const maxZoom =
-    naturalPageWidth && containerWidth > 0 ? (containerWidth - 64) / naturalPageWidth : 5
-  const minZoom = 0.1
-  const atMaxZoom = zoom * 1.25 >= maxZoom
-  const atMinZoom = zoom / 1.25 <= minZoom
-  const zoomIn = () => setZoom((z) => (z * 1.25 >= maxZoom ? z : Math.min(z * 1.25, maxZoom)))
-  const zoomOut = () => setZoom((z) => (z / 1.25 <= minZoom ? z : Math.max(z * 0.75, minZoom)))
+  const fitWidthZoom =
+    naturalPageWidth && containerWidth > 0 ? (containerWidth - 64) / naturalPageWidth : null
+  const MAX_ZOOM = fitWidthZoom ? Math.max(fitWidthZoom * 3, 3) : 5
+  const MIN_ZOOM = 0.1
+  const atMaxZoom = zoom * 1.25 >= MAX_ZOOM
+  const atMinZoom = zoom / 1.25 <= MIN_ZOOM
+  const zoomIn = () => {
+    setFitWidthMode(false)
+    setZoom((z) => (z * 1.25 >= MAX_ZOOM ? z : Math.min(z * 1.25, MAX_ZOOM)))
+  }
+  const zoomOut = () => {
+    setFitWidthMode(false)
+    setZoom((z) => (z / 1.25 <= MIN_ZOOM ? z : Math.max(z / 1.25, MIN_ZOOM)))
+  }
 
   const fitWidth = useCallback(() => {
     if (!naturalPageWidth || containerWidth <= 0) return
     const fit = (containerWidth - 64) / naturalPageWidth
     setZoom(fit)
+    setFitWidthMode(true)
   }, [naturalPageWidth, containerWidth])
+
+  useEffect(() => {
+    if (fitWidthMode && naturalPageWidth && containerWidth > 0) {
+      const fit = (containerWidth - 64) / naturalPageWidth
+      setZoom(fit)
+    }
+  }, [containerWidth, naturalPageWidth, fitWidthMode])
 
   useEffect(() => {
     virtualizer.measure()
@@ -340,7 +357,7 @@ function ViewerPage() {
         <div
           ref={parentRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-8 py-6 transition-colors"
+          className="flex-1 overflow-auto px-8 py-6 transition-colors"
           style={{ backgroundColor: inverted ? "#fff" : "#2c2c2c" }}
         >
           {!material.url ? (
