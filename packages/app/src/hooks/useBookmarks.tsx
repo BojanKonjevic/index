@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { useAuth } from "@/hooks/useAuth"
 
 function localeHeaders(): Record<string, string> {
@@ -8,11 +8,24 @@ function localeHeaders(): Record<string, string> {
     : { "Content-Type": "application/json" }
 }
 
-export function useBookmarks() {
+interface BookmarkContextValue {
+  bookmarks: string[]
+  addBookmark: (id: string) => Promise<void>
+  removeBookmark: (id: string) => Promise<void>
+  isBookmarked: (id: string) => boolean
+}
+
+const BookmarkContext = createContext<BookmarkContextValue | null>(null)
+
+export function BookmarkProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [bookmarks, setBookmarks] = useState<string[]>(() => {
-    const stored = localStorage.getItem("bookmarks")
-    return stored ? JSON.parse(stored) : []
+    try {
+      const stored = localStorage.getItem("bookmarks")
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
   })
 
   useEffect(() => {
@@ -27,7 +40,11 @@ export function useBookmarks() {
       })
       .catch(() => {
         const stored = localStorage.getItem("bookmarks")
-        if (stored) setBookmarks(JSON.parse(stored))
+        if (stored) {
+          try {
+            setBookmarks(JSON.parse(stored))
+          } catch {}
+        }
       })
   }, [user])
 
@@ -70,5 +87,15 @@ export function useBookmarks() {
 
   const isBookmarked = useCallback((id: string) => bookmarks.includes(id), [bookmarks])
 
-  return { bookmarks, addBookmark, removeBookmark, isBookmarked }
+  return (
+    <BookmarkContext.Provider value={{ bookmarks, addBookmark, removeBookmark, isBookmarked }}>
+      {children}
+    </BookmarkContext.Provider>
+  )
+}
+
+export function useBookmarks() {
+  const ctx = useContext(BookmarkContext)
+  if (!ctx) throw new Error("useBookmarks must be used within a BookmarkProvider")
+  return ctx
 }

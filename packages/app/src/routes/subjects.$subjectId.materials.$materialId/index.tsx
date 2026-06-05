@@ -250,7 +250,7 @@ function ViewerPage() {
         className="cursor-pointer"
       >
         <Star
-          className={`size-6 ${b ? "fill-amber-400 text-amber-400" : "text-[#ddd] hover:text-[#aaa]"}`}
+          className={`size-6 transition-colors duration-150 ${b ? "fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop" : "text-[var(--border-strong)] hover:text-[var(--text-hint)]"}`}
         />
       </button>
     )
@@ -258,7 +258,7 @@ function ViewerPage() {
 
   if (!material) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#1a1a1a] text-white">
+      <div className="flex h-screen items-center justify-center bg-[var(--bg-page)] text-[var(--text-primary)]">
         {t("viewer.not_found")}
       </div>
     )
@@ -267,55 +267,62 @@ function ViewerPage() {
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       {/* ── Top bar ── */}
-      <div className="flex h-20 shrink-0 items-center border-b bg-white">
-        <div className="flex items-center gap-0 border-r border-[#f0f0f0] px-2">
+      <div className="flex h-[3.75rem] shrink-0 items-center border-b bg-[var(--bg-surface)] border-[var(--border-default)]">
+        <div className="flex items-center gap-0 border-r border-[var(--border-faint)] px-2">
           <button
             onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
-            className="flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-[#555] hover:bg-[#f5f5f5] hover:text-[#111]"
+            className="flex cursor-pointer items-center gap-1.5 rounded-[0.438rem] px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
           >
             <ArrowLeft className="size-6" />
             {t("viewer.back")}
           </button>
         </div>
 
-        <div className="flex items-center gap-1.5 border-r border-[#f0f0f0] px-4 text-sm text-[#aaa]">
-          <Link to="/subjects" className="hover:text-[#555]">
+        <div className="flex items-center gap-1.5 border-r border-[var(--border-faint)] px-4 text-sm text-[var(--text-hint)]">
+          <Link
+            to="/subjects"
+            className="hover:text-[var(--text-primary)] transition-colors duration-100"
+          >
             {t("viewer.breadcrumb_subjects")}
           </Link>
           <span>›</span>
-          <Link to="/subjects/$subjectId" params={{ subjectId }} className="hover:text-[#555]">
+          <Link
+            to="/subjects/$subjectId"
+            params={{ subjectId }}
+            className="hover:text-[var(--text-primary)] transition-colors duration-100"
+          >
             {subject.name}
           </Link>
           <span>›</span>
-          <span className="font-medium text-[#333]">{categoryName}</span>
+          <span className="font-medium text-[var(--text-primary)]">{categoryName}</span>
         </div>
 
-        <div className="min-w-0 flex-1 truncate px-5 text-base font-medium text-[#222]">
+        <div className="min-w-0 flex-1 truncate px-5 text-base font-medium text-[var(--text-primary)]">
           {material.title}
         </div>
 
         <div className="flex items-center gap-0.5 px-2">
-          <span className="flex items-center gap-1 whitespace-nowrap px-1.5 text-[13px] text-[#888]">
+          <span className="flex items-center gap-1 whitespace-nowrap px-1.5 text-[0.813rem] text-[var(--text-secondary)]">
             <input
               type="text"
               value={pageInput}
               onChange={handlePageInputChange}
               onBlur={handlePageInputCommit}
               onKeyDown={handlePageInputKeyDown}
-              className="w-12 rounded border border-[#e0e0e0] px-1 py-1 text-center text-sm outline-none"
+              className="w-12 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
             />
-            <span className="text-[#aaa]">/</span>
+            <span className="text-[var(--text-hint)]">/</span>
             <span>{numPages || material.pageCount || "?"}</span>
           </span>
 
-          <span className="mx-1 h-7 w-px bg-[#eee]" />
+          <span className="mx-1 h-7 w-px bg-[var(--border-faint)]" />
 
           <span className="flex gap-0.5">
             <button
               onClick={zoomOut}
               disabled={atMinZoom}
               title={t("viewer.zoom_out")}
-              className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111] disabled:opacity-30 disabled:pointer-events-none"
+              className="flex size-12 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
             >
               <ZoomOut className="size-6" />
             </button>
@@ -323,33 +330,33 @@ function ViewerPage() {
               onClick={zoomIn}
               disabled={atMaxZoom}
               title={t("viewer.zoom_in")}
-              className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111] disabled:opacity-30 disabled:pointer-events-none"
+              className="flex size-12 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
             >
               <ZoomIn className="size-6" />
             </button>
             <button
               onClick={fitWidth}
               title={t("viewer.fit_width")}
-              className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111]"
+              className="flex size-12 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
             >
               <Maximize className="size-6" />
             </button>
           </span>
 
-          <span className="mx-1 h-7 w-px bg-[#eee]" />
+          <span className="mx-1 h-7 w-px bg-[var(--border-faint)]" />
 
           <span className="flex gap-0.5">
             <button
               onClick={() => setInverted((v) => !v)}
               title={t("viewer.invert")}
-              className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111]"
+              className="flex size-12 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
             >
               <SunMoon className="size-6" />
             </button>
           </span>
         </div>
 
-        <div className="flex items-center border-l border-[#f0f0f0] px-4">
+        <div className="flex items-center border-l border-[var(--border-faint)] px-4">
           {bookmarkStar(material.id)}
         </div>
       </div>
@@ -360,10 +367,10 @@ function ViewerPage() {
           ref={parentRef}
           onScroll={handleScroll}
           className="flex-1 overflow-auto px-8 py-6 transition-colors"
-          style={{ backgroundColor: inverted ? "#fff" : "#2c2c2c" }}
+          style={{ backgroundColor: inverted ? "var(--bg-surface)" : "#2c2c2c" }}
         >
           {!material.url ? (
-            <div className="pt-20 text-sm text-[#999]">{t("viewer.no_url")}</div>
+            <div className="pt-20 text-sm text-[var(--text-secondary)]">{t("viewer.no_url")}</div>
           ) : (
             <Document
               file={material.url}
@@ -384,12 +391,14 @@ function ViewerPage() {
               loading={null}
             >
               {pdfLoading && (
-                <div className="flex items-center gap-2 pt-20 text-sm text-[#999]">
+                <div className="flex items-center gap-2 pt-20 text-sm text-[var(--text-secondary)]">
                   <Loader2 className="size-5 animate-spin" />
                   {t("viewer.loading")}
                 </div>
               )}
-              {pdfError && <div className="pt-20 text-sm text-[#999]">{pdfError}</div>}
+              {pdfError && (
+                <div className="pt-20 text-sm text-[var(--text-secondary)]">{pdfError}</div>
+              )}
 
               <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
                 {virtualizer.getVirtualItems().map((virtualItem) => (
@@ -429,14 +438,14 @@ function ViewerPage() {
         </div>
 
         {/* ── Right sidebar ── */}
-        <div className="flex w-[300px] shrink-0 flex-col overflow-hidden border-l bg-white">
-          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-4 py-3.5">
-            <span className="text-xs font-semibold uppercase tracking-[0.6px] text-[#888]">
+        <div className="flex w-[17.5rem] shrink-0 flex-col overflow-hidden border-l bg-[var(--bg-surface)] border-[var(--border-default)]">
+          <div className="flex items-center justify-between border-b border-[var(--border-faint)] px-4 py-3.5">
+            <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-secondary)]">
               {sidebarMode === "category" ? categoryName : t("viewer.sidebar_all")}
             </span>
             <button
               onClick={() => setSidebarMode(sidebarMode === "category" ? "all" : "category")}
-              className="cursor-pointer text-[11px] text-[#aaa] hover:text-[#555]"
+              className="cursor-pointer text-[0.688rem] text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors duration-100"
             >
               {sidebarMode === "category" ? t("viewer.sidebar_all") : categoryName}
             </button>
@@ -447,7 +456,7 @@ function ViewerPage() {
               ? groupedByExamPart.map((section) => (
                   <div key={section.label || "__default"}>
                     {section.label && (
-                      <div className="px-2.5 pb-1 pt-2.5 text-[10.5px] font-semibold uppercase tracking-[0.6px] text-[#ccc]">
+                      <div className="px-2.5 pb-1 pt-2.5 text-[0.656rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
                         {section.label}
                       </div>
                     )}
@@ -464,7 +473,7 @@ function ViewerPage() {
               : groupedByCategory &&
                 Object.entries(groupedByCategory).map(([cat, items]) => (
                   <div key={cat}>
-                    <div className="px-2.5 pb-1 pt-2.5 text-[10.5px] font-semibold uppercase tracking-[0.6px] text-[#ccc]">
+                    <div className="px-2.5 pb-1 pt-2.5 text-[0.656rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
                       {t(`category.${cat}`)}
                     </div>
                     {items.map((m) => (
@@ -479,12 +488,12 @@ function ViewerPage() {
                 ))}
           </div>
 
-          <div className="flex flex-wrap gap-2 border-t border-[#f0f0f0] px-3 py-2.5 text-[11px] text-[#ccc]">
+          <div className="flex flex-wrap gap-2 border-t border-[var(--border-faint)] px-3 py-2.5 text-[0.688rem] text-[var(--text-hint)]">
             <span>
-              <kbd className="rounded border border-[#bbb] bg-[#ddd] px-1.5 text-[11px] font-medium text-[#333]">
+              <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.688rem] font-medium text-[var(--text-primary)]">
                 b
               </kbd>{" "}
-              <span className="text-[#888]">{t("viewer.shortcut_bookmark")}</span>
+              <span className="text-[var(--text-secondary)]">{t("viewer.shortcut_bookmark")}</span>
             </span>
           </div>
         </div>
@@ -507,14 +516,20 @@ function SidebarItem({
     <Link
       to="/subjects/$subjectId/materials/$materialId"
       params={{ subjectId: material.subjectId, materialId: material.id }}
-      className={`flex items-start gap-2.5 rounded-md px-2.5 py-2 text-left ${isActive ? "bg-[#111] text-white" : "hover:bg-[#f5f5f5]"}`}
+      className={`flex items-start gap-2.5 rounded-[0.438rem] px-2.5 py-2 text-left transition-colors duration-100 ${isActive ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]" : "hover:bg-[var(--bg-subtle)]"}`}
     >
-      <FileText className={`mt-0.5 size-6 shrink-0 ${isActive ? "text-white" : "text-[#888]"}`} />
+      <FileText
+        className={`mt-0.5 size-6 shrink-0 ${isActive ? "text-[var(--nav-active-text)]" : "text-[var(--text-hint)]"}`}
+      />
       <div className="min-w-0 flex-1">
-        <div className={`truncate text-[12.5px] font-medium ${isActive ? "text-white" : ""}`}>
+        <div
+          className={`truncate text-[0.781rem] font-medium ${isActive ? "text-[var(--nav-active-text)]" : "text-[var(--text-primary)]"}`}
+        >
           {material.title}
         </div>
-        <div className={`text-[11px] ${isActive ? "text-[#ccc]" : "text-[#aaa]"}`}>
+        <div
+          className={`text-[0.688rem] ${isActive ? "text-[var(--text-hint)]" : "text-[var(--text-hint)]"}`}
+        >
           {material.pageCount > 0 ? t("viewer.pages_fmt", { n: material.pageCount }) : ""}
           {isActive
             ? material.pageCount > 0

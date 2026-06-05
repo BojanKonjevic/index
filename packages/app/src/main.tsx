@@ -5,6 +5,10 @@ import { routeTree } from "./routeTree.gen"
 import { I18nProvider } from "@/hooks/useI18n"
 import "./index.css"
 
+const savedTheme = localStorage.getItem("theme")
+const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+document.documentElement.setAttribute("data-theme", savedTheme ?? (prefersDark ? "dark" : "light"))
+
 const router = createRouter({ routeTree })
 
 declare module "@tanstack/react-router" {

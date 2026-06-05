@@ -50,7 +50,10 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-sm rounded-xl border border-[#e0e0e0] bg-white p-6 shadow-lg">
+      <div
+        className="w-full max-w-sm rounded-xl border border-[var(--border-default)] p-6 shadow-lg"
+        style={{ background: "var(--bg-surface)" }}
+      >
         <div className="mb-5 flex items-center justify-between">
           <div className="flex gap-2">
             <button
@@ -58,8 +61,10 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
                 setMode("login")
                 setError("")
               }}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                mode === "login" ? "bg-[#111] text-white" : "text-[#666] hover:bg-[#f5f5f5]"
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-100 ${
+                mode === "login"
+                  ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]"
               }`}
             >
               {t("auth.login_tab")}
@@ -69,50 +74,57 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
                 setMode("register")
                 setError("")
               }}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                mode === "register" ? "bg-[#111] text-white" : "text-[#666] hover:bg-[#f5f5f5]"
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-100 ${
+                mode === "register"
+                  ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]"
               }`}
             >
               {t("auth.register_tab")}
             </button>
           </div>
-          <button onClick={onClose} className="cursor-pointer rounded-md p-1 hover:bg-[#f0f0f0]">
-            <X className="size-5 text-[#888]" />
+          <button
+            onClick={onClose}
+            className="cursor-pointer rounded-md p-1 hover:bg-[var(--bg-subtle)] transition-colors duration-100"
+          >
+            <X className="size-5 text-[var(--text-secondary)]" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="mb-1 block text-[13px] font-medium text-[#555]">
+            <label className="mb-1 block text-[0.813rem] font-medium text-[var(--text-secondary)]">
               {t("auth.username")}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-9 w-full rounded-md border border-[#e0e0e0] bg-white px-3 text-[13px] outline-none focus:border-[#999]"
+              className="h-9 w-full rounded-md border border-[var(--border-default)] px-3 text-[0.813rem] text-[var(--text-primary)] outline-none transition-colors duration-100 focus:border-[var(--accent)]"
+              style={{ background: "var(--bg-surface)" }}
               autoFocus
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-[13px] font-medium text-[#555]">
+            <label className="mb-1 block text-[0.813rem] font-medium text-[var(--text-secondary)]">
               {t("auth.password")}
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-9 w-full rounded-md border border-[#e0e0e0] bg-white px-3 text-[13px] outline-none focus:border-[#999]"
+              className="h-9 w-full rounded-md border border-[var(--border-default)] px-3 text-[0.813rem] text-[var(--text-primary)] outline-none transition-colors duration-100 focus:border-[var(--accent)]"
+              style={{ background: "var(--bg-surface)" }}
             />
           </div>
 
-          {error && <p className="text-[13px] text-red-500">{error}</p>}
+          {error && <p className="text-[0.813rem] text-[var(--status-soon-text)]">{error}</p>}
 
           <button
             type="submit"
             disabled={submitting}
-            className="h-9 w-full rounded-md bg-[#111] text-sm font-medium text-white transition-colors hover:bg-[#333] disabled:opacity-50"
+            className="h-9 w-full rounded-md bg-[var(--accent)] text-sm font-medium text-white transition-all duration-100 hover:opacity-85 active:scale-[0.98] disabled:opacity-50"
           >
             {submitting
               ? "..."
@@ -121,14 +133,14 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
                 : t("auth.submit_register")}
           </button>
 
-          <p className="text-center text-[12px] text-[#999]">
+          <p className="text-center text-[0.75rem] text-[var(--text-hint)]">
             {mode === "login" ? (
               <>
                 {t("auth.no_account")}{" "}
                 <button
                   type="button"
                   onClick={switchMode}
-                  className="cursor-pointer text-[#111] underline"
+                  className="cursor-pointer underline text-[var(--accent)]"
                 >
                   {t("auth.register_link")}
                 </button>
@@ -139,7 +151,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
                 <button
                   type="button"
                   onClick={switchMode}
-                  className="cursor-pointer text-[#111] underline"
+                  className="cursor-pointer underline text-[var(--accent)]"
                 >
                   {t("auth.login_link")}
                 </button>

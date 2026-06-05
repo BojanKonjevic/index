@@ -7,6 +7,7 @@ export type SearchResultItem = {
   label: string
   description: string
   type: "subject" | "material" | "exam"
+  subtype?: string
   to: string
   params: Record<string, string>
 }
@@ -38,6 +39,10 @@ function buildGlobalIndex(data: GlobalData): SearchResultItem[] {
       label: material.title,
       description: data.subjectName,
       type: "material",
+      subtype:
+        material.category === "exam" && material.examPart
+          ? material.examPart.toLowerCase()
+          : undefined,
       to: "/subjects/$subjectId/materials/$materialId",
       params: { subjectId: material.subjectId, materialId: material.id },
     })

@@ -14,7 +14,7 @@ const translations: Record<Locale, Record<string, string>> = {
 
     // Sidebar
     "sidebar.group_label": "Trenutna grupa",
-    "sidebar.group_placeholder": "Nije odabrano",
+    "sidebar.group_placeholder": "Nije odabrana",
     "sidebar.group_fmt": "Grupa {g}",
 
     // Top bar
@@ -22,13 +22,13 @@ const translations: Record<Locale, Record<string, string>> = {
 
     // Welcome
     "welcome.description":
-      "Study material aggregator za 3. godinu primenjenog računarstva na FTN-u.",
+      "Materijali za učenje iz treće godine Računarstva i Automatike na FTN-u.",
     "welcome.login": "Prijavi se",
     "welcome.register": "Registruj se",
     "welcome.or": "ili",
     "welcome.continue_as_guest": "Nastavi kao gost",
     "welcome.guest_note":
-      "Gosti mogu da pregledaju materijale. Nalog omogućava sinhronizaciju obeleženih stavki.",
+      "Gosti mogu da pregledaju materijale. Nalog omogućava pristup svim funkcijama.",
 
     // Auth
     "auth.login_tab": "Prijavi se",
@@ -99,6 +99,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "category.theory": "Teorija",
     "category.problems": "Zadaci",
     "category.exam": "Ispiti",
+    "category.k1": "Kolokvijum 1",
+    "category.k2": "Kolokvijum 2",
     "category.misc": "Ostalo",
     "category.lectures": "Predavanja",
     "category.exercises": "Vežbe",
@@ -173,7 +175,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "welcome.register": "Register",
     "welcome.or": "or",
     "welcome.continue_as_guest": "Continue as guest",
-    "welcome.guest_note": "Guests can browse materials. An account enables bookmark sync.",
+    "welcome.guest_note": "Guests can browse materials. An account unlocks all features.",
 
     "auth.login_tab": "Log in",
     "auth.register_tab": "Register",
@@ -239,6 +241,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "category.theory": "Theory",
     "category.problems": "Problems",
     "category.exam": "Exams",
+    "category.k1": "Midterm 1",
+    "category.k2": "Midterm 2",
     "category.misc": "Other",
     "category.lectures": "Lectures",
     "category.exercises": "Exercises",

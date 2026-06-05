@@ -1,28 +1,46 @@
 import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { AuthModal } from "@/components/AuthModal"
-import { GraduationCap, LogIn, UserPlus, Eye, Languages } from "lucide-react"
+import { GraduationCap, LogIn, UserPlus, Eye, Languages, Moon, Sun } from "lucide-react"
 import { useI18n } from "@/hooks/useI18n"
 
 export function WelcomeScreen() {
   const { continueAsGuest } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
   const { t, toggleLocale, locale } = useI18n()
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof document === "undefined") return "light"
+    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"
+  })
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark"
+    setTheme(next)
+    document.documentElement.setAttribute("data-theme", next)
+    localStorage.setItem("theme", next)
+  }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-6">
+    <div
+      className="flex min-h-screen items-center justify-center px-6"
+      style={{ background: "var(--bg-page)" }}
+    >
       <div className="flex max-w-sm flex-col items-center text-center">
-        <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-[#111]">
-          <GraduationCap className="size-7 text-white" />
+        <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-[var(--text-primary)]">
+          <GraduationCap className="size-7" style={{ color: "var(--bg-surface)" }} />
         </div>
 
-        <h1 className="text-[28px] font-bold tracking-tight">Indeks</h1>
-        <p className="mt-1.5 text-[14px] leading-relaxed text-[#666]">{t("welcome.description")}</p>
+        <h1 className="text-[1.75rem] font-bold tracking-tight text-[var(--text-primary)]">
+          Indeks
+        </h1>
+        <p className="mt-1.5 text-[0.875rem] leading-relaxed text-[var(--text-secondary)]">
+          {t("welcome.description")}
+        </p>
 
         <div className="mt-9 flex w-full flex-col gap-2.5">
           <button
             onClick={() => setAuthOpen(true)}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#111] text-sm font-medium text-white transition-colors hover:bg-[#333]"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-sm font-medium text-white transition-all duration-100 hover:opacity-85 active:scale-[0.98]"
           >
             <LogIn className="size-4" />
             {t("welcome.login")}
@@ -30,7 +48,8 @@ export function WelcomeScreen() {
 
           <button
             onClick={() => setAuthOpen(true)}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#d4d4d4] text-sm font-medium text-[#333] transition-colors hover:bg-[#f5f5f5]"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[var(--border-default)] text-sm font-medium text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] active:scale-[0.98]"
+            style={{ background: "var(--bg-surface)" }}
           >
             <UserPlus className="size-4" />
             {t("welcome.register")}
@@ -38,10 +57,13 @@ export function WelcomeScreen() {
 
           <div className="relative my-1">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-[#e8e8e8]" />
+              <span className="w-full border-t border-[var(--border-faint)]" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-white px-3 text-[11px] uppercase tracking-[0.5px] text-[#bbb]">
+              <span
+                className="px-3 text-[0.688rem] uppercase tracking-[0.031rem] text-[var(--text-hint)]"
+                style={{ background: "var(--bg-page)" }}
+              >
                 {t("welcome.or")}
               </span>
             </div>
@@ -49,22 +71,35 @@ export function WelcomeScreen() {
 
           <button
             onClick={continueAsGuest}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#e0e0e0] text-sm text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#555]"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[var(--border-default)] text-sm text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] active:scale-[0.98]"
+            style={{ background: "var(--bg-surface)" }}
           >
             <Eye className="size-4" />
             {t("welcome.continue_as_guest")}
           </button>
         </div>
 
-        <p className="mt-6 text-[12px] text-[#bbb]">{t("welcome.guest_note")}</p>
+        <p className="mt-6 text-[0.75rem] text-[var(--text-hint)]">{t("welcome.guest_note")}</p>
 
-        <button
-          onClick={toggleLocale}
-          className="mt-6 flex cursor-pointer items-center gap-1.5 rounded-md border border-[#e0e0e0] px-3 py-1.5 text-xs text-[#888] transition-colors hover:border-[#aaa] hover:text-[#555]"
-        >
-          <Languages className="size-3.5" />
-          <span className="min-w-[56px] text-center">{locale === "sr" ? "English" : "Srpski"}</span>
-        </button>
+        <div className="mt-6 flex items-center gap-2">
+          <button
+            onClick={toggleLocale}
+            className="flex cursor-pointer items-center gap-1.5 rounded-md border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-all duration-100 hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+            style={{ background: "var(--bg-surface)" }}
+          >
+            <Languages className="size-3.5" />
+            <span className="min-w-[3.5rem] text-center">
+              {locale === "sr" ? "English" : "Srpski"}
+            </span>
+          </button>
+          <button
+            onClick={toggleTheme}
+            className="flex cursor-pointer items-center justify-center rounded-md border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-all duration-100 hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+            style={{ background: "var(--bg-surface)" }}
+          >
+            {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+          </button>
+        </div>
       </div>
 
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
