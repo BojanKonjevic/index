@@ -4,19 +4,9 @@ import { fetchSubjects } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { useDebounce } from "@/hooks/useDebounce"
+import { useI18n } from "@/hooks/useI18n"
 import type { SubjectListItem } from "@index/shared"
 import { useState, useMemo } from "react"
-
-const semesterLabels: Record<number, string> = {
-  1: "1. semestar",
-  2: "2. semestar",
-  3: "3. semestar",
-  4: "4. semestar",
-  5: "5. semestar",
-  6: "6. semestar",
-  7: "7. semestar",
-  8: "8. semestar",
-}
 
 export const Route = createFileRoute("/subjects/")({
   loader: () => fetchSubjects(),
@@ -30,6 +20,7 @@ function SubjectsPage() {
   const [semesterFilter, setSemesterFilter] = useState<number | null>(null)
   const [electiveOnly, setElectiveOnly] = useState(false)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const { t } = useI18n()
 
   const debouncedQuery = useDebounce(searchQuery, 200)
 
@@ -58,10 +49,15 @@ function SubjectsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight">Predmeti</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t("subjects.title")}</h1>
         <p className="mt-0.5 text-[13px] text-[#888]">
-          {subjects.length} predmet{subjects.length !== 1 ? "a" : ""} ·{" "}
-          {uniqueSemesters.map((s) => semesterLabels[s]).join(" i ")}
+          {subjects.length === 1
+            ? t("subjects.count_fmt", { n: subjects.length })
+            : t("subjects.count_plural_fmt", { n: subjects.length })}
+          {" · "}
+          {uniqueSemesters
+            .map((s) => t("subjects.semester_label_fmt", { n: s }))
+            .join(t("subjects.semesters_joiner"))}
         </p>
       </div>
 
@@ -70,7 +66,7 @@ function SubjectsPage() {
           <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[#bbb]" />
           <input
             type="text"
-            placeholder="Pretraži predmete…"
+            placeholder={t("subjects.search_placeholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="h-8 w-full rounded-md border border-[#e0e0e0] bg-white pl-8 pr-3 text-[13px] outline-none focus:border-[#999]"
@@ -80,7 +76,7 @@ function SubjectsPage() {
         <div className="flex flex-wrap gap-1.5">
           {[
             {
-              label: "Svi",
+              label: t("subjects.all"),
               onClick: () => {
                 setSemesterFilter(null)
                 setElectiveOnly(false)
@@ -88,7 +84,7 @@ function SubjectsPage() {
               active: semesterFilter === null && !electiveOnly,
             },
             ...uniqueSemesters.map((s) => ({
-              label: `${s}. sem`,
+              label: t("subjects.sem_fmt", { s }),
               onClick: () => {
                 setSemesterFilter(s)
                 setElectiveOnly(false)
@@ -96,7 +92,7 @@ function SubjectsPage() {
               active: semesterFilter === s && !electiveOnly,
             })),
             {
-              label: "Izborni",
+              label: t("subjects.elective"),
               onClick: () => {
                 setSemesterFilter(null)
                 setElectiveOnly(true)
@@ -135,15 +131,13 @@ function SubjectsPage() {
       </div>
 
       {semesters.length === 0 ? (
-        <p className="py-12 text-center text-sm text-muted-foreground">
-          Nema predmeta koji odgovaraju filteru.
-        </p>
+        <p className="py-12 text-center text-sm text-muted-foreground">{t("subjects.empty")}</p>
       ) : (
         semesters.map((sem) => (
           <section key={sem} className="mb-8">
             <div className="relative mb-3.5 flex items-center gap-3">
               <span className="text-[11px] font-semibold uppercase tracking-[0.8px] text-[#aaa]">
-                {semesterLabels[sem]}
+                {t("subjects.semester_label_fmt", { n: sem })}
               </span>
               <span className="h-px flex-1 bg-[#ebebeb]" />
             </div>
@@ -164,7 +158,7 @@ function SubjectsPage() {
                 >
                   {subject.elective && (
                     <span className="absolute right-0 top-0 rounded-bl-md rounded-tr-xl bg-[#eff6ff] px-2 py-0.5 text-[10px] font-semibold tracking-[0.3px] text-[#3b82f6]">
-                      IZBORNI
+                      {t("subjects.elective_badge")}
                     </span>
                   )}
 
@@ -207,7 +201,7 @@ function SubjectsPage() {
 
                   <div className="mt-auto flex items-center justify-between border-t border-[#f5f5f5] pt-3">
                     <span className="flex items-center gap-1 text-xs text-[#999]">
-                      📄 {subject.materialCount} materijala
+                      {t("subjects.material_count_fmt", { n: subject.materialCount })}
                     </span>
                   </div>
                 </Link>

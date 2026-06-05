@@ -1,11 +1,13 @@
 import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { AuthModal } from "@/components/AuthModal"
-import { GraduationCap, LogIn, UserPlus, Eye } from "lucide-react"
+import { GraduationCap, LogIn, UserPlus, Eye, Languages } from "lucide-react"
+import { useI18n } from "@/hooks/useI18n"
 
 export function WelcomeScreen() {
   const { continueAsGuest } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
+  const { t, toggleLocale, locale } = useI18n()
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-6">
@@ -15,9 +17,7 @@ export function WelcomeScreen() {
         </div>
 
         <h1 className="text-[28px] font-bold tracking-tight">Indeks</h1>
-        <p className="mt-1.5 text-[14px] leading-relaxed text-[#666]">
-          Study material aggregator za 3. godinu primenjenog računarstva na FTN-u.
-        </p>
+        <p className="mt-1.5 text-[14px] leading-relaxed text-[#666]">{t("welcome.description")}</p>
 
         <div className="mt-9 flex w-full flex-col gap-2.5">
           <button
@@ -25,7 +25,7 @@ export function WelcomeScreen() {
             className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#111] text-sm font-medium text-white transition-colors hover:bg-[#333]"
           >
             <LogIn className="size-4" />
-            Prijavi se
+            {t("welcome.login")}
           </button>
 
           <button
@@ -33,7 +33,7 @@ export function WelcomeScreen() {
             className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#d4d4d4] text-sm font-medium text-[#333] transition-colors hover:bg-[#f5f5f5]"
           >
             <UserPlus className="size-4" />
-            Registruj se
+            {t("welcome.register")}
           </button>
 
           <div className="relative my-1">
@@ -42,7 +42,7 @@ export function WelcomeScreen() {
             </div>
             <div className="relative flex justify-center">
               <span className="bg-white px-3 text-[11px] uppercase tracking-[0.5px] text-[#bbb]">
-                ili
+                {t("welcome.or")}
               </span>
             </div>
           </div>
@@ -52,13 +52,19 @@ export function WelcomeScreen() {
             className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#e0e0e0] text-sm text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#555]"
           >
             <Eye className="size-4" />
-            Nastavi kao gost
+            {t("welcome.continue_as_guest")}
           </button>
         </div>
 
-        <p className="mt-6 text-[12px] text-[#bbb]">
-          Gosti mogu da pregledaju materijale. Nalog omogućava sinhronizaciju obeleženih stavki.
-        </p>
+        <p className="mt-6 text-[12px] text-[#bbb]">{t("welcome.guest_note")}</p>
+
+        <button
+          onClick={toggleLocale}
+          className="mt-6 flex cursor-pointer items-center gap-1.5 rounded-md border border-[#e0e0e0] px-3 py-1.5 text-xs text-[#888] transition-colors hover:border-[#aaa] hover:text-[#555]"
+        >
+          <Languages className="size-3.5" />
+          <span className="min-w-[56px] text-center">{locale === "sr" ? "English" : "Srpski"}</span>
+        </button>
       </div>
 
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />

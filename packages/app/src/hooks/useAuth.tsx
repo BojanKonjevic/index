@@ -61,10 +61,15 @@ function useAuthLogic(): AuthContextType {
     }
   }
 
+  function localeHeaders(): Record<string, string> {
+    const locale = typeof window !== "undefined" ? localStorage.getItem("locale") : null
+    return locale ? { "x-locale": locale } : {}
+  }
+
   const login = async (name: string, password: string) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...localeHeaders() },
       body: JSON.stringify({ name, password }),
     })
     const data = await res.json()
@@ -78,7 +83,7 @@ function useAuthLogic(): AuthContextType {
   const register = async (name: string, password: string) => {
     const res = await fetch("/api/auth/register", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...localeHeaders() },
       body: JSON.stringify({ name, password }),
     })
     const data = await res.json()

@@ -1,5 +1,6 @@
 import { Hono } from "hono"
 import { getCookie } from "hono/cookie"
+import { msg } from "../lib/i18n"
 
 async function getUserId(db: D1Database, sessionId: string | undefined): Promise<string | null> {
   if (!sessionId) return null
@@ -14,7 +15,7 @@ const app = new Hono<{ Bindings: { DB: D1Database } }>()
 
 app.get("/bookmarks", async (c) => {
   const userId = await getUserId(c.env.DB, getCookie(c, "session"))
-  if (!userId) return c.json({ error: "Niste prijavljeni." }, 401)
+  if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const rows = await c.env.DB.prepare("SELECT material_id FROM bookmarks WHERE user_id = ?")
     .bind(userId)
@@ -25,10 +26,10 @@ app.get("/bookmarks", async (c) => {
 
 app.post("/bookmarks/add", async (c) => {
   const userId = await getUserId(c.env.DB, getCookie(c, "session"))
-  if (!userId) return c.json({ error: "Niste prijavljeni." }, 401)
+  if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const { materialId } = await c.req.json()
-  if (!materialId) return c.json({ error: "ID materijala je obavezan." }, 400)
+  if (!materialId) return c.json({ error: msg(c, "auth.material_id_required") }, 400)
 
   const id = crypto.randomUUID()
   await c.env.DB.prepare(
@@ -42,7 +43,7 @@ app.post("/bookmarks/add", async (c) => {
 
 app.post("/bookmarks/remove", async (c) => {
   const userId = await getUserId(c.env.DB, getCookie(c, "session"))
-  if (!userId) return c.json({ error: "Niste prijavljeni." }, 401)
+  if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const { materialId } = await c.req.json()
   await c.env.DB.prepare("DELETE FROM bookmarks WHERE user_id = ? AND material_id = ?")
@@ -54,7 +55,7 @@ app.post("/bookmarks/remove", async (c) => {
 
 app.get("/preferences", async (c) => {
   const userId = await getUserId(c.env.DB, getCookie(c, "session"))
-  if (!userId) return c.json({ error: "Niste prijavljeni." }, 401)
+  if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const row = await c.env.DB.prepare("SELECT group_number FROM preferences WHERE user_id = ?")
     .bind(userId)
@@ -65,7 +66,7 @@ app.get("/preferences", async (c) => {
 
 app.put("/preferences", async (c) => {
   const userId = await getUserId(c.env.DB, getCookie(c, "session"))
-  if (!userId) return c.json({ error: "Niste prijavljeni." }, 401)
+  if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const { group } = await c.req.json()
 
@@ -82,7 +83,7 @@ app.put("/preferences", async (c) => {
 
 app.post("/sync", async (c) => {
   const userId = await getUserId(c.env.DB, getCookie(c, "session"))
-  if (!userId) return c.json({ error: "Niste prijavljeni." }, 401)
+  if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const { bookmarks, group } = await c.req.json()
 

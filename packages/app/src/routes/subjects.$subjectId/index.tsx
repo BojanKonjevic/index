@@ -4,16 +4,11 @@ import { fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { useDebounce } from "@/hooks/useDebounce"
-import { formatDate, daysUntil } from "@/lib/utils"
+import { daysUntil } from "@/lib/utils"
+import { formatDate as localeFormatDate, t as localeT } from "@/lib/i18n"
+import { useI18n } from "@/hooks/useI18n"
 import type { Material } from "@index/shared"
 import { useState, useMemo } from "react"
-
-const categoryConfig: Record<string, { label: string; icon: typeof BookOpen }> = {
-  theory: { label: "Teorija", icon: BookOpen },
-  problems: { label: "Zadaci", icon: Pencil },
-  exam: { label: "Ispiti", icon: FileText },
-  misc: { label: "Ostalo", icon: Folder },
-}
 
 const categoryOrder = ["theory", "problems", "exam", "misc"]
 
@@ -37,6 +32,7 @@ export const Route = createFileRoute("/subjects/$subjectId/")({
 function MaterialRow({ material }: { material: Material }) {
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
   const [bookmarked, setBookmarked] = useState(isBookmarked(material.id))
+  const { t } = useI18n()
 
   return (
     <Link
@@ -59,7 +55,7 @@ function MaterialRow({ material }: { material: Material }) {
           <span
             className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${categoryBadgeStyles[material.category] || ""}`}
           >
-            {categoryConfig[material.category]?.label || material.category}
+            {t(`category.${material.category}`)}
           </span>
           {material.examPart && (
             <span className="rounded bg-[#f5f5f5] px-1.5 py-0.5 text-[10px] text-[#888]">
@@ -68,12 +64,12 @@ function MaterialRow({ material }: { material: Material }) {
           )}
           {material.solved === true && (
             <span className="rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-600">
-              rešeni
+              {t("subject.solved_badge")}
             </span>
           )}
           {material.solved === false && (
             <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-600">
-              nerešeni
+              {t("subject.unsolved_badge")}
             </span>
           )}
         </div>
@@ -105,6 +101,8 @@ function MaterialRow({ material }: { material: Material }) {
 function SubjectPage() {
   const { subject, materials, exams } = Route.useLoaderData()
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
+  const { locale } = useI18n()
+  const t = (k: string, p?: Record<string, string | number>) => localeT(locale, k, p)
 
   const [fileTypeFilter, setFileTypeFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
@@ -163,13 +161,20 @@ function SubjectPage() {
           : "bg-green-50 border-green-200 text-green-700"
       : ""
 
+  const categoryConfig: Record<string, { label: string; icon: typeof BookOpen }> = {
+    theory: { label: t("category.theory"), icon: BookOpen },
+    problems: { label: t("category.problems"), icon: Pencil },
+    exam: { label: t("category.exam"), icon: FileText },
+    misc: { label: t("category.misc"), icon: Folder },
+  }
+
   return (
     <div>
       <div className="border-b bg-white">
         <div className="px-9 pt-6">
           <div className="mb-3.5 flex items-center gap-1.5 text-[12.5px] text-[#999]">
             <Link to="/subjects" className="hover:text-[#555]">
-              Predmeti
+              {t("subject.breadcrumb")}
             </Link>
             <span className="text-[11px]">›</span>
             <span className="text-[#555]">{subject.name}</span>
@@ -179,7 +184,7 @@ function SubjectPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight">{subject.name}</h1>
               <div className="mt-1.5 flex flex-wrap items-center gap-4 text-[13px] text-[#666]">
-                <span>{subject.semester}. semestar</span>
+                <span>{t("subject.semester_fmt", { n: subject.semester })}</span>
                 <span className="size-[3px] rounded-full bg-[#ccc]" />
                 <span>{subject.espb} ESPB</span>
                 {subject.professors[0] && (
@@ -201,7 +206,7 @@ function SubjectPage() {
                   isBookmarked(subject.id) ? "fill-amber-400 text-amber-400" : ""
                 }`}
               />
-              {isBookmarked(subject.id) ? "Obeleženo" : "Obeleži"}
+              {isBookmarked(subject.id) ? t("subject.bookmarked") : t("subject.bookmark")}
             </button>
           </div>
 
@@ -213,13 +218,13 @@ function SubjectPage() {
               <div className="flex-1">
                 <div className="text-[13.5px] font-semibold">{nearestExam.title}</div>
                 <div className="mt-0.5 text-xs opacity-80">
-                  {formatDate(nearestExam.date)} · {nearestExam.time}
+                  {localeFormatDate(locale, nearestExam.date)} · {nearestExam.time}
                   {nearestExam.location ? ` · ${nearestExam.location}` : ""}
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-[22px] font-bold">{examUrgency}</div>
-                <div className="text-[11px] opacity-75">dana</div>
+                <div className="text-[11px] opacity-75">{t("subject.days")}</div>
               </div>
             </div>
           )}
@@ -229,11 +234,11 @@ function SubjectPage() {
           <div className="flex flex-wrap items-start gap-6">
             <div className="flex flex-col gap-1.5">
               <div className="text-[11px] font-semibold uppercase tracking-[0.5px] text-[#999]">
-                Tip fajla
+                {t("subject.filter_file_type")}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { key: "all", label: "Svi" },
+                  { key: "all", label: t("subject.filter_all") },
                   { key: "pdf", label: "PDF" },
                   { key: "video", label: "Video" },
                 ].map((opt) => (
@@ -254,11 +259,11 @@ function SubjectPage() {
 
             <div className="flex flex-col gap-1.5">
               <div className="text-[11px] font-semibold uppercase tracking-[0.5px] text-[#999]">
-                Kategorija
+                {t("subject.filter_category")}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { key: "all", label: "Sve" },
+                  { key: "all", label: t("subject.filter_all_cat") },
                   ...categoryOrder.map((c) => ({ key: c, label: categoryConfig[c].label })),
                 ].map((opt) => (
                   <button
@@ -281,13 +286,13 @@ function SubjectPage() {
 
             <div className="flex flex-col gap-1.5">
               <div className="text-[11px] font-semibold uppercase tracking-[0.5px] text-[#999]">
-                Ispiti
+                {t("subject.filter_exams")}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { key: "all", label: "Svi" },
-                  { key: "solved", label: "Rešeni" },
-                  { key: "unsolved", label: "Nerešeni" },
+                  { key: "all", label: t("subject.filter_all") },
+                  { key: "solved", label: t("subject.filter_solved") },
+                  { key: "unsolved", label: t("subject.filter_unsolved") },
                 ].map((opt) => (
                   <button
                     key={opt.key}
@@ -308,7 +313,7 @@ function SubjectPage() {
               <Search className="absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-[#bbb]" />
               <input
                 type="text"
-                placeholder="Pretraži materijale…"
+                placeholder={t("subject.search_placeholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-7 w-full rounded-md border border-[#e0e0e0] bg-white pl-7 pr-3 text-[13px] outline-none focus:border-[#999]"
@@ -321,7 +326,7 @@ function SubjectPage() {
       <div className="mt-7 max-w-[1000px]">
         {filteredMaterials.length === 0 ? (
           <div className="rounded-xl border border-[#ebebeb] bg-white py-10 text-center text-[13px] text-[#aaa]">
-            Nema materijala koji odgovaraju filteru 🔍
+            {t("subject.empty")}
           </div>
         ) : (
           categoryOrder.map((cat) => {
@@ -361,6 +366,7 @@ function SubjectPage() {
 }
 
 function ExamCategorySection({ items }: { items: Material[] }) {
+  const { t } = useI18n()
   const solved = items.filter((m) => m.solved === true)
   const unsolved = items.filter((m) => m.solved === false)
   const unknown = items.filter((m) => m.solved === null)
@@ -370,7 +376,7 @@ function ExamCategorySection({ items }: { items: Material[] }) {
       {solved.length > 0 && (
         <div className="ml-5 mt-3">
           <div className="mb-1.5 border-l-2 border-[#e0e0e0] py-1 pl-3 text-xs font-medium text-[#888]">
-            ✓ Rešeni ({solved.length})
+            {t("subject.solved_label_fmt", { n: solved.length })}
           </div>
           <div className="flex flex-col gap-1">
             {solved.map((m) => (
@@ -382,7 +388,7 @@ function ExamCategorySection({ items }: { items: Material[] }) {
       {unsolved.length > 0 && (
         <div className="ml-5 mt-3">
           <div className="mb-1.5 border-l-2 border-[#e0e0e0] py-1 pl-3 text-xs font-medium text-[#888]">
-            ○ Nerešeni ({unsolved.length})
+            {t("subject.unsolved_label_fmt", { n: unsolved.length })}
           </div>
           <div className="flex flex-col gap-1">
             {unsolved.map((m) => (
@@ -394,7 +400,7 @@ function ExamCategorySection({ items }: { items: Material[] }) {
       {unknown.length > 0 && (
         <div className="ml-5 mt-3">
           <div className="mb-1.5 border-l-2 border-[#e0e0e0] py-1 pl-3 text-xs font-medium text-[#888]">
-            Ostali ispitni materijali ({unknown.length})
+            {t("subject.other_label_fmt", { n: unknown.length })}
           </div>
           <div className="flex flex-col gap-1">
             {unknown.map((m) => (

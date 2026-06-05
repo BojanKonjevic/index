@@ -1,5 +1,14 @@
 import { createRootRoute, Outlet, Link, useLocation } from "@tanstack/react-router"
-import { Home, BookOpen, Bookmark, User, GraduationCap, LogIn, LogOut } from "lucide-react"
+import {
+  Home,
+  BookOpen,
+  Bookmark,
+  User,
+  GraduationCap,
+  LogIn,
+  LogOut,
+  Languages,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   Select,
@@ -12,6 +21,7 @@ import { useState, useEffect } from "react"
 import { AuthProvider, useAuth } from "@/hooks/useAuth"
 import { AuthModal } from "@/components/AuthModal"
 import { WelcomeScreen } from "@/components/WelcomeScreen"
+import { useI18n } from "@/hooks/useI18n"
 
 const groups = Array.from({ length: 14 }, (_, i) => i + 1)
 
@@ -25,6 +35,7 @@ function Sidebar() {
   const [group, setGroup] = useState<string | null>(getGroup)
   const { user, isGuest, logout } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
+  const { t, toggleLocale, locale } = useI18n()
 
   useEffect(() => {
     if (!user) return
@@ -54,15 +65,15 @@ function Sidebar() {
 
   const navSections = [
     {
-      label: "Navigacija",
+      label: t("nav.navigation"),
       items: [
-        { to: "/", label: "Početna", icon: Home },
-        { to: "/subjects", label: "Predmeti", icon: BookOpen },
+        { to: "/", label: t("nav.home"), icon: Home },
+        { to: "/subjects", label: t("nav.subjects"), icon: BookOpen },
       ],
     },
     {
-      label: "Lično",
-      items: [{ to: "/bookmarks", label: "Obeleženo", icon: Bookmark }],
+      label: t("nav.personal"),
+      items: [{ to: "/bookmarks", label: t("nav.bookmarks"), icon: Bookmark }],
     },
   ]
 
@@ -109,9 +120,9 @@ function Sidebar() {
           <SelectTrigger className="flex w-full items-center gap-2 rounded-md bg-[#f5f5f4] px-3 py-2 text-xs shadow-none hover:bg-[#eee]">
             <User className="size-4 text-[#888]" />
             <div className="flex flex-1 flex-col items-start text-left">
-              <span className="text-[11px] text-[#888]">Trenutna grupa</span>
+              <span className="text-[11px] text-[#888]">{t("sidebar.group_label")}</span>
               <SelectValue
-                placeholder="Nije odabrano"
+                placeholder={t("sidebar.group_placeholder")}
                 className="text-[13px] font-medium text-[#333]"
               />
             </div>
@@ -119,7 +130,7 @@ function Sidebar() {
           <SelectContent>
             {groups.map((g) => (
               <SelectItem key={g} value={String(g)}>
-                Grupa {g}
+                {t("sidebar.group_fmt", { g })}
               </SelectItem>
             ))}
           </SelectContent>
@@ -131,7 +142,7 @@ function Sidebar() {
             className="mt-2 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-[13px] text-[#555] transition-colors hover:bg-[#f5f5f4]"
           >
             <LogIn className="size-4" />
-            Prijavi se / Registruj se
+            {t("nav.login_register")}
           </button>
         )}
 
@@ -141,12 +152,23 @@ function Sidebar() {
             <button
               onClick={logout}
               className="cursor-pointer text-[#888] hover:text-[#111]"
-              title="Odjavi se"
+              title={t("nav.logout")}
             >
               <LogOut className="size-4" />
             </button>
           </div>
         )}
+
+        <button
+          onClick={toggleLocale}
+          className="mt-2 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-[13px] text-[#555] transition-colors hover:bg-[#f5f5f4]"
+          title={locale === "sr" ? "Switch to English" : "Prebaci na srpski"}
+        >
+          <Languages className="size-4" />
+          <span className="min-w-[28px] text-center font-semibold">
+            {locale === "sr" ? "EN" : "SR"}
+          </span>
+        </button>
       </div>
 
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
@@ -158,23 +180,28 @@ function TopBar() {
   const group = getGroup()
   const { user, isGuest, logout } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
+  const { t, toggleLocale, locale } = useI18n()
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex h-12 items-center justify-between border-b bg-white px-6">
       <span className="text-base font-bold tracking-tight">Indeks</span>
       <div className="flex items-center gap-4 text-[13px] text-[#555]">
         <Link to="/subjects" className="hover:text-[#111]">
-          Predmeti
+          {t("nav.subjects")}
         </Link>
         {group && (
           <span className="rounded bg-[#f0f0f0] px-2 py-0.5 text-xs font-medium">
-            Grupa {group}
+            {t("topbar.group_fmt", { group })}
           </span>
         )}
         {user ? (
           <span className="flex items-center gap-2">
             <span className="text-xs text-[#888]">{user.name}</span>
-            <button onClick={logout} className="cursor-pointer hover:text-[#111]" title="Odjavi se">
+            <button
+              onClick={logout}
+              className="cursor-pointer hover:text-[#111]"
+              title={t("nav.logout")}
+            >
               <LogOut className="size-4" />
             </button>
           </span>
@@ -184,9 +211,16 @@ function TopBar() {
             className="flex cursor-pointer items-center gap-1 hover:text-[#111]"
           >
             <LogIn className="size-4" />
-            Prijavi se
+            {t("nav.login")}
           </button>
         ) : null}
+        <button
+          onClick={toggleLocale}
+          className="flex cursor-pointer items-center justify-center rounded px-1.5 py-0.5 text-xs font-semibold uppercase hover:text-[#111] min-w-[30px]"
+          title={locale === "sr" ? "Switch to English" : "Prebaci na srpski"}
+        >
+          {locale === "sr" ? "EN" : "SR"}
+        </button>
         <Link to="/bookmarks" className="hover:text-[#111]">
           <Bookmark className="size-4" />
         </Link>

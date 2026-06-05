@@ -1,5 +1,6 @@
 import { Hono } from "hono"
 import { setCookie, getCookie, deleteCookie } from "hono/cookie"
+import { msg } from "../lib/i18n"
 
 const ITERATIONS = 100_000
 
@@ -80,13 +81,12 @@ const app = new Hono<{ Bindings: { DB: D1Database } }>()
 
 app.post("/auth/register", async (c) => {
   const { name, password } = await c.req.json()
-  if (!name || !password) return c.json({ error: "Ime i lozinka su obavezni." }, 400)
-  if (name.length < 3 || name.length > 50)
-    return c.json({ error: "Ime mora imati između 3 i 50 karaktera." }, 400)
-  if (password.length < 4) return c.json({ error: "Lozinka mora imati najmanje 4 karaktera." }, 400)
+  if (!name || !password) return c.json({ error: msg(c, "auth.required") }, 400)
+  if (name.length < 3 || name.length > 50) return c.json({ error: msg(c, "auth.name_length") }, 400)
+  if (password.length < 4) return c.json({ error: msg(c, "auth.password_length") }, 400)
 
   const existing = await c.env.DB.prepare("SELECT id FROM users WHERE name = ?").bind(name).first()
-  if (existing) return c.json({ error: "Korisničko ime je zauzeto." }, 409)
+  if (existing) return c.json({ error: msg(c, "auth.username_taken") }, 409)
 
   const userId = crypto.randomUUID()
   const passwordHash = await hashPassword(password)
@@ -102,15 +102,15 @@ app.post("/auth/register", async (c) => {
 
 app.post("/auth/login", async (c) => {
   const { name, password } = await c.req.json()
-  if (!name || !password) return c.json({ error: "Ime i lozinka su obavezni." }, 400)
+  if (!name || !password) return c.json({ error: msg(c, "auth.required") }, 400)
 
   const user = await c.env.DB.prepare("SELECT id, name, password_hash FROM users WHERE name = ?")
     .bind(name)
     .first<{ id: string; name: string; password_hash: string }>()
-  if (!user) return c.json({ error: "Pogrešno korisničko ime ili lozinka." }, 401)
+  if (!user) return c.json({ error: msg(c, "auth.invalid_credentials") }, 401)
 
   const valid = await verifyPassword(password, user.password_hash)
-  if (!valid) return c.json({ error: "Pogrešno korisničko ime ili lozinka." }, 401)
+  if (!valid) return c.json({ error: msg(c, "auth.invalid_credentials") }, 401)
 
   const sessionId = await createSession(c.env.DB, user.id)
   setSessionCookie(c, sessionId)

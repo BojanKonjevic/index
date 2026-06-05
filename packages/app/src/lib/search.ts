@@ -64,7 +64,8 @@ export function useGlobalSearch(data: GlobalData | null, query: string, limit = 
   }, [data])
 
   const fuse = useMemo(
-    () => new Fuse(index, { keys: ["label", "description"], threshold: 0.4 }),
+    () =>
+      new Fuse(index, { keys: ["label", "description"], threshold: 0.4, ignoreDiacritics: true }),
     [index],
   )
 

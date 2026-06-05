@@ -13,6 +13,7 @@ import {
 import { fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
+import { useI18n } from "@/hooks/useI18n"
 import type { Material } from "@index/shared"
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { Document, Page, pdfjs } from "react-pdf"
@@ -32,6 +33,7 @@ function ViewerPage() {
   const { subjectId, materialId } = Route.useParams()
   const navigate = useNavigate()
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
+  const { t } = useI18n()
   const [sidebarMode, setSidebarMode] = useState<"category" | "all">("category")
 
   const [pageNum, setPageNum] = useState(1)
@@ -189,12 +191,12 @@ function ViewerPage() {
 
   const categoryName =
     material?.category === "theory"
-      ? "Predavanja"
+      ? t("category.lectures")
       : material?.category === "problems"
-        ? "Vežbe"
+        ? t("category.exercises")
         : material?.category === "exam"
-          ? "Ispiti"
-          : "Ostalo"
+          ? t("category.exams")
+          : t("category.other")
 
   const sidebarMaterials = useMemo(() => {
     if (sidebarMode === "category" && material) {
@@ -257,7 +259,7 @@ function ViewerPage() {
   if (!material) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#1a1a1a] text-white">
-        Materijal nije pronađen.
+        {t("viewer.not_found")}
       </div>
     )
   }
@@ -272,13 +274,13 @@ function ViewerPage() {
             className="flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-[#555] hover:bg-[#f5f5f5] hover:text-[#111]"
           >
             <ArrowLeft className="size-6" />
-            Nazad
+            {t("viewer.back")}
           </button>
         </div>
 
         <div className="flex items-center gap-1.5 border-r border-[#f0f0f0] px-4 text-sm text-[#aaa]">
           <Link to="/subjects" className="hover:text-[#555]">
-            Predmeti
+            {t("viewer.breadcrumb_subjects")}
           </Link>
           <span>›</span>
           <Link to="/subjects/$subjectId" params={{ subjectId }} className="hover:text-[#555]">
@@ -312,7 +314,7 @@ function ViewerPage() {
             <button
               onClick={zoomOut}
               disabled={atMinZoom}
-              title="Umanji"
+              title={t("viewer.zoom_out")}
               className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111] disabled:opacity-30 disabled:pointer-events-none"
             >
               <ZoomOut className="size-6" />
@@ -320,14 +322,14 @@ function ViewerPage() {
             <button
               onClick={zoomIn}
               disabled={atMaxZoom}
-              title="Uvećaj"
+              title={t("viewer.zoom_in")}
               className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111] disabled:opacity-30 disabled:pointer-events-none"
             >
               <ZoomIn className="size-6" />
             </button>
             <button
               onClick={fitWidth}
-              title="Podesi širinu"
+              title={t("viewer.fit_width")}
               className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111]"
             >
               <Maximize className="size-6" />
@@ -339,7 +341,7 @@ function ViewerPage() {
           <span className="flex gap-0.5">
             <button
               onClick={() => setInverted((v) => !v)}
-              title="Invertuj boje"
+              title={t("viewer.invert")}
               className="flex size-12 items-center justify-center rounded-md text-[#666] hover:bg-[#f5f5f5] hover:text-[#111]"
             >
               <SunMoon className="size-6" />
@@ -361,7 +363,7 @@ function ViewerPage() {
           style={{ backgroundColor: inverted ? "#fff" : "#2c2c2c" }}
         >
           {!material.url ? (
-            <div className="pt-20 text-sm text-[#999]">URL nije postavljen.</div>
+            <div className="pt-20 text-sm text-[#999]">{t("viewer.no_url")}</div>
           ) : (
             <Document
               file={material.url}
@@ -376,7 +378,7 @@ function ViewerPage() {
                 }
               }}
               onLoadError={() => {
-                setPdfError("Neuspešno učitavanje PDF-a.")
+                setPdfError(t("viewer.load_error"))
                 setPdfLoading(false)
               }}
               loading={null}
@@ -384,7 +386,7 @@ function ViewerPage() {
               {pdfLoading && (
                 <div className="flex items-center gap-2 pt-20 text-sm text-[#999]">
                   <Loader2 className="size-5 animate-spin" />
-                  Učitavanje PDF-a…
+                  {t("viewer.loading")}
                 </div>
               )}
               {pdfError && <div className="pt-20 text-sm text-[#999]">{pdfError}</div>}
@@ -430,13 +432,13 @@ function ViewerPage() {
         <div className="flex w-[300px] shrink-0 flex-col overflow-hidden border-l bg-white">
           <div className="flex items-center justify-between border-b border-[#f0f0f0] px-4 py-3.5">
             <span className="text-xs font-semibold uppercase tracking-[0.6px] text-[#888]">
-              {sidebarMode === "category" ? categoryName : "Svi materijali"}
+              {sidebarMode === "category" ? categoryName : t("viewer.sidebar_all")}
             </span>
             <button
               onClick={() => setSidebarMode(sidebarMode === "category" ? "all" : "category")}
               className="cursor-pointer text-[11px] text-[#aaa] hover:text-[#555]"
             >
-              {sidebarMode === "category" ? "Svi materijali" : categoryName}
+              {sidebarMode === "category" ? t("viewer.sidebar_all") : categoryName}
             </button>
           </div>
 
@@ -463,13 +465,7 @@ function ViewerPage() {
                 Object.entries(groupedByCategory).map(([cat, items]) => (
                   <div key={cat}>
                     <div className="px-2.5 pb-1 pt-2.5 text-[10.5px] font-semibold uppercase tracking-[0.6px] text-[#ccc]">
-                      {cat === "theory"
-                        ? "Predavanja"
-                        : cat === "problems"
-                          ? "Vežbe"
-                          : cat === "exam"
-                            ? "Ispiti"
-                            : "Ostalo"}
+                      {t(`category.${cat}`)}
                     </div>
                     {items.map((m) => (
                       <SidebarItem
@@ -488,7 +484,7 @@ function ViewerPage() {
               <kbd className="rounded border border-[#bbb] bg-[#ddd] px-1.5 text-[11px] font-medium text-[#333]">
                 b
               </kbd>{" "}
-              <span className="text-[#888]">obeleži</span>
+              <span className="text-[#888]">{t("viewer.shortcut_bookmark")}</span>
             </span>
           </div>
         </div>
@@ -506,6 +502,7 @@ function SidebarItem({
   isActive: boolean
   bookmarkStar: React.ReactNode
 }) {
+  const { t } = useI18n()
   return (
     <Link
       to="/subjects/$subjectId/materials/$materialId"
@@ -518,8 +515,12 @@ function SidebarItem({
           {material.title}
         </div>
         <div className={`text-[11px] ${isActive ? "text-[#ccc]" : "text-[#aaa]"}`}>
-          {material.pageCount > 0 ? `${material.pageCount} strana` : ""}
-          {isActive ? (material.pageCount > 0 ? " · trenutno" : "trenutno") : ""}
+          {material.pageCount > 0 ? t("viewer.pages_fmt", { n: material.pageCount }) : ""}
+          {isActive
+            ? material.pageCount > 0
+              ? ` · ${t("viewer.current")}`
+              : t("viewer.current")
+            : ""}
         </div>
       </div>
       <span onClick={(e) => e.preventDefault()} className="shrink-0">

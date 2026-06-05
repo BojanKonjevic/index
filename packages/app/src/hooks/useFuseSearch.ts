@@ -7,7 +7,8 @@ export function useFuseSearch<T>(
   query: string,
   limit?: number,
 ): T[] {
-  const fuse = useMemo(() => new Fuse(items, options), [items, options])
+  const opts = useMemo(() => ({ ...options, ignoreDiacritics: true }), [options])
+  const fuse = useMemo(() => new Fuse(items, opts), [items, opts])
 
   return useMemo(() => {
     if (!query.trim()) return items

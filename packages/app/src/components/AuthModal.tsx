@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { X } from "lucide-react"
+import { useI18n } from "@/hooks/useI18n"
 
 interface AuthModalProps {
   open: boolean
@@ -16,6 +17,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const { t } = useI18n()
 
   if (!open) return null
 
@@ -23,7 +25,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
     e.preventDefault()
     setError("")
     if (!name.trim() || !password) {
-      setError("Popuni sva polja.")
+      setError(t("auth.fill_fields"))
       return
     }
     setSubmitting(true)
@@ -35,7 +37,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       }
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Greška.")
+      setError(err instanceof Error ? err.message : t("auth.error"))
     } finally {
       setSubmitting(false)
     }
@@ -60,7 +62,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
                 mode === "login" ? "bg-[#111] text-white" : "text-[#666] hover:bg-[#f5f5f5]"
               }`}
             >
-              Prijavi se
+              {t("auth.login_tab")}
             </button>
             <button
               onClick={() => {
@@ -71,7 +73,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
                 mode === "register" ? "bg-[#111] text-white" : "text-[#666] hover:bg-[#f5f5f5]"
               }`}
             >
-              Registruj se
+              {t("auth.register_tab")}
             </button>
           </div>
           <button onClick={onClose} className="cursor-pointer rounded-md p-1 hover:bg-[#f0f0f0]">
@@ -81,7 +83,9 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="mb-1 block text-[13px] font-medium text-[#555]">Korisničko ime</label>
+            <label className="mb-1 block text-[13px] font-medium text-[#555]">
+              {t("auth.username")}
+            </label>
             <input
               type="text"
               value={name}
@@ -92,7 +96,9 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           </div>
 
           <div>
-            <label className="mb-1 block text-[13px] font-medium text-[#555]">Lozinka</label>
+            <label className="mb-1 block text-[13px] font-medium text-[#555]">
+              {t("auth.password")}
+            </label>
             <input
               type="password"
               value={password}
@@ -108,30 +114,34 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             disabled={submitting}
             className="h-9 w-full rounded-md bg-[#111] text-sm font-medium text-white transition-colors hover:bg-[#333] disabled:opacity-50"
           >
-            {submitting ? "..." : mode === "login" ? "Prijavi se" : "Napravi nalog"}
+            {submitting
+              ? "..."
+              : mode === "login"
+                ? t("auth.submit_login")
+                : t("auth.submit_register")}
           </button>
 
           <p className="text-center text-[12px] text-[#999]">
             {mode === "login" ? (
               <>
-                Nemaš nalog?{" "}
+                {t("auth.no_account")}{" "}
                 <button
                   type="button"
                   onClick={switchMode}
                   className="cursor-pointer text-[#111] underline"
                 >
-                  Registruj se
+                  {t("auth.register_link")}
                 </button>
               </>
             ) : (
               <>
-                Već imaš nalog?{" "}
+                {t("auth.has_account")}{" "}
                 <button
                   type="button"
                   onClick={switchMode}
                   className="cursor-pointer text-[#111] underline"
                 >
-                  Prijavi se
+                  {t("auth.login_link")}
                 </button>
               </>
             )}

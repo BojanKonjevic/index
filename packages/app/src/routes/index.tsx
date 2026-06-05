@@ -4,21 +4,32 @@ import { fetchSubject } from "@/lib/api"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useGlobalSearch } from "@/lib/search"
-import { formatDate, daysUntil, getRelativeTime } from "@/lib/utils"
+import { daysUntil } from "@/lib/utils"
+import {
+  formatDate as localeFormatDate,
+  getRelativeTime as localeGetRelativeTime,
+  t as localeT,
+} from "@/lib/i18n"
+import { useI18n } from "@/hooks/useI18n"
 import type { ExamEvent } from "@index/shared"
 import { useState, useRef, useEffect } from "react"
 
-function getUrgency(days: number) {
-  if (days <= 0) return { cls: "soon" as const, label: "danas" }
-  if (days === 1) return { cls: "soon" as const, label: "sutra" }
-  if (days <= 14) return { cls: "soon" as const, label: `za ${days} dana` }
-  if (days <= 30) return { cls: "upcoming" as const, label: `za ${days} dana` }
-  return { cls: "later" as const, label: `za ${days} dana` }
+function getUrgency(
+  days: number,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  if (days <= 0) return { cls: "soon" as const, label: t("home.exam_today") }
+  if (days === 1) return { cls: "soon" as const, label: t("home.exam_tomorrow") }
+  if (days <= 14) return { cls: "soon" as const, label: t("home.exam_days", { days }) }
+  if (days <= 30) return { cls: "upcoming" as const, label: t("home.exam_days", { days }) }
+  return { cls: "later" as const, label: t("home.exam_days", { days }) }
 }
 
 function ExamCard({ exam, subjectName }: { exam: ExamEvent; subjectName: string }) {
+  const { locale } = useI18n()
+  const t = (k: string, p?: Record<string, string | number>) => localeT(locale, k, p)
   const days = daysUntil(exam.date)
-  const urgency = getUrgency(days)
+  const urgency = getUrgency(days, t)
   const colorMap: Record<string, string> = {
     soon: "bg-red-50 text-red-600",
     upcoming: "bg-amber-50 text-amber-600",
@@ -36,7 +47,7 @@ function ExamCard({ exam, subjectName }: { exam: ExamEvent; subjectName: string 
         <span className="text-xs text-[#666]">{exam.title}</span>
       </div>
       <div className="text-right">
-        <div className="text-[13px] font-medium">{formatDate(exam.date)}</div>
+        <div className="text-[13px] font-medium">{localeFormatDate(locale, exam.date)}</div>
         <span
           className={`inline-block rounded-full px-1.5 py-0.5 text-[11px] font-medium ${colorMap[urgency.cls]}`}
         >
@@ -69,6 +80,8 @@ function HomePage() {
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const debouncedQuery = useDebounce(searchQuery, 200)
+  const { locale } = useI18n()
+  const t = (k: string, p?: Record<string, string | number>) => localeT(locale, k, p)
 
   const searchData = data
     ? {
@@ -113,9 +126,10 @@ function HomePage() {
 
   return (
     <div className="mx-auto max-w-[560px] px-6 pb-16 pt-[100px]">
-      <h1 className="mb-1 text-[22px] font-semibold tracking-tight">Dobar dan.</h1>
+      <h1 className="mb-1 text-[22px] font-semibold tracking-tight">{t("home.greeting")}</h1>
       <p className="mb-5 text-[13px] text-[#666]">
-        4. semestar · 1 predmet{group ? ` · Grupa ${group}` : ""}
+        {t("home.semester_fmt", { count: 1 })}
+        {group ? ` · ${t("home.group_suffix", { group })}` : ""}
       </p>
 
       <div className="relative mb-12" ref={searchRef}>
@@ -124,7 +138,7 @@ function HomePage() {
           <input
             ref={inputRef}
             type="search"
-            placeholder="Pretraži predmete, materijale, ispite…"
+            placeholder={t("home.search_placeholder")}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value)
@@ -189,17 +203,13 @@ function HomePage() {
           </div>
         )}
 
-        <p className="mt-2 text-xs text-[#999]">
-          Pritisni{" "}
-          <kbd className="rounded border bg-[#f0f0f0] px-1 py-0.5 text-[11px] text-[#888]">/</kbd>{" "}
-          za brzu pretragu
-        </p>
+        <p className="mt-2 text-xs text-[#999]">{t("home.search_hint")}</p>
       </div>
 
       <section className="mb-9">
         <div className="mb-3 flex items-baseline justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-[0.8px] text-[#999]">
-            Predstojeći ispiti
+            {t("home.upcoming_exams")}
           </span>
           {exams.length > 0 && (
             <Link
@@ -207,7 +217,7 @@ function HomePage() {
               params={{ subjectId: "matematicka-analiza-2" }}
               className="text-xs text-[#555] hover:text-[#111]"
             >
-              Svi →
+              {t("home.all_link")}
             </Link>
           )}
         </div>
@@ -217,7 +227,7 @@ function HomePage() {
               <ExamCard key={exam.id} exam={exam} subjectName={data!.subject.name} />
             ))
           ) : (
-            <p className="text-sm text-muted-foreground">Ništa zakazano.</p>
+            <p className="text-sm text-muted-foreground">{t("home.no_exams")}</p>
           )}
         </div>
       </section>
@@ -225,7 +235,7 @@ function HomePage() {
       <section>
         <div className="mb-3 flex items-baseline justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-[0.8px] text-[#999]">
-            Nedavno otvoreno
+            {t("home.recently_opened")}
           </span>
         </div>
         {recent.length > 0 ? (
@@ -245,13 +255,13 @@ function HomePage() {
                   <div className="text-xs text-[#888]">{item.subjectName}</div>
                 </div>
                 <span className="shrink-0 text-xs text-[#bbb]">
-                  {getRelativeTime(item.timestamp)}
+                  {localeGetRelativeTime(locale, item.timestamp)}
                 </span>
               </Link>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Još uvek ništa niste otvorili.</p>
+          <p className="text-sm text-muted-foreground">{t("home.nothing_opened")}</p>
         )}
       </section>
     </div>

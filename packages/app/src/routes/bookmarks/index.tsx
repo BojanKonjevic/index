@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { Star, FileText, Bookmark } from "lucide-react"
 import { fetchSubjects, fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
+import { useI18n } from "@/hooks/useI18n"
 import { useState, useMemo, useEffect } from "react"
 
 export const Route = createFileRoute("/bookmarks/")({
@@ -17,6 +18,7 @@ function BookmarksPage() {
   const subjectDetails = Route.useLoaderData()
   const { bookmarks, removeBookmark } = useBookmarks()
   const [localBookmarks, setLocalBookmarks] = useState<string[]>(bookmarks)
+  const { t } = useI18n()
 
   useEffect(() => {
     setLocalBookmarks(bookmarks)
@@ -45,21 +47,23 @@ function BookmarksPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold tracking-tight">Obeleženi materijali</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t("bookmarks.title")}</h1>
         <p className="mt-0.5 text-[13px] text-[#888]">
-          {items.length} {items.length === 1 ? "materijal" : "materijala"}
+          {items.length === 1
+            ? t("bookmarks.count_fmt", { n: items.length })
+            : t("bookmarks.count_plural_fmt", { n: items.length })}
         </p>
       </div>
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-[#ebebeb] bg-white py-16">
           <Bookmark className="size-10 text-[#ddd]" />
-          <p className="text-sm text-muted-foreground">Još uvek nemate obeleženih materijala.</p>
+          <p className="text-sm text-muted-foreground">{t("bookmarks.empty")}</p>
           <Link
             to="/subjects"
             className="rounded-md bg-[#111] px-4 py-2 text-sm font-medium text-white hover:bg-[#333]"
           >
-            Pregledaj predmete
+            {t("bookmarks.browse")}
           </Link>
         </div>
       ) : (
@@ -85,7 +89,9 @@ function BookmarksPage() {
                   {material.fileType === "pdf" ? "PDF" : "Video"}
                 </span>
                 {material.pageCount > 0 && (
-                  <div className="mt-0.5 text-[11px] text-[#aaa]">{material.pageCount} str.</div>
+                  <div className="mt-0.5 text-[11px] text-[#aaa]">
+                    {t("bookmarks.pages_fmt", { n: material.pageCount })}
+                  </div>
                 )}
               </div>
 
