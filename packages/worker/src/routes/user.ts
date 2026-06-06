@@ -90,33 +90,4 @@ app.put("/preferences", async (c) => {
   return c.json({ ok: true })
 })
 
-app.post("/sync", async (c) => {
-  const userId = await getUserId(c, c.env.DB, c.env.SESSION_SECRET)
-  if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
-
-  const { bookmarks, group } = await c.req.json()
-
-  if (Array.isArray(bookmarks) && bookmarks.length > 0) {
-    const stmts = bookmarks.map((materialId: string) =>
-      c.env.DB.prepare(
-        "INSERT OR IGNORE INTO bookmarks (id, user_id, material_id) VALUES (?, ?, ?)",
-      ).bind(crypto.randomUUID(), userId, materialId),
-    )
-    await c.env.DB.batch(stmts)
-  }
-
-  if (group) {
-    await c.env.DB.prepare(
-      `INSERT INTO preferences (user_id, group_number, updated_at)
-         VALUES (?, ?, datetime('now'))
-         ON CONFLICT(user_id) DO UPDATE SET group_number = ?, updated_at = datetime('now')`,
-    )
-      .bind(userId, group, group)
-      .run()
-  }
-
-  c.executionCtx.waitUntil(cachesDefault().delete(cacheKey(userId)))
-  return c.json({ ok: true })
-})
-
 export default app

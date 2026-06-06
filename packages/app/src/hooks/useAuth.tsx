@@ -50,20 +50,23 @@ function useAuthLogic(): AuthContextType {
     setIsGuest(localStorage.getItem("guest") === "true")
   }, [])
 
-  const syncLocalStorage = async () => {
+  const register = async (name: string, password: string) => {
     const localBookmarks = localStorage.getItem("bookmarks")
     const localGroup = localStorage.getItem("group")
-    const payload: { bookmarks?: string[]; group?: string } = {}
-    if (localBookmarks) payload.bookmarks = JSON.parse(localBookmarks)
-    if (localGroup) payload.group = localGroup
-    if (payload.bookmarks || payload.group) {
-      await fetch("/api/sync", {
-        method: "POST",
-        headers: localeHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(payload),
-      })
-      localStorage.removeItem("bookmarks")
-    }
+    const body: Record<string, unknown> = { name, password }
+    if (localBookmarks) body.bookmarks = JSON.parse(localBookmarks)
+    if (localGroup) body.group = localGroup
+
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: localeHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "Greška prilikom registracije.")
+    setUser(data.user)
+    localStorage.removeItem("guest")
+    setIsGuest(false)
   }
 
   const login = async (name: string, password: string) => {
@@ -74,21 +77,6 @@ function useAuthLogic(): AuthContextType {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || "Greška prilikom prijave.")
-    await syncLocalStorage()
-    setUser(data.user)
-    localStorage.removeItem("guest")
-    setIsGuest(false)
-  }
-
-  const register = async (name: string, password: string) => {
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: localeHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ name, password }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || "Greška prilikom registracije.")
-    await syncLocalStorage()
     setUser(data.user)
     localStorage.removeItem("guest")
     setIsGuest(false)
@@ -97,8 +85,8 @@ function useAuthLogic(): AuthContextType {
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" })
     setUser(null)
-    localStorage.removeItem("guest")
-    setIsGuest(false)
+    localStorage.setItem("guest", "true")
+    setIsGuest(true)
   }
 
   const continueAsGuest = () => {
