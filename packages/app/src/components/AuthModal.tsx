@@ -49,9 +49,9 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/40">
       <div
-        className="w-full max-w-sm rounded-xl border border-[var(--border-default)] p-6 shadow-lg"
+        className="w-full max-w-sm rounded-xl border border-[var(--border-default)] p-6 shadow-lg max-h-[90vh] overflow-y-auto"
         style={{ background: "var(--bg-surface)" }}
       >
         <div className="mb-5 flex items-center justify-between">

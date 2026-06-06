@@ -11,6 +11,7 @@ import {
   Moon,
   Sun,
   ChevronDown,
+  SlidersHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -19,6 +20,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth"
 import { BookmarkProvider } from "@/hooks/useBookmarks"
 import { AuthModal } from "@/components/AuthModal"
 import { WelcomeScreen } from "@/components/WelcomeScreen"
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useI18n } from "@/hooks/useI18n"
 
 const groups = Array.from({ length: 14 }, (_, i) => i + 1)
@@ -28,6 +30,20 @@ let cachedGroup: string | null = null
 function getGroup(): string | null {
   if (typeof window === "undefined") return null
   return localStorage.getItem("group")
+}
+
+function handleGroupChange(v: string | null) {
+  if (!v) return
+  cachedGroup = v
+  localStorage.setItem("group", v)
+  const user = localStorage.getItem("user")
+  if (user) {
+    fetch("/api/preferences", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ group: v }),
+    }).catch(() => {})
+  }
 }
 
 function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof Home; label: string }) {
@@ -49,6 +65,153 @@ function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof Home; lab
       />
       {label}
     </Link>
+  )
+}
+
+function BottomTabBar() {
+  const location = useLocation()
+  const { t, toggleLocale, locale } = useI18n()
+  const { user, isGuest, logout } = useAuth()
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [authOpen, setAuthOpen] = useState(false)
+  const [group, setGroup] = useState<string | null>(cachedGroup ?? getGroup())
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof document === "undefined") return "light"
+    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"
+  })
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark"
+    setTheme(next)
+    document.documentElement.setAttribute("data-theme", next)
+    localStorage.setItem("theme", next)
+  }
+
+  const tabs = [
+    { to: "/", label: t("nav.home"), icon: Home },
+    { to: "/subjects", label: t("nav.subjects"), icon: BookOpen },
+    { to: "/bookmarks", label: t("nav.bookmarks"), icon: Bookmark },
+    { to: "#settings", label: "", icon: SlidersHorizontal, isSettings: true },
+  ]
+
+  return (
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-14 items-center border-t bg-[var(--bg-surface)] border-[var(--border-default)] pb-safe md:hidden">
+        {tabs.map((tab) => {
+          if (tab.isSettings) {
+            return (
+              <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
+                <SheetTrigger className="flex flex-1 flex-col items-center justify-center h-full gap-0.5 text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors duration-100">
+                  <SlidersHorizontal className="size-[1.125rem]" />
+                </SheetTrigger>
+                <SheetContent side="bottom" className="max-h-[85vh] flex flex-col">
+                  <div className="mx-auto mt-2 mb-3 h-1 w-10 shrink-0 rounded-full bg-[var(--border-strong)]" />
+                  <SheetHeader>
+                    <SheetTitle className="text-left">{t("sidebar.settings")}</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-1 overflow-y-auto px-4 pb-6">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+                          {t("sidebar.group_label")}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {groups.map((g) => (
+                            <button
+                              key={g}
+                              onClick={() => {
+                                handleGroupChange(String(g))
+                                setGroup(String(g))
+                              }}
+                              className={`rounded-full border px-3 py-1.5 text-[0.75rem] transition-all duration-100 ${
+                                group === String(g)
+                                  ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
+                                  : "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
+                              }`}
+                            >
+                              {t("sidebar.group_fmt", { g })}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-[var(--border-faint)]" />
+
+                      {user && (
+                        <div className="flex items-center justify-between rounded-[0.438rem] bg-[var(--bg-subtle)] px-3 py-2.5">
+                          <span className="text-[0.813rem] font-medium text-[var(--text-primary)] truncate">
+                            {user.name}
+                          </span>
+                          <button
+                            onClick={logout}
+                            className="shrink-0 cursor-pointer text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
+                          >
+                            <LogOut className="size-4" />
+                            <span className="text-xs">{t("nav.logout")}</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {!user && isGuest && (
+                        <button
+                          onClick={() => {
+                            setSettingsOpen(false)
+                            setTimeout(() => setAuthOpen(true), 200)
+                          }}
+                          className="flex w-full cursor-pointer items-center gap-2 rounded-[0.438rem] px-3 py-2.5 text-[0.813rem] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-subtle)]"
+                        >
+                          <LogIn className="size-4" />
+                          {t("nav.login_register")}
+                        </button>
+                      )}
+
+                      <div className="h-px bg-[var(--border-faint)]" />
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={toggleLocale}
+                          className="flex items-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-3 py-2 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+                        >
+                          <Languages className="size-4" />
+                          <span>{locale === "sr" ? "English" : "Srpski"}</span>
+                        </button>
+                        <button
+                          onClick={toggleTheme}
+                          className="flex items-center justify-center rounded-[0.438rem] border border-[var(--border-default)] px-3 py-2 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+                        >
+                          {theme === "dark" ? (
+                            <Sun className="size-4" />
+                          ) : (
+                            <Moon className="size-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )
+          }
+          const isActive =
+            tab.to === "/" ? location.pathname === "/" : location.pathname.startsWith(tab.to)
+          return (
+            <Link
+              key={tab.to}
+              to={tab.to}
+              className={`flex flex-1 flex-col items-center justify-center h-full gap-0.5 transition-colors duration-100 ${
+                isActive
+                  ? "text-[var(--accent)]"
+                  : "text-[var(--text-hint)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <tab.icon className="size-[1.125rem]" />
+              <span className="text-[0.625rem] font-medium">{tab.label}</span>
+            </Link>
+          )
+        })}
+      </nav>
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+    </>
   )
 }
 
@@ -78,20 +241,6 @@ function Sidebar() {
       .catch(() => {})
   }, [user])
 
-  const handleGroupChange = (v: string | null) => {
-    if (!v) return
-    cachedGroup = v
-    setGroup(v)
-    localStorage.setItem("group", v)
-    if (user) {
-      fetch("/api/preferences", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ group: v }),
-      }).catch(() => {})
-    }
-  }
-
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark"
     setTheme(next)
@@ -114,7 +263,7 @@ function Sidebar() {
   ]
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[13rem] flex flex-col border-r bg-[var(--bg-surface)] border-[var(--border-default)] z-40">
+    <aside className="fixed left-0 top-0 h-screen w-[13rem] flex-col border-r bg-[var(--bg-surface)] border-[var(--border-default)] z-40 hidden md:flex md:flex-col">
       <div className="flex items-center gap-2.5 px-4 py-[1.125rem] pb-3.5 border-b border-[var(--border-faint)]">
         <Link to="/" className="flex items-center gap-2.5">
           <div className="w-[1.875rem] h-[1.875rem] rounded-[0.5rem] bg-[var(--text-primary)] flex items-center justify-center">
@@ -165,6 +314,7 @@ function Sidebar() {
                     key={g}
                     onClick={() => {
                       handleGroupChange(String(g))
+                      setGroup(String(g))
                       setGroupOpen(false)
                     }}
                     className={`w-full cursor-pointer px-3 py-2 text-left text-[0.813rem] transition-colors duration-100 hover:bg-[var(--bg-subtle)] ${
@@ -278,7 +428,8 @@ function RootContent() {
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-page)" }}>
       <Sidebar />
-      <main className="ml-[13rem] min-h-screen">
+      <BottomTabBar />
+      <main className="ml-0 md:ml-[13rem] min-h-screen pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
         <AnimatedOutlet />
       </main>
     </div>

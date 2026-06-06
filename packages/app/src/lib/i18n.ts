@@ -13,6 +13,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.login": "Prijavi se",
 
     // Sidebar
+    "sidebar.settings": "Podešavanja",
     "sidebar.group_label": "Trenutna grupa",
     "sidebar.group_placeholder": "Nije odabrana",
     "sidebar.group_fmt": "Grupa {g}",
@@ -161,6 +162,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.logout": "Log out",
     "nav.login": "Log in",
 
+    "sidebar.settings": "Settings",
     "sidebar.group_label": "Current group",
     "sidebar.group_placeholder": "Not selected",
     "sidebar.group_fmt": "Group {g}",

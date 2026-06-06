@@ -8,6 +8,9 @@ import {
   Star,
   FileText,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Layers,
 } from "lucide-react"
 
 import { fetchSubject } from "@/lib/api"
@@ -16,6 +19,7 @@ import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useI18n } from "@/hooks/useI18n"
 import type { Material } from "@index/shared"
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Document, Page, pdfjs } from "react-pdf"
 import "react-pdf/dist/Page/TextLayer.css"
 import "react-pdf/dist/Page/AnnotationLayer.css"
@@ -35,6 +39,7 @@ function ViewerPage() {
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
   const { t } = useI18n()
   const [sidebarMode, setSidebarMode] = useState<"category" | "all">("category")
+  const [materialsSheetOpen, setMaterialsSheetOpen] = useState(false)
 
   const [pageNum, setPageNum] = useState(1)
   const [numPages, setNumPages] = useState(0)
@@ -130,7 +135,7 @@ function ViewerPage() {
 
   useEffect(() => {
     virtualizer.measure()
-  }, [zoom, virtualizer])
+  }, [zoom, naturalPageWidth, virtualizer])
 
   const goToPage = useCallback(
     (num: number) => {
@@ -247,7 +252,7 @@ function ViewerPage() {
           e.stopPropagation()
           b ? removeBookmark(id) : addBookmark(id)
         }}
-        className="cursor-pointer"
+        className="cursor-pointer min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center"
       >
         <Star
           className={`size-6 transition-colors duration-150 ${b ? "fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop" : "text-[var(--border-strong)] hover:text-[var(--text-hint)]"}`}
@@ -266,8 +271,8 @@ function ViewerPage() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      {/* ── Top bar ── */}
-      <div className="flex h-[3.75rem] shrink-0 items-center border-b bg-[var(--bg-surface)] border-[var(--border-default)]">
+      {/* ── Top bar (desktop) ── */}
+      <div className="hidden md:flex h-[3.75rem] shrink-0 items-center border-b bg-[var(--bg-surface)] border-[var(--border-default)]">
         <div className="flex items-center gap-0 border-r border-[var(--border-faint)] px-2">
           <button
             onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
@@ -361,12 +366,26 @@ function ViewerPage() {
         </div>
       </div>
 
+      {/* ── Top bar (mobile) ── */}
+      <div className="md:hidden flex h-[3.75rem] shrink-0 items-center border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-3 gap-3">
+        <button
+          onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
+          className="flex shrink-0 cursor-pointer items-center justify-center size-10 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+        >
+          <ArrowLeft className="size-5" />
+        </button>
+        <div className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-primary)]">
+          {material.title}
+        </div>
+        {bookmarkStar(material.id)}
+      </div>
+
       {/* ── PDF viewer ── */}
       <div className="flex flex-1 overflow-hidden">
         <div
           ref={parentRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-auto px-8 py-6 transition-colors"
+          className="flex-1 overflow-auto md:px-8 px-0 py-6 transition-colors"
           style={{ backgroundColor: inverted ? "var(--bg-surface)" : "#2c2c2c" }}
         >
           {!material.url ? (
@@ -448,8 +467,8 @@ function ViewerPage() {
           )}
         </div>
 
-        {/* ── Right sidebar ── */}
-        <div className="flex w-[17.5rem] shrink-0 flex-col overflow-hidden border-l bg-[var(--bg-surface)] border-[var(--border-default)]">
+        {/* ── Right sidebar (desktop) ── */}
+        <div className="hidden md:flex w-[17.5rem] shrink-0 flex-col overflow-hidden border-l bg-[var(--bg-surface)] border-[var(--border-default)]">
           <div className="flex items-center justify-between border-b border-[var(--border-faint)] px-4 py-3.5">
             <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-secondary)]">
               {sidebarMode === "category" ? categoryName : t("viewer.sidebar_all")}
@@ -508,6 +527,117 @@ function ViewerPage() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* ── Bottom toolbar (mobile) ── */}
+      <div className="md:hidden flex h-14 shrink-0 items-center border-t bg-[var(--bg-surface)] border-[var(--border-default)] px-2 gap-1 pb-safe">
+        <button
+          onClick={() => goToPage(pageNum - 1)}
+          disabled={pageNum <= 1}
+          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+        >
+          <ChevronLeft className="size-5" />
+        </button>
+
+        <span className="flex items-center gap-1 px-2 text-[0.813rem] text-[var(--text-secondary)]">
+          <input
+            type="text"
+            value={pageInput}
+            onChange={handlePageInputChange}
+            onBlur={handlePageInputCommit}
+            onKeyDown={handlePageInputKeyDown}
+            className="w-10 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
+          />
+          <span className="text-[var(--text-hint)]">/</span>
+          <span>{numPages || "?"}</span>
+        </span>
+
+        <button
+          onClick={() => goToPage(pageNum + 1)}
+          disabled={pageNum >= numPages}
+          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+        >
+          <ChevronRight className="size-5" />
+        </button>
+
+        <span className="mx-1 h-6 w-px bg-[var(--border-faint)]" />
+
+        <button
+          onClick={zoomOut}
+          disabled={atMinZoom}
+          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+        >
+          <ZoomOut className="size-5" />
+        </button>
+        <button
+          onClick={zoomIn}
+          disabled={atMaxZoom}
+          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+        >
+          <ZoomIn className="size-5" />
+        </button>
+
+        <span className="mx-1 h-6 w-px bg-[var(--border-faint)]" />
+
+        <Sheet open={materialsSheetOpen} onOpenChange={setMaterialsSheetOpen}>
+          <SheetTrigger className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]">
+            <Layers className="size-5" />
+          </SheetTrigger>
+          <SheetContent side="bottom" className="max-h-[70vh] flex flex-col">
+            <div className="mx-auto mt-2 mb-3 h-1 w-10 shrink-0 rounded-full bg-[var(--border-strong)]" />
+            <SheetHeader>
+              <SheetTitle className="text-left">
+                {sidebarMode === "category" ? categoryName : t("viewer.sidebar_all")}
+              </SheetTitle>
+            </SheetHeader>
+            <div className="flex items-center justify-between px-4 pb-2">
+              <button
+                onClick={() => setSidebarMode(sidebarMode === "category" ? "all" : "category")}
+                className="text-[0.688rem] text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors duration-100"
+              >
+                {sidebarMode === "category" ? t("viewer.sidebar_all") : categoryName}
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-2 pb-6">
+              {sidebarMode === "category"
+                ? groupedByExamPart.map((section) => (
+                    <div key={section.label || "__default"}>
+                      {section.label && (
+                        <div className="px-2.5 pb-1 pt-2.5 text-[0.656rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+                          {section.label}
+                        </div>
+                      )}
+                      {section.items.map((m) => (
+                        <div key={m.id} onClick={() => setMaterialsSheetOpen(false)}>
+                          <SidebarItem
+                            material={m}
+                            isActive={m.id === materialId}
+                            bookmarkStar={bookmarkStar(m.id)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                : groupedByCategory &&
+                  Object.entries(groupedByCategory).map(([cat, items]) => (
+                    <div key={cat}>
+                      <div className="px-2.5 pb-1 pt-2.5 text-[0.656rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+                        {t(`category.${cat}`)}
+                      </div>
+                      {items.map((m) => (
+                        <div key={m.id} onClick={() => setMaterialsSheetOpen(false)}>
+                          <SidebarItem
+                            material={m}
+                            isActive={m.id === materialId}
+                            bookmarkStar={bookmarkStar(m.id)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   )

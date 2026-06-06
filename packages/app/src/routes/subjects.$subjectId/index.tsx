@@ -9,6 +9,7 @@ import {
   FileImage,
   Folder,
   ChevronDown,
+  SlidersHorizontal,
 } from "lucide-react"
 import { fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
@@ -21,6 +22,7 @@ import { useFuseSearch } from "@/hooks/useFuseSearch"
 import type { Material } from "@index/shared"
 import { useState, useMemo, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
 const categoryOrder = ["theory", "problems", "k1", "k2", "final", "misc"]
 
@@ -150,7 +152,7 @@ function MaterialRow({ material }: { material: Material }) {
             addBookmark(material.id)
           }
         }}
-        className="shrink-0 cursor-pointer p-1 transition-transform duration-150 hover:scale-110"
+        className="shrink-0 cursor-pointer min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center transition-transform duration-150 hover:scale-110"
       >
         <Star
           className={`size-4 transition-colors duration-150 ${
@@ -186,6 +188,7 @@ function SubjectPage() {
   }, [collapsed, storageKey])
 
   const [searchQuery, setSearchQuery] = useState("")
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   const debouncedQuery = useDebounce(searchQuery, 200)
   const searchedMaterials = useFuseSearch(
     materials,
@@ -261,11 +264,11 @@ function SubjectPage() {
   return (
     <div>
       <div className="border-b bg-[var(--bg-surface)] border-[var(--border-default)]">
-        <div className="px-9 pt-6">
+        <div className="md:px-9 md:pt-6 px-4 pt-4">
           <div className="mb-3.5 flex items-center gap-1.5 text-[0.781rem] text-[var(--text-hint)]">
             <Link
               to="/subjects"
-              className="hover:text-[var(--text-primary)] transition-colors duration-100"
+              className="hover:text-[var(--text-primary)] transition-colors duration-100 md:py-0 py-2"
             >
               {t("subject.breadcrumb")}
             </Link>
@@ -312,7 +315,7 @@ function SubjectPage() {
           )}
         </div>
 
-        <div className="border-t border-[var(--border-default)] px-9 py-4">
+        <div className="border-t border-[var(--border-default)] md:px-9 px-4 py-4">
           <div className="relative mb-4">
             <Search className="absolute left-[0.688rem] top-1/2 size-[0.938rem] -translate-y-1/2 text-[var(--text-hint)]" />
             <input
@@ -323,7 +326,8 @@ function SubjectPage() {
               className="w-full rounded-[0.5rem] border border-[var(--border-default)] bg-[var(--bg-subtle)] py-2 pl-8 pr-3 text-[0.813rem] text-[var(--text-primary)] outline-none transition-all duration-100 placeholder:text-[var(--text-hint)] focus:border-[var(--accent)] focus:bg-[var(--bg-surface)]"
             />
           </div>
-          <div className="flex flex-wrap items-start gap-6">
+
+          <div className="hidden md:flex flex-wrap items-start gap-6">
             <div className="flex flex-col gap-1.5">
               <div className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
                 {t("subject.filter_file_type")}
@@ -373,10 +377,86 @@ function SubjectPage() {
               </div>
             </div>
           </div>
+
+          <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+            <SheetTrigger className="md:hidden flex items-center gap-2 rounded-[0.5rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-[0.813rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]">
+              <SlidersHorizontal className="size-4" />
+              {t("subject.filter_file_type")}
+              {(fileTypeFilter !== "all" || categoryFilter !== "all") && (
+                <span className="inline-flex items-center justify-center size-5 rounded-full bg-[var(--accent)] text-[0.625rem] font-medium text-white">
+                  {(fileTypeFilter !== "all" ? 1 : 0) + (categoryFilter !== "all" ? 1 : 0)}
+                </span>
+              )}
+            </SheetTrigger>
+            <SheetContent side="bottom" className="max-h-[85vh] flex flex-col">
+              <div className="mx-auto mt-2 mb-3 h-1 w-10 shrink-0 rounded-full bg-[var(--border-strong)]" />
+              <SheetHeader>
+                <SheetTitle className="text-left">{t("subject.filter_file_type")}</SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto px-4 pb-6">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+                      {t("subject.filter_file_type")}
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { key: "all", label: t("subject.filter_all") },
+                        { key: "pdf", label: "PDF" },
+                        { key: "video", label: "Video" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.key}
+                          onClick={() => {
+                            setFileTypeFilter(opt.key)
+                            setFilterSheetOpen(false)
+                          }}
+                          className={`rounded-full border px-3 py-1.5 text-[0.75rem] transition-all duration-100 ${
+                            fileTypeFilter === opt.key
+                              ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
+                              : "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+                      {t("subject.filter_category")}
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { key: "all", label: t("subject.filter_all_cat") },
+                        ...categoryOrder.map((c) => ({ key: c, label: categoryConfig[c].label })),
+                      ].map((opt) => (
+                        <button
+                          key={opt.key}
+                          onClick={() => {
+                            setCategoryFilter(opt.key)
+                            setFilterSheetOpen(false)
+                          }}
+                          className={`rounded-full border px-3 py-1.5 text-[0.75rem] transition-all duration-100 ${
+                            categoryFilter === opt.key
+                              ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
+                              : "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 
-      <div className="mt-7 max-w-[62.5rem] px-8 pb-8">
+      <div className="mt-7 max-w-[62.5rem] md:px-8 px-4 pb-8">
         {filteredMaterials.length === 0 ? (
           <div className="rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] py-10 text-center text-[0.813rem] text-[var(--text-hint)]">
             {t("subject.empty")}

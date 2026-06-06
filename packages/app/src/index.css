@@ -122,6 +122,18 @@ html {
   background: var(--bg-page);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (max-width: 767px) {
+  html {
+    font-size: 112.5%;
+  }
+
+  body {
+    overscroll-behavior-y: none;
+  }
 }
 
 * {
@@ -185,4 +197,20 @@ html {
   .dropdown-enter {
     animation: dropdown-in 120ms ease-out both;
   }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom);
 }

@@ -78,7 +78,7 @@ function BookmarksPage() {
   }, [subjectDetails, localBookmarks])
 
   return (
-    <div className="mx-auto max-w-[45rem] p-8">
+    <div className="mx-auto max-w-[45rem] md:p-8 p-4 md:pt-8 pt-5">
       <div className="mb-6">
         <h1 className="text-xl font-semibold tracking-[-0.3px] text-[var(--text-primary)]">
           {t("bookmarks.title")}
@@ -153,7 +153,7 @@ function BookmarksPage() {
                     e.stopPropagation()
                     removeBookmark(material.id)
                   }}
-                  className="shrink-0 cursor-pointer p-1 transition-transform duration-150 hover:scale-110"
+                  className="shrink-0 cursor-pointer min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center transition-transform duration-150 hover:scale-110"
                 >
                   <Star className="size-4 fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop transition-colors duration-150" />
                 </button>

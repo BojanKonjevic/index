@@ -124,7 +124,7 @@ function HomePage() {
   const exams = data?.exams ?? []
 
   return (
-    <div className="mx-auto max-w-[35rem] px-6 pt-10 pb-16">
+    <div className="mx-auto max-w-[35rem] md:px-6 md:pt-10 px-4 pt-5 pb-16">
       <div className="relative mb-12" ref={searchRef}>
         <div className="relative">
           <Search className="absolute left-[0.688rem] top-1/2 size-[0.938rem] -translate-y-1/2 text-[var(--text-hint)]" />
@@ -163,7 +163,7 @@ function HomePage() {
         </div>
 
         {isOpen && results.length > 0 && (
-          <div className="absolute left-0 right-0 top-[3rem] z-50 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 dropdown-enter">
+          <div className="absolute left-0 right-0 top-[3rem] z-50 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 dropdown-enter max-h-[60vh] overflow-y-auto">
             {results.map((r, i) => (
               <button
                 key={r.id}
@@ -200,7 +200,9 @@ function HomePage() {
           </div>
         )}
 
-        <p className="mt-2 text-xs text-[var(--text-hint)]">{t("home.search_hint")}</p>
+        <p className="mt-2 text-xs text-[var(--text-hint)] hidden md:block">
+          {t("home.search_hint")}
+        </p>
       </div>
 
       <section className="mb-9">

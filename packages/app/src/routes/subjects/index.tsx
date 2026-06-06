@@ -45,7 +45,7 @@ function SubjectsPage() {
   const uniqueSemesters = [...new Set(subjects.map((s) => s.semester))].sort()
 
   return (
-    <div className="mx-auto max-w-[56.25rem] p-8">
+    <div className="mx-auto max-w-[56.25rem] md:p-8 p-4 md:pt-8 pt-5">
       <div className="mb-6">
         <h1 className="text-xl font-semibold tracking-[-0.3px] text-[var(--text-primary)]">
           {t("subjects.title")}
@@ -61,8 +61,8 @@ function SubjectsPage() {
         </p>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-2.5">
-        <div className="relative max-w-[18.75rem] flex-1">
+      <div className="mb-6 flex flex-col gap-2.5">
+        <div className="relative flex-1">
           <Search className="absolute left-[0.688rem] top-1/2 size-[0.938rem] -translate-y-1/2 text-[var(--text-hint)]" />
           <input
             type="text"
@@ -73,60 +73,62 @@ function SubjectsPage() {
           />
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            {
-              label: t("subjects.all"),
-              onClick: () => {
-                setSemesterFilter(null)
-                setElectiveOnly(false)
+        <div className="flex items-center gap-2.5">
+          <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 no-scrollbar flex-1">
+            {[
+              {
+                label: t("subjects.all"),
+                onClick: () => {
+                  setSemesterFilter(null)
+                  setElectiveOnly(false)
+                },
+                active: semesterFilter === null && !electiveOnly,
               },
-              active: semesterFilter === null && !electiveOnly,
-            },
-            ...uniqueSemesters.map((s) => ({
-              label: t("subjects.sem_fmt", { s }),
-              onClick: () => {
-                setSemesterFilter(s)
-                setElectiveOnly(false)
+              ...uniqueSemesters.map((s) => ({
+                label: t("subjects.sem_fmt", { s }),
+                onClick: () => {
+                  setSemesterFilter(s)
+                  setElectiveOnly(false)
+                },
+                active: semesterFilter === s && !electiveOnly,
+              })),
+              {
+                label: t("subjects.elective"),
+                onClick: () => {
+                  setSemesterFilter(null)
+                  setElectiveOnly(true)
+                },
+                active: electiveOnly,
               },
-              active: semesterFilter === s && !electiveOnly,
-            })),
-            {
-              label: t("subjects.elective"),
-              onClick: () => {
-                setSemesterFilter(null)
-                setElectiveOnly(true)
-              },
-              active: electiveOnly,
-            },
-          ].map((chip) => (
-            <button
-              key={chip.label}
-              onClick={chip.onClick}
-              className={`rounded-full border px-3 py-1 text-[0.75rem] transition-all duration-100 ${
-                chip.active
-                  ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                  : "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]"
-              }`}
-            >
-              {chip.label}
-            </button>
-          ))}
-        </div>
+            ].map((chip) => (
+              <button
+                key={chip.label}
+                onClick={chip.onClick}
+                className={`shrink-0 rounded-full border px-3 py-1 text-[0.75rem] transition-all duration-100 ${
+                  chip.active
+                    ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
+                    : "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]"
+                }`}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
 
-        <div className="ml-auto flex overflow-hidden rounded-md border border-[var(--border-default)]">
-          <button
-            onClick={() => setViewMode("list")}
-            className={`px-2.5 py-1 transition-colors duration-100 ${viewMode === "list" ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]" : "bg-[var(--bg-surface)] text-[var(--text-hint)] hover:text-[var(--text-primary)]"}`}
-          >
-            <List className="size-3.5" />
-          </button>
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`px-2.5 py-1 transition-colors duration-100 ${viewMode === "grid" ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]" : "bg-[var(--bg-surface)] text-[var(--text-hint)] hover:text-[var(--text-primary)]"}`}
-          >
-            <LayoutGrid className="size-3.5" />
-          </button>
+          <div className="shrink-0 flex overflow-hidden rounded-md border border-[var(--border-default)] md:flex hidden">
+            <button
+              onClick={() => setViewMode("list")}
+              className={`px-2.5 py-1 transition-colors duration-100 ${viewMode === "list" ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]" : "bg-[var(--bg-surface)] text-[var(--text-hint)] hover:text-[var(--text-primary)]"}`}
+            >
+              <List className="size-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`px-2.5 py-1 transition-colors duration-100 ${viewMode === "grid" ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]" : "bg-[var(--bg-surface)] text-[var(--text-hint)] hover:text-[var(--text-primary)]"}`}
+            >
+              <LayoutGrid className="size-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -145,7 +147,7 @@ function SubjectsPage() {
             <div
               className={
                 viewMode === "grid"
-                  ? "grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3"
+                  ? "grid grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3"
                   : "flex flex-col gap-2"
               }
             >
@@ -154,7 +156,7 @@ function SubjectsPage() {
                   key={subject.id}
                   to="/subjects/$subjectId"
                   params={{ subjectId: subject.id }}
-                  className="flex flex-col rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 pr-5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-[0.063rem]"
+                  className="relative flex flex-col rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 pr-5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-[0.063rem]"
                 >
                   {subject.elective && (
                     <span className="absolute right-0 top-0 rounded-bl-md rounded-tr-xl bg-[var(--status-info-bg)] px-2 py-0.5 text-[0.625rem] font-semibold tracking-[0.019rem] text-[var(--status-info-text)]">
