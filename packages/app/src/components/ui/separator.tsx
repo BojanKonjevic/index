@@ -1,4 +1,5 @@
 "use client"
+"use no memo"
 
 import { Separator as SeparatorPrimitive } from "@base-ui/react/separator"
 

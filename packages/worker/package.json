@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply index-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply index-db --local",
     "lint": "tsc --noEmit",
     "format": "prettier --check .",
     "typecheck": "tsc --noEmit"

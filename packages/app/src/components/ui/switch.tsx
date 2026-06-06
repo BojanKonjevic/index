@@ -1,4 +1,5 @@
 "use client"
+"use no memo"
 
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch"
 
