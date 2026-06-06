@@ -11,6 +11,7 @@ AGENTS.md
 .env.production
 .dev.vars
 *worker-configuration.d.ts
+*pdf.worker.min.mjs
 
 *.log
 .DS_Store
