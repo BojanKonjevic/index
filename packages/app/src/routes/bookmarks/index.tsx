@@ -1,31 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Star, FileText, FileVideo, FileImage, Bookmark, X } from "lucide-react"
-import { fetchSubjects, fetchSubject } from "@/lib/api"
+import { fetchDashboard } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useI18n } from "@/hooks/useI18n"
 import { useState, useMemo, useEffect } from "react"
 
 export const Route = createFileRoute("/bookmarks/")({
   loader: async () => {
-    const subjects = await fetchSubjects()
-    const details = await Promise.all(subjects.map((s) => fetchSubject(s.id)))
-    return details
+    return await fetchDashboard()
   },
   component: BookmarksPage,
 })
 
 function BookmarksPage() {
-  const subjectDetails = Route.useLoaderData()
+  const dashboard = Route.useLoaderData()
   const { bookmarks, removeBookmark } = useBookmarks()
   const [localBookmarks, setLocalBookmarks] = useState<string[]>(bookmarks)
   const [removingId, setRemovingId] = useState<string | null>(null)
   const { t } = useI18n()
-
-  const typeLabelMap: Record<string, string> = {
-    pdf: "PDF",
-    video: "Video",
-    image: "Slika",
-  }
 
   const typeBadgeStyles: Record<string, string> = {
     pdf: "bg-[var(--type-pdf-bg)] text-[var(--type-pdf-text)]",
@@ -59,24 +51,26 @@ function BookmarksPage() {
   }, [bookmarks])
 
   const items = useMemo(() => {
+    const allMaterials = dashboard?.materials ?? []
+    const subjectNameMap = Object.fromEntries(
+      (dashboard?.subjects ?? []).map((s) => [s.id, s.name]),
+    )
     const result: {
-      material: (typeof subjectDetails)[0]["materials"][0]
+      material: (typeof allMaterials)[0]
       subjectName: string
       subjectId: string
     }[] = []
-    subjectDetails.forEach((detail) => {
-      detail.materials.forEach((m) => {
-        if (localBookmarks.includes(m.id)) {
-          result.push({
-            material: m,
-            subjectName: detail.subject.name,
-            subjectId: detail.subject.id,
-          })
-        }
-      })
-    })
+    for (const m of allMaterials) {
+      if (localBookmarks.includes(m.id)) {
+        result.push({
+          material: m,
+          subjectName: subjectNameMap[m.subjectId] ?? "",
+          subjectId: m.subjectId,
+        })
+      }
+    }
     return result.sort((a, b) => a.material.title.localeCompare(b.material.title))
-  }, [subjectDetails, localBookmarks])
+  }, [dashboard, localBookmarks])
 
   return (
     <div className="mx-auto max-w-[45rem] md:p-8 p-4 md:pt-8 pt-5">
@@ -145,7 +139,7 @@ function BookmarksPage() {
                   <span
                     className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[material.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
                   >
-                    {typeLabelMap[material.fileType] || material.fileType}
+                    {t(`materialType.${material.fileType}`) || material.fileType}
                   </span>
                 </div>
 

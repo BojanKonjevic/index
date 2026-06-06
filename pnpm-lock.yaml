@@ -58,6 +58,9 @@ importers:
       lucide-react:
         specifier: ^1.17.0
         version: 1.17.0(react@19.2.7)
+      pdfjs-dist:
+        specifier: ^4.0.379
+        version: 4.10.38
       react:
         specifier: ^19.2.6
         version: 19.2.7
@@ -120,7 +123,11 @@ importers:
         specifier: ^8.0.12
         version: 8.0.16(@types/node@24.12.4)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.0)
 
-  packages/shared: {}
+  packages/shared:
+    dependencies:
+      zod:
+        specifier: ^3.24.5
+        version: 3.25.76
 
   packages/worker:
     dependencies:
@@ -130,6 +137,9 @@ importers:
       hono:
         specifier: ^4.12.23
         version: 4.12.23
+      zod:
+        specifier: ^3.24.5
+        version: 3.25.76
     devDependencies:
       "@cloudflare/workers-types":
         specifier: ^4.20260603.1
@@ -4283,6 +4293,13 @@ packages:
         integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==,
       }
 
+  pdfjs-dist@4.10.38:
+    resolution:
+      {
+        integrity: sha512-/Y3fcFrXEAsMjJXeL9J8+ZG9U01LbuWaYypvDW2ycW1jL269L3js3DVBjDJ0Up9Np1uqDXsDrRihHANhZOlwdQ==,
+      }
+    engines: { node: ">=20" }
+
   pdfjs-dist@5.4.296:
     resolution:
       {
@@ -7742,6 +7759,10 @@ snapshots:
   path-to-regexp@8.4.2: {}
 
   pathe@2.0.3: {}
+
+  pdfjs-dist@4.10.38:
+    optionalDependencies:
+      "@napi-rs/canvas": 0.1.100
 
   pdfjs-dist@5.4.296:
     optionalDependencies:

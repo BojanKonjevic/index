@@ -1,6 +1,11 @@
 import { Hono } from "hono"
 import { msg } from "../lib/i18n"
 import { getUserId } from "../lib/session"
+import {
+  addBookmarkSchema,
+  removeBookmarkSchema,
+  updatePreferencesSchema,
+} from "@index/shared/schemas"
 
 const app = new Hono<{ Bindings: { DB: D1Database; SESSION_SECRET: string } }>()
 
@@ -19,8 +24,10 @@ app.post("/bookmarks/add", async (c) => {
   const userId = await getUserId(c, c.env.DB, c.env.SESSION_SECRET)
   if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
-  const { materialId } = await c.req.json()
-  if (!materialId) return c.json({ error: msg(c, "auth.material_id_required") }, 400)
+  const raw = await c.req.json()
+  const parsed = addBookmarkSchema.safeParse(raw)
+  if (!parsed.success) return c.json({ error: msg(c, "auth.material_id_required") }, 400)
+  const { materialId } = parsed.data
 
   const id = crypto.randomUUID()
   await c.env.DB.prepare(
@@ -36,7 +43,10 @@ app.post("/bookmarks/remove", async (c) => {
   const userId = await getUserId(c, c.env.DB, c.env.SESSION_SECRET)
   if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
-  const { materialId } = await c.req.json()
+  const raw = await c.req.json()
+  const parsed = removeBookmarkSchema.safeParse(raw)
+  if (!parsed.success) return c.json({ error: msg(c, "auth.material_id_required") }, 400)
+  const { materialId } = parsed.data
   await c.env.DB.prepare("DELETE FROM bookmarks WHERE user_id = ? AND material_id = ?")
     .bind(userId, materialId)
     .run()
@@ -59,7 +69,10 @@ app.put("/preferences", async (c) => {
   const userId = await getUserId(c, c.env.DB, c.env.SESSION_SECRET)
   if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
-  const { group } = await c.req.json()
+  const raw = await c.req.json()
+  const parsed = updatePreferencesSchema.safeParse(raw)
+  if (!parsed.success) return c.json({ error: msg(c, "auth.material_id_required") }, 400)
+  const { group } = parsed.data
 
   await c.env.DB.prepare(
     `INSERT INTO preferences (user_id, group_number, updated_at)

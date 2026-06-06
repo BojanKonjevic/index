@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@index/shared": "workspace:*",
-    "hono": "^4.12.23"
+    "hono": "^4.12.23",
+    "zod": "^3.24.5"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260603.1",

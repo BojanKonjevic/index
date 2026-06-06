@@ -173,7 +173,7 @@ function SubjectsPage() {
                   <div className="mb-2.5 flex items-start justify-between">
                     <div className="flex gap-1.5">
                       <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                        {subject.semester}. sem
+                        {t("subjects.sem_fmt", { s: subject.semester })}
                       </span>
                       <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
                         {subject.espb} ESPB

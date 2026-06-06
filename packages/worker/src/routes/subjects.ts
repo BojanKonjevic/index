@@ -1,6 +1,46 @@
 import { Hono } from "hono"
+import { msg } from "../lib/i18n"
 import type { Bindings } from ".."
 import type { SubjectListItem, SubjectDetail, Material, ExamEvent } from "@index/shared"
+
+function mapSubjectListItem(row: Record<string, unknown>): SubjectListItem {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    semester: row.semester as number,
+    espb: row.espb as number,
+    elective: (row.elective as number) === 1,
+    electiveGroup: (row.elective_group as string) ?? null,
+    professors: JSON.parse((row.professors as string) || "[]"),
+    materialCount: row.material_count as number,
+  }
+}
+
+function mapMaterial(row: Record<string, unknown>): Material {
+  return {
+    id: row.id as string,
+    subjectId: row.subject_id as string,
+    title: row.title as string,
+    category: row.category as Material["category"],
+    examPart: (row.exam_part as string) ?? null,
+    solved: row.solved === null ? null : (row.solved as number) === 1,
+    fileType: row.file_type as Material["fileType"],
+    url: row.url as string,
+    tags: JSON.parse((row.tags as string) || "[]"),
+    pageCount: row.page_count as number | undefined,
+  }
+}
+
+function mapExamEvent(row: Record<string, unknown>): ExamEvent {
+  return {
+    id: row.id as string,
+    subjectId: row.subject_id as string,
+    title: row.title as string,
+    date: row.date as string,
+    time: row.time as string,
+    location: row.location as string,
+  }
+}
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -11,16 +51,7 @@ app.get("/subjects", async (c) => {
       "SELECT id, name, semester, espb, elective, elective_group, professors, (SELECT COUNT(*) FROM materials WHERE subject_id = subjects.id) as material_count FROM subjects ORDER BY semester, name",
     )
     .all()
-  const subjects: SubjectListItem[] = rows.results.map((r: any) => ({
-    id: r.id,
-    name: r.name,
-    semester: r.semester,
-    espb: r.espb,
-    elective: r.elective === 1,
-    electiveGroup: r.elective_group,
-    professors: JSON.parse(r.professors || "[]"),
-    materialCount: r.material_count,
-  }))
+  const subjects: SubjectListItem[] = rows.results.map(mapSubjectListItem)
   return c.json(subjects, 200)
 })
 
@@ -28,8 +59,8 @@ app.get("/subject/:id", async (c) => {
   const db = c.env.DB
   const id = c.req.param("id")
 
-  const subjectRow = await db.prepare("SELECT * FROM subjects WHERE id = ?").bind(id).first<any>()
-  if (!subjectRow) return c.json({ error: "Not found" }, 404)
+  const subjectRow = await db.prepare("SELECT * FROM subjects WHERE id = ?").bind(id).first()
+  if (!subjectRow) return c.json({ error: msg(c, "error.notFound") }, 404)
 
   const materialRows = await db
     .prepare("SELECT * FROM materials WHERE subject_id = ? ORDER BY title")
@@ -42,36 +73,18 @@ app.get("/subject/:id", async (c) => {
 
   const detail: SubjectDetail = {
     subject: {
-      id: subjectRow.id,
-      name: subjectRow.name,
-      semester: subjectRow.semester,
-      espb: subjectRow.espb,
-      elective: subjectRow.elective === 1,
-      electiveGroup: subjectRow.elective_group,
-      description: subjectRow.description,
-      professors: JSON.parse(subjectRow.professors || "[]"),
-      assistants: JSON.parse(subjectRow.assistants || "[]"),
+      id: subjectRow.id as string,
+      name: subjectRow.name as string,
+      semester: subjectRow.semester as number,
+      espb: subjectRow.espb as number,
+      elective: (subjectRow.elective as number) === 1,
+      electiveGroup: (subjectRow.elective_group as string) ?? null,
+      description: (subjectRow.description as string) ?? "",
+      professors: JSON.parse((subjectRow.professors as string) || "[]"),
+      assistants: JSON.parse((subjectRow.assistants as string) || "[]"),
     },
-    materials: materialRows.results.map((r: any) => ({
-      id: r.id,
-      subjectId: r.subject_id,
-      title: r.title,
-      category: r.category,
-      examPart: r.exam_part,
-      solved: r.solved === null ? null : r.solved === 1,
-      fileType: r.file_type,
-      url: r.url,
-      tags: JSON.parse(r.tags || "[]"),
-      pageCount: r.page_count,
-    })) as Material[],
-    exams: examRows.results.map((r: any) => ({
-      id: r.id,
-      subjectId: r.subject_id,
-      title: r.title,
-      date: r.date,
-      time: r.time,
-      location: r.location,
-    })) as ExamEvent[],
+    materials: materialRows.results.map(mapMaterial),
+    exams: examRows.results.map(mapExamEvent),
   }
   return c.json(detail, 200)
 })

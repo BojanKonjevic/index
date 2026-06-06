@@ -17,6 +17,7 @@ type GlobalData = {
   materials: Material[]
   exams: ExamEvent[]
   subjectNameMap: Record<string, string>
+  semestarLabel?: string
 }
 
 function buildGlobalIndex(data: GlobalData): SearchResultItem[] {
@@ -26,7 +27,7 @@ function buildGlobalIndex(data: GlobalData): SearchResultItem[] {
     items.push({
       id: subject.id,
       label: subject.name,
-      description: `${subject.semester}. semestar · ${subject.espb} ESPB`,
+      description: `${subject.semester}. ${data.semestarLabel || "semestar"} · ${subject.espb} ESPB`,
       type: "subject",
       to: "/subjects/$subjectId",
       params: { subjectId: subject.id },

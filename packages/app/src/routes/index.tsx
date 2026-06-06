@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Search, FileText, BookOpen, Calendar, X } from "lucide-react"
-import { fetchSubjects, fetchSubject } from "@/lib/api"
+import { fetchDashboard } from "@/lib/api"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useGlobalSearch } from "@/lib/search"
@@ -70,9 +70,7 @@ function ExamCard({ exam, subjectName }: { exam: ExamEvent; subjectName: string 
 export const Route = createFileRoute("/")({
   loader: async () => {
     try {
-      const subjects = await fetchSubjects()
-      const details = await Promise.all(subjects.map((s) => fetchSubject(s.id)))
-      return { subjects, details }
+      return await fetchDashboard()
     } catch {
       return null
     }
@@ -94,11 +92,17 @@ function HomePage() {
   const t = (k: string, p?: Record<string, string | number>) => localeT(locale, k, p)
 
   const subjectNameMap = Object.fromEntries((data?.subjects ?? []).map((s) => [s.id, s.name]))
-  const allMaterials = data?.details.flatMap((d) => d.materials) ?? []
-  const allExams = data?.details.flatMap((d) => d.exams) ?? []
+  const allMaterials = data?.materials ?? []
+  const allExams = data?.exams ?? []
 
   const searchData = data
-    ? { subjects: data.subjects, materials: allMaterials, exams: allExams, subjectNameMap }
+    ? {
+        subjects: data.subjects,
+        materials: allMaterials,
+        exams: allExams,
+        subjectNameMap,
+        semestarLabel: t("materialType.semestar"),
+      }
     : null
 
   const results = useGlobalSearch(searchData, debouncedQuery)
@@ -205,7 +209,7 @@ function HomePage() {
                   </div>
                 </div>
                 <span className="shrink-0 inline-block rounded-full px-1.5 py-0.5 text-[0.625rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                  {r.subtype ? t(`category.${r.subtype}`) : r.type}
+                  {r.subtype ? t(`category.${r.subtype}`) : t(`materialType.${r.type}`) || r.type}
                 </span>
               </button>
             ))}

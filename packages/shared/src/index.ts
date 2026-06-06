@@ -48,3 +48,10 @@ export interface SubjectDetail {
   materials: Material[]
   exams: ExamEvent[]
 }
+
+export interface DashboardData {
+  subjects: SubjectListItem[]
+  materials: Material[]
+  exams: ExamEvent[]
+  subjectNameMap: Record<string, string>
+}

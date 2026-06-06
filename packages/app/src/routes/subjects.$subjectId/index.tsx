@@ -53,12 +53,6 @@ const typeTagStyles: Record<string, { container: string; icon: string }> = {
   },
 }
 
-const typeLabelMap: Record<string, string> = {
-  pdf: "PDF",
-  video: "Video",
-  image: "Slika",
-}
-
 const categoryBadgeStyles: Record<string, string> = {
   theory: "bg-[var(--status-info-bg)] text-[var(--status-info-text)]",
   problems: "bg-[var(--status-later-bg)] text-[var(--status-later-text)]",
@@ -117,7 +111,7 @@ function MaterialRow({ material }: { material: Material }) {
           <span
             className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[material.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
           >
-            {typeLabelMap[material.fileType] || material.fileType}
+            {t(`materialType.${material.fileType}`) || material.fileType}
           </span>
           <span
             className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}

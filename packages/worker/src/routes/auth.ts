@@ -1,25 +1,23 @@
 import { Hono } from "hono"
 import { msg } from "../lib/i18n"
 import { createSessionCookie, clearSessionCookie, getSessionUser } from "../lib/session"
+import { registerSchema, loginSchema } from "@index/shared/schemas"
+
+const PBKDF2_ITERATIONS = 300_000
+
+function bytesToHex(bytes: Uint8Array): string {
+  return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("")
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const pairs = hex.match(/.{2}/g)
+  if (!pairs) return new Uint8Array(0)
+  return new Uint8Array(pairs.map((b) => parseInt(b, 16)))
+}
 
 async function hashPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16))
-  const saltHex = [...salt].map((b) => b.toString(16).padStart(2, "0")).join("")
-  const data = new TextEncoder().encode(saltHex + password)
-  const hash = await crypto.subtle.digest("SHA-256", data)
-  const hashHex = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("")
-  return `${saltHex}:${hashHex}`
-}
-
-async function verifyPassword(password: string, stored: string): Promise<boolean> {
-  const [saltHex, hashHex] = stored.split(":")
-
-  const data = new TextEncoder().encode(saltHex + password)
-  const hash = await crypto.subtle.digest("SHA-256", data)
-  const computedHex = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("")
-  if (computedHex === hashHex) return true
-
-  const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map((b) => parseInt(b, 16)))
+  const saltHex = bytesToHex(salt)
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(password),
@@ -28,21 +26,76 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
     ["deriveBits"],
   )
   const key = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: 10_000, hash: "SHA-256" },
+    {
+      name: "PBKDF2",
+      salt: salt.buffer as ArrayBuffer,
+      iterations: PBKDF2_ITERATIONS,
+      hash: "SHA-256",
+    },
     keyMaterial,
     256,
   )
-  const pbkdf2Hex = [...new Uint8Array(key)].map((b) => b.toString(16).padStart(2, "0")).join("")
-  return pbkdf2Hex === hashHex
+  const hashHex = bytesToHex(new Uint8Array(key))
+  return `pbkdf2:${PBKDF2_ITERATIONS}:${saltHex}:${hashHex}`
+}
+
+interface VerifyResult {
+  valid: boolean
+  needsRehash: boolean
+  newHash?: string
+}
+
+async function verifyPassword(password: string, stored: string): Promise<VerifyResult> {
+  const parts = stored.split(":")
+
+  if (parts.length === 4 && parts[0] === "pbkdf2") {
+    const iterations = parseInt(parts[1], 10)
+    const salt = hexToBytes(parts[2])
+    const storedHash = parts[3]
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(password),
+      "PBKDF2",
+      false,
+      ["deriveBits"],
+    )
+    const key = await crypto.subtle.deriveBits(
+      { name: "PBKDF2", salt: salt.buffer as ArrayBuffer, iterations, hash: "SHA-256" },
+      keyMaterial,
+      256,
+    )
+    const computedHex = bytesToHex(new Uint8Array(key))
+    const valid = computedHex === storedHash
+    return { valid, needsRehash: valid && iterations < PBKDF2_ITERATIONS }
+  }
+
+  if (parts.length === 2 && parts[0].length === 32 && parts[1].length === 64) {
+    const [saltHex, hashHex] = parts
+    const data = new TextEncoder().encode(saltHex + password)
+    const hash = await crypto.subtle.digest("SHA-256", data)
+    const computedHex = bytesToHex(new Uint8Array(hash))
+    const valid = computedHex === hashHex
+    return {
+      valid,
+      needsRehash: valid,
+      newHash: valid ? await hashPassword(password) : undefined,
+    }
+  }
+
+  return { valid: false, needsRehash: false }
 }
 
 const app = new Hono<{ Bindings: { DB: D1Database; SESSION_SECRET: string } }>()
 
 app.post("/auth/register", async (c) => {
-  const { name, password, bookmarks, group } = await c.req.json()
-  if (!name || !password) return c.json({ error: msg(c, "auth.required") }, 400)
-  if (name.length < 3 || name.length > 50) return c.json({ error: msg(c, "auth.name_length") }, 400)
-  if (password.length < 4) return c.json({ error: msg(c, "auth.password_length") }, 400)
+  const raw = await c.req.json()
+  const parsed = registerSchema.safeParse(raw)
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    if (issue.path[0] === "name") return c.json({ error: msg(c, "auth.name_length") }, 400)
+    return c.json({ error: msg(c, "auth.password_length") }, 400)
+  }
+  const { name, password, bookmarks, group } = parsed.data
 
   const existing = await c.env.DB.prepare("SELECT id FROM users WHERE name = ?").bind(name).first()
   if (existing) return c.json({ error: msg(c, "auth.username_taken") }, 409)
@@ -91,16 +144,24 @@ app.post("/auth/register", async (c) => {
 })
 
 app.post("/auth/login", async (c) => {
-  const { name, password } = await c.req.json()
-  if (!name || !password) return c.json({ error: msg(c, "auth.required") }, 400)
+  const raw = await c.req.json()
+  const parsed = loginSchema.safeParse(raw)
+  if (!parsed.success) return c.json({ error: msg(c, "auth.required") }, 400)
+  const { name, password } = parsed.data
 
   const user = await c.env.DB.prepare("SELECT id, name, password_hash FROM users WHERE name = ?")
     .bind(name)
     .first<{ id: string; name: string; password_hash: string }>()
   if (!user) return c.json({ error: msg(c, "auth.invalid_credentials") }, 401)
 
-  const valid = await verifyPassword(password, user.password_hash)
-  if (!valid) return c.json({ error: msg(c, "auth.invalid_credentials") }, 401)
+  const result = await verifyPassword(password, user.password_hash)
+  if (!result.valid) return c.json({ error: msg(c, "auth.invalid_credentials") }, 401)
+
+  if (result.needsRehash && result.newHash) {
+    await c.env.DB.prepare("UPDATE users SET password_hash = ? WHERE id = ?")
+      .bind(result.newHash, user.id)
+      .run()
+  }
 
   const sessionId = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()

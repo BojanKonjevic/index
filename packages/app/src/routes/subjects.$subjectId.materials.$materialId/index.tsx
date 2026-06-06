@@ -25,7 +25,8 @@ import "react-pdf/dist/Page/TextLayer.css"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 import { useVirtualizer } from "@tanstack/react-virtual"
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url"
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker
 
 export const Route = createFileRoute("/subjects/$subjectId/materials/$materialId/")({
   loader: ({ params }) => fetchSubject(params.subjectId),
@@ -409,14 +410,9 @@ function ViewerPage() {
                 }
               }}
               onLoadError={() => {
-                const typeLabels: Record<string, string> = {
-                  pdf: "PDF",
-                  video: "Video",
-                  image: "Slika",
-                }
                 setPdfError(
                   t("viewer.load_error_fmt", {
-                    type: typeLabels[material?.fileType || "pdf"] || "PDF",
+                    type: t(`materialType.${material?.fileType || "pdf"}`) || "PDF",
                   }),
                 )
                 setPdfLoading(false)

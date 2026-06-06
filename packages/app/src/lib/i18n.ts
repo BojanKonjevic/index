@@ -127,6 +127,16 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.shortcut_page": "stranica",
     "viewer.current": "trenutno",
 
+    // Material types
+    "materialType.subject": "Predmet",
+    "materialType.material": "Materijal",
+    "materialType.exam": "Ispit",
+    "materialType.pdf": "PDF",
+    "materialType.video": "Video",
+    "materialType.image": "Slika",
+    "materialType.sem": "sem",
+    "materialType.semestar": "semestar",
+
     // Bookmarks
     "bookmarks.title": "Obeleženi materijali",
     "bookmarks.count_fmt": "{n} materijal",
@@ -270,6 +280,15 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.shortcut_scroll": "scroll",
     "viewer.shortcut_page": "page",
     "viewer.current": "current",
+
+    "materialType.subject": "Subject",
+    "materialType.material": "Material",
+    "materialType.exam": "Exam",
+    "materialType.pdf": "PDF",
+    "materialType.video": "Video",
+    "materialType.image": "Image",
+    "materialType.sem": "sem",
+    "materialType.semestar": "semester",
 
     "bookmarks.title": "Bookmarked materials",
     "bookmarks.count_fmt": "{n} material",

@@ -10,8 +10,8 @@ const messages: Record<string, Record<Locale, string>> = {
     en: "Name must be between 3 and 50 characters.",
   },
   "auth.password_length": {
-    sr: "Lozinka mora imati najmanje 4 karaktera.",
-    en: "Password must be at least 4 characters.",
+    sr: "Lozinka mora imati najmanje 8 karaktera.",
+    en: "Password must be at least 8 characters.",
   },
   "auth.username_taken": {
     sr: "Korisničko ime je zauzeto.",
@@ -28,6 +28,14 @@ const messages: Record<string, Record<Locale, string>> = {
   "auth.material_id_required": {
     sr: "ID materijala je obavezan.",
     en: "Material ID is required.",
+  },
+  "error.notFound": {
+    sr: "Nije pronađeno.",
+    en: "Not found.",
+  },
+  "error.internal": {
+    sr: "Interna greška servera.",
+    en: "Internal server error.",
   },
 }
 
