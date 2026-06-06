@@ -23,7 +23,8 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
     try {
       const stored = localStorage.getItem("bookmarks")
       return stored ? JSON.parse(stored) : []
-    } catch {
+    } catch (e) {
+      console.error("Failed to parse bookmarks from localStorage on init:", e)
       return []
     }
   })
@@ -38,12 +39,16 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("bookmarks", JSON.stringify(data.ids))
         }
       })
-      .catch(() => {
+      .catch((fetchError) => {
+        console.error("Failed to fetch bookmarks from API:", fetchError)
         const stored = localStorage.getItem("bookmarks")
         if (stored) {
           try {
             setBookmarks(JSON.parse(stored))
-          } catch {}
+          } catch (parseError) {
+            console.error("Failed to parse bookmarks from localStorage:", parseError)
+            setBookmarks([])
+          }
         }
       })
   }, [user])

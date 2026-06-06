@@ -14,7 +14,6 @@ export interface Material {
   id: string
   subjectId: string
   title: string
-  type: "lecture" | "exercise" | "exam" | "script" | "misc"
   category: "theory" | "problems" | "exam" | "misc"
   examPart: string | null
   solved: boolean | null

@@ -13,7 +13,7 @@ function cacheKey(userId: string): string {
 }
 
 app.get("/bookmarks", async (c) => {
-  const userId = await getUserId(c, c.env.SESSION_SECRET)
+  const userId = await getUserId(c, c.env.DB, c.env.SESSION_SECRET)
   if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const cache = cachesDefault()
@@ -32,7 +32,7 @@ app.get("/bookmarks", async (c) => {
 })
 
 app.post("/bookmarks/add", async (c) => {
-  const userId = await getUserId(c, c.env.SESSION_SECRET)
+  const userId = await getUserId(c, c.env.DB, c.env.SESSION_SECRET)
   if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const { materialId } = await c.req.json()
@@ -50,7 +50,7 @@ app.post("/bookmarks/add", async (c) => {
 })
 
 app.post("/bookmarks/remove", async (c) => {
-  const userId = await getUserId(c, c.env.SESSION_SECRET)
+  const userId = await getUserId(c, c.env.DB, c.env.SESSION_SECRET)
   if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const { materialId } = await c.req.json()
@@ -63,7 +63,7 @@ app.post("/bookmarks/remove", async (c) => {
 })
 
 app.get("/preferences", async (c) => {
-  const userId = await getUserId(c, c.env.SESSION_SECRET)
+  const userId = await getUserId(c, c.env.DB, c.env.SESSION_SECRET)
   if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const row = await c.env.DB.prepare("SELECT group_number FROM preferences WHERE user_id = ?")
@@ -74,7 +74,7 @@ app.get("/preferences", async (c) => {
 })
 
 app.put("/preferences", async (c) => {
-  const userId = await getUserId(c, c.env.SESSION_SECRET)
+  const userId = await getUserId(c, c.env.DB, c.env.SESSION_SECRET)
   if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const { group } = await c.req.json()
@@ -91,7 +91,7 @@ app.put("/preferences", async (c) => {
 })
 
 app.post("/sync", async (c) => {
-  const userId = await getUserId(c, c.env.SESSION_SECRET)
+  const userId = await getUserId(c, c.env.DB, c.env.SESSION_SECRET)
   if (!userId) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const { bookmarks, group } = await c.req.json()

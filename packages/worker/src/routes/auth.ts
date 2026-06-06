@@ -59,7 +59,13 @@ app.post("/auth/register", async (c) => {
     .bind(userId, name, passwordHash)
     .run()
 
-  await createSessionCookie(c, userId, name, c.env.SESSION_SECRET)
+  const sessionId = crypto.randomUUID()
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  await c.env.DB.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)")
+    .bind(sessionId, userId, expiresAt)
+    .run()
+
+  await createSessionCookie(c, sessionId, userId, name, c.env.SESSION_SECRET)
 
   return c.json({ user: { id: userId, name: name } }, 201)
 })
@@ -76,7 +82,13 @@ app.post("/auth/login", async (c) => {
   const valid = await verifyPassword(password, user.password_hash)
   if (!valid) return c.json({ error: msg(c, "auth.invalid_credentials") }, 401)
 
-  await createSessionCookie(c, user.id, user.name, c.env.SESSION_SECRET)
+  const sessionId = crypto.randomUUID()
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  await c.env.DB.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)")
+    .bind(sessionId, user.id, expiresAt)
+    .run()
+
+  await createSessionCookie(c, sessionId, user.id, user.name, c.env.SESSION_SECRET)
 
   return c.json({ user: { id: user.id, name: user.name } })
 })
@@ -87,6 +99,10 @@ app.get("/auth/me", async (c) => {
 })
 
 app.post("/auth/logout", async (c) => {
+  const user = await getSessionUser(c, c.env.SESSION_SECRET)
+  if (user?.sessionId) {
+    await c.env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(user.sessionId).run()
+  }
   clearSessionCookie(c)
   return c.json({ ok: true })
 })

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 
 export interface RecentItem {
   materialId: string
@@ -11,18 +11,20 @@ export interface RecentItem {
 export function useRecentlyOpened() {
   const [recent, setRecent] = useState<RecentItem[]>(() => {
     if (typeof window === "undefined") return []
-    const stored = localStorage.getItem("recentlyOpened")
-    return stored ? JSON.parse(stored) : []
+    try {
+      const stored = localStorage.getItem("recentlyOpened")
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
   })
-
-  useEffect(() => {
-    localStorage.setItem("recentlyOpened", JSON.stringify(recent))
-  }, [recent])
 
   const addRecent = (item: RecentItem) => {
     setRecent((prev) => {
       const filtered = prev.filter((r) => r.materialId !== item.materialId)
-      return [item, ...filtered].slice(0, 20)
+      const next = [item, ...filtered].slice(0, 20)
+      localStorage.setItem("recentlyOpened", JSON.stringify(next))
+      return next
     })
   }
 

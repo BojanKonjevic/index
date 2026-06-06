@@ -15,36 +15,16 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { AuthProvider, useAuth } from "@/hooks/useAuth"
 import { BookmarkProvider } from "@/hooks/useBookmarks"
+import { PreferencesProvider, usePreferences } from "@/hooks/usePreferences"
 import { AuthModal } from "@/components/AuthModal"
 import { WelcomeScreen } from "@/components/WelcomeScreen"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useI18n } from "@/hooks/useI18n"
 
 const groups = Array.from({ length: 14 }, (_, i) => i + 1)
-
-let cachedGroup: string | null = null
-
-function getGroup(): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem("group")
-}
-
-function handleGroupChange(v: string | null) {
-  if (!v) return
-  cachedGroup = v
-  localStorage.setItem("group", v)
-  const user = localStorage.getItem("user")
-  if (user) {
-    fetch("/api/preferences", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ group: v }),
-    }).catch(() => {})
-  }
-}
 
 function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof Home; label: string }) {
   const location = useLocation()
@@ -72,9 +52,9 @@ function BottomTabBar() {
   const location = useLocation()
   const { t, toggleLocale, locale } = useI18n()
   const { user, isGuest, logout } = useAuth()
+  const { group, setGroup: setGroupPreference } = usePreferences()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
-  const [group, setGroup] = useState<string | null>(cachedGroup ?? getGroup())
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof document === "undefined") return "light"
     return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"
@@ -119,10 +99,7 @@ function BottomTabBar() {
                           {groups.map((g) => (
                             <button
                               key={g}
-                              onClick={() => {
-                                handleGroupChange(String(g))
-                                setGroup(String(g))
-                              }}
+                              onClick={() => setGroupPreference(String(g))}
                               className={`rounded-full border px-3 py-1.5 text-[0.75rem] transition-all duration-100 ${
                                 group === String(g)
                                   ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
@@ -216,7 +193,7 @@ function BottomTabBar() {
 }
 
 function Sidebar() {
-  const [group, setGroup] = useState<string | null>(cachedGroup ?? getGroup())
+  const { group, setGroup: setGroupPreference } = usePreferences()
   const { user, isGuest, logout } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
   const [groupOpen, setGroupOpen] = useState(false)
@@ -225,21 +202,6 @@ function Sidebar() {
     if (typeof document === "undefined") return "light"
     return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"
   })
-
-  useEffect(() => {
-    if (!user) return
-    if (cachedGroup) return
-    fetch("/api/preferences")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.group) {
-          cachedGroup = data.group
-          setGroup(data.group)
-          localStorage.setItem("group", data.group)
-        }
-      })
-      .catch(() => {})
-  }, [user])
 
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark"
@@ -313,8 +275,7 @@ function Sidebar() {
                   <button
                     key={g}
                     onClick={() => {
-                      handleGroupChange(String(g))
-                      setGroup(String(g))
+                      setGroupPreference(String(g))
                       setGroupOpen(false)
                     }}
                     className={`w-full cursor-pointer px-3 py-2 text-left text-[0.813rem] transition-colors duration-100 hover:bg-[var(--bg-subtle)] ${
@@ -399,7 +360,9 @@ function RootLayout() {
   return (
     <AuthProvider>
       <BookmarkProvider>
-        <RootContent />
+        <PreferencesProvider>
+          <RootContent />
+        </PreferencesProvider>
       </BookmarkProvider>
     </AuthProvider>
   )

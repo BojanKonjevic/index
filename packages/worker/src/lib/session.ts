@@ -2,6 +2,7 @@ import type { Context } from "hono"
 import { setCookie, getCookie, deleteCookie } from "hono/cookie"
 
 interface SessionPayload {
+  sessionId: string
   userId: string
   name: string
   expiresAt: string
@@ -59,12 +60,13 @@ async function verify(token: string, secret: string): Promise<SessionPayload | n
 
 export async function createSessionCookie(
   c: Context,
+  sessionId: string,
   userId: string,
   name: string,
   secret: string,
 ) {
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-  const payload: SessionPayload = { userId, name, expiresAt }
+  const payload: SessionPayload = { sessionId, userId, name, expiresAt }
   const token = await sign(payload, secret)
   setCookie(c, "session", token, {
     path: "/",
@@ -82,15 +84,38 @@ export function clearSessionCookie(c: Context) {
 export async function getSessionUser(
   c: Context,
   secret: string,
-): Promise<{ id: string; name: string } | null> {
+): Promise<{ id: string; name: string; sessionId: string } | null> {
   const token = getCookie(c, "session")
   if (!token) return null
   const payload = await verify(token, secret)
   if (!payload) return null
-  return { id: payload.userId, name: payload.name }
+  return { id: payload.userId, name: payload.name, sessionId: payload.sessionId }
 }
 
-export async function getUserId(c: Context, secret: string): Promise<string | null> {
+export async function getValidatedSessionUser(
+  c: Context,
+  db: D1Database,
+  secret: string,
+): Promise<{ id: string; name: string } | null> {
   const user = await getSessionUser(c, secret)
+  if (!user) return null
+
+  const row = await db
+    .prepare(
+      "SELECT id FROM sessions WHERE id = ? AND user_id = ? AND expires_at > datetime('now')",
+    )
+    .bind(user.sessionId, user.id)
+    .first()
+
+  if (!row) return null
+  return { id: user.id, name: user.name }
+}
+
+export async function getUserId(
+  c: Context,
+  db: D1Database,
+  secret: string,
+): Promise<string | null> {
+  const user = await getValidatedSessionUser(c, db, secret)
   return user?.id ?? null
 }
