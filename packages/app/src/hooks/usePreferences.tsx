@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react"
 import { useAuth } from "@/hooks/useAuth"
 
 interface PreferencesContextValue {
@@ -11,12 +19,15 @@ const PreferencesContext = createContext<PreferencesContextValue | null>(null)
 export function PreferencesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [group, setGroupState] = useState<string | null>(() => localStorage.getItem("group"))
+  const fetchRef = useRef(0)
 
   useEffect(() => {
-    if (!user) return
+    if (!user?.id) return
+    const thisFetch = ++fetchRef.current
     fetch("/api/preferences")
       .then((r) => r.json())
       .then((data) => {
+        if (thisFetch !== fetchRef.current) return
         if (data.group) {
           setGroupState(data.group)
           localStorage.setItem("group", data.group)
@@ -27,17 +38,29 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 
   const setGroup = useCallback(
     async (value: string) => {
+      const prevValue = group
       setGroupState(value)
       localStorage.setItem("group", value)
       if (user) {
-        await fetch("/api/preferences", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ group: value }),
-        }).catch(() => {})
+        try {
+          const res = await fetch("/api/preferences", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ group: value }),
+          })
+          if (!res.ok) throw new Error("Failed to save preference")
+        } catch (e) {
+          setGroupState(prevValue)
+          if (prevValue) {
+            localStorage.setItem("group", prevValue)
+          } else {
+            localStorage.removeItem("group")
+          }
+          console.error("Failed to save preference:", e)
+        }
       }
     },
-    [user],
+    [user, group],
   )
 
   return (

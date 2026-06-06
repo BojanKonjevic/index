@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react"
 import { useAuth } from "@/hooks/useAuth"
 
 function localeHeaders(): Record<string, string> {
@@ -28,18 +36,22 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
       return []
     }
   })
+  const fetchRef = useRef(0)
 
   useEffect(() => {
-    if (!user) return
+    if (!user?.id) return
+    const thisFetch = ++fetchRef.current
     fetch("/api/bookmarks", { headers: localeHeaders() })
       .then((r) => r.json())
       .then((data) => {
+        if (thisFetch !== fetchRef.current) return
         if (data.ids) {
           setBookmarks(data.ids)
           localStorage.setItem("bookmarks", JSON.stringify(data.ids))
         }
       })
       .catch((fetchError) => {
+        if (thisFetch !== fetchRef.current) return
         console.error("Failed to fetch bookmarks from API:", fetchError)
         const stored = localStorage.getItem("bookmarks")
         if (stored) {
@@ -51,7 +63,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
           }
         }
       })
-  }, [user])
+  }, [user?.id])
 
   const addBookmark = useCallback(
     async (id: string) => {
@@ -62,11 +74,21 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
         return next
       })
       if (user) {
-        await fetch("/api/bookmarks/add", {
-          method: "POST",
-          headers: localeHeaders(),
-          body: JSON.stringify({ materialId: id }),
-        }).catch(() => {})
+        try {
+          const res = await fetch("/api/bookmarks/add", {
+            method: "POST",
+            headers: localeHeaders(),
+            body: JSON.stringify({ materialId: id }),
+          })
+          if (!res.ok) throw new Error("Failed to add bookmark")
+        } catch (e) {
+          setBookmarks((prev) => {
+            const next = prev.filter((b) => b !== id)
+            localStorage.setItem("bookmarks", JSON.stringify(next))
+            return next
+          })
+          console.error("Failed to add bookmark:", e)
+        }
       }
     },
     [user],
@@ -80,11 +102,22 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
         return next
       })
       if (user) {
-        await fetch("/api/bookmarks/remove", {
-          method: "POST",
-          headers: localeHeaders(),
-          body: JSON.stringify({ materialId: id }),
-        }).catch(() => {})
+        try {
+          const res = await fetch("/api/bookmarks/remove", {
+            method: "POST",
+            headers: localeHeaders(),
+            body: JSON.stringify({ materialId: id }),
+          })
+          if (!res.ok) throw new Error("Failed to remove bookmark")
+        } catch (e) {
+          setBookmarks((prev) => {
+            if (prev.includes(id)) return prev
+            const next = [...prev, id]
+            localStorage.setItem("bookmarks", JSON.stringify(next))
+            return next
+          })
+          console.error("Failed to remove bookmark:", e)
+        }
       }
     },
     [user],

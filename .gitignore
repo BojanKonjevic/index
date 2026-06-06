@@ -10,6 +10,7 @@ AGENTS.md
 .env.local
 .env.production
 .dev.vars
+*worker-configuration.d.ts
 
 *.log
 .DS_Store

@@ -2,29 +2,23 @@ import { Hono } from "hono"
 import { msg } from "../lib/i18n"
 import { createSessionCookie, clearSessionCookie, getSessionUser } from "../lib/session"
 
-const ITERATIONS = 10_000
-
 async function hashPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16))
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"],
-  )
-  const key = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: ITERATIONS, hash: "SHA-256" },
-    keyMaterial,
-    256,
-  )
   const saltHex = [...salt].map((b) => b.toString(16).padStart(2, "0")).join("")
-  const keyHex = [...new Uint8Array(key)].map((b) => b.toString(16).padStart(2, "0")).join("")
-  return `${saltHex}:${keyHex}`
+  const data = new TextEncoder().encode(saltHex + password)
+  const hash = await crypto.subtle.digest("SHA-256", data)
+  const hashHex = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("")
+  return `${saltHex}:${hashHex}`
 }
 
 async function verifyPassword(password: string, stored: string): Promise<boolean> {
-  const [saltHex, keyHex] = stored.split(":")
+  const [saltHex, hashHex] = stored.split(":")
+
+  const data = new TextEncoder().encode(saltHex + password)
+  const hash = await crypto.subtle.digest("SHA-256", data)
+  const computedHex = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("")
+  if (computedHex === hashHex) return true
+
   const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map((b) => parseInt(b, 16)))
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
@@ -34,12 +28,12 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
     ["deriveBits"],
   )
   const key = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: ITERATIONS, hash: "SHA-256" },
+    { name: "PBKDF2", salt, iterations: 10_000, hash: "SHA-256" },
     keyMaterial,
     256,
   )
-  const computedHex = [...new Uint8Array(key)].map((b) => b.toString(16).padStart(2, "0")).join("")
-  return computedHex === keyHex
+  const pbkdf2Hex = [...new Uint8Array(key)].map((b) => b.toString(16).padStart(2, "0")).join("")
+  return pbkdf2Hex === hashHex
 }
 
 const app = new Hono<{ Bindings: { DB: D1Database; SESSION_SECRET: string } }>()
