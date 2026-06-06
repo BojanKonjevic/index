@@ -1,32 +1,35 @@
 import { Hono } from "hono"
+import type { Bindings } from ".."
+import { fetchFromR2 } from "../lib/s3"
 
-const app = new Hono()
+const app = new Hono<{ Bindings: Bindings }>()
 
 app.get("/pdf/:id", async (c) => {
   const id = c.req.param("id")
-  const cacheKey = `https://cache/pdf/${id}`
-  const cache = (caches as unknown as { default: Cache }).default
+  const key = `${id}.pdf`
 
-  const cached = await cache.match(cacheKey)
-  if (cached) return cached
+  const object = await c.env.BUCKET.get(key)
+  if (object) {
+    const headers = new Headers()
+    headers.set("Content-Type", "application/pdf")
+    headers.set("Cache-Control", "public, max-age=86400")
+    headers.set("Access-Control-Allow-Origin", "*")
+    return new Response(object.body, { headers })
+  }
 
-  const url = `https://drive.google.com/uc?export=download&id=${id}&confirm=t`
-  const response = await fetch(url, { redirect: "follow" })
+  const { R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID } = c.env as Record<string, string>
+  if (R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_ACCOUNT_ID) {
+    const response = await fetchFromR2(
+      R2_ACCOUNT_ID,
+      R2_ACCESS_KEY_ID,
+      R2_SECRET_ACCESS_KEY,
+      "index-bucket",
+      key,
+    )
+    if (response) return response
+  }
 
-  const headers = new Headers(response.headers)
-  headers.set("Access-Control-Allow-Origin", "*")
-  headers.set("Access-Control-Allow-Methods", "GET, OPTIONS")
-  headers.set("Cache-Control", "public, max-age=86400")
-
-  const pdfData = await response.arrayBuffer()
-  const cachedResponse = new Response(pdfData, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  })
-
-  c.executionCtx.waitUntil(cache.put(cacheKey, cachedResponse.clone()))
-  return cachedResponse
+  return c.notFound()
 })
 
 export default app
