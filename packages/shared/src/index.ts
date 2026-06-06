@@ -20,6 +20,7 @@ export interface Material {
   fileType: "pdf" | "video" | "image"
   url: string
   tags: string[]
+  pageCount?: number
 }
 
 export interface ExamEvent {

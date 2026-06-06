@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export interface RecentItem {
   materialId: string
@@ -18,6 +18,20 @@ export function useRecentlyOpened() {
       return []
     }
   })
+
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === "recentlyOpened" && e.newValue) {
+        try {
+          setRecent(JSON.parse(e.newValue))
+        } catch {
+          // ignore
+        }
+      }
+    }
+    window.addEventListener("storage", handler)
+    return () => window.removeEventListener("storage", handler)
+  }, [])
 
   const addRecent = (item: RecentItem) => {
     setRecent((prev) => {

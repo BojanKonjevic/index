@@ -53,7 +53,9 @@
   --accent-border: #c8d4ff;
   --accent-strong: #334ac7;
 
-  --bookmark: #d4a017;
+  --bookmark: #d4a828;
+
+  --pdf-bg: #2c2c2c;
 
   --status-soon-bg: #fcecec;
   --status-soon-text: #8b2020;
@@ -115,6 +117,8 @@
 
   --nav-active-bg: rgba(107, 138, 255, 0.15);
   --nav-active-text: #6b8aff;
+
+  --pdf-bg: #1a1a1c;
 }
 
 html {
@@ -187,6 +191,24 @@ html {
       transform: translateY(0);
     }
   }
+  @keyframes bookmark-shrink {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(0);
+    }
+  }
+  @keyframes slide-from-right {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 
   .page-enter {
     animation: page-in 120ms ease-out both;
@@ -194,8 +216,14 @@ html {
   .animate-bookmark-pop {
     animation: bookmark-pop 200ms ease-out;
   }
+  .animate-bookmark-shrink {
+    animation: bookmark-shrink 150ms ease-in both;
+  }
   .dropdown-enter {
     animation: dropdown-in 120ms ease-out both;
+  }
+  .slide-from-right {
+    animation: slide-from-right 180ms ease-out both;
   }
 }
 

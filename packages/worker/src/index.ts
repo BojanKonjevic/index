@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import subjects from "./routes/subjects"
-import pdf from "./routes/pdf"
+import fileRoutes from "./routes/pdf"
 import auth from "./routes/auth"
 import user from "./routes/user"
 
@@ -22,7 +22,7 @@ app.onError((err, c) => {
 })
 
 app.route("/api", subjects)
-app.route("/api", pdf)
+app.route("/api", fileRoutes)
 app.route("/api", auth)
 app.route("/api", user)
 

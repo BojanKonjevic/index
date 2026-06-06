@@ -92,7 +92,7 @@ function MaterialRow({ material }: { material: Material }) {
     <Link
       to="/subjects/$subjectId/materials/$materialId"
       params={{ subjectId: material.subjectId, materialId: material.id }}
-      className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-[0.063rem] cursor-pointer"
+      className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5 cursor-pointer"
     >
       <div
         className={cn(
@@ -110,32 +110,32 @@ function MaterialRow({ material }: { material: Material }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[0.844rem] font-medium text-[var(--text-primary)]">
+        <div className="truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
           {material.title}
         </div>
         <div className="mt-0.5 flex flex-wrap gap-1.5">
           <span
-            className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.656rem] font-medium ${typeBadgeStyles[material.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+            className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[material.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
           >
             {typeLabelMap[material.fileType] || material.fileType}
           </span>
           <span
-            className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.656rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+            className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
           >
             {vcat === "final" ? t("category.exam") : t(`category.${vcat}`)}
           </span>
           {material.examPart && vcat !== material.examPart.toLowerCase() && (
-            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.656rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
               {material.examPart}
             </span>
           )}
           {material.solved === true && (
-            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.656rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
+            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
               {t("subject.solved_badge")}
             </span>
           )}
           {material.solved === false && (
-            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.656rem] font-medium bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]">
+            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]">
               {t("subject.unsolved_badge")}
             </span>
           )}
@@ -152,7 +152,7 @@ function MaterialRow({ material }: { material: Material }) {
             addBookmark(material.id)
           }
         }}
-        className="shrink-0 cursor-pointer min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center transition-transform duration-150 hover:scale-110"
+        className="shrink-0 cursor-pointer min-w-[2.75rem] min-h-[2.75rem] md:min-w-[2rem] md:min-h-[2rem] flex items-center justify-center transition-transform duration-150 hover:scale-110"
       >
         <Star
           className={`size-4 transition-colors duration-150 ${
@@ -265,7 +265,7 @@ function SubjectPage() {
     <div>
       <div className="border-b bg-[var(--bg-surface)] border-[var(--border-default)]">
         <div className="md:px-9 md:pt-6 px-4 pt-4">
-          <div className="mb-3.5 flex items-center gap-1.5 text-[0.781rem] text-[var(--text-hint)]">
+          <div className="mb-3.5 flex items-center gap-1.5 text-[0.75rem] text-[var(--text-hint)]">
             <Link
               to="/subjects"
               className="hover:text-[var(--text-primary)] transition-colors duration-100 md:py-0 py-2"
@@ -301,15 +301,19 @@ function SubjectPage() {
             >
               <FileText className="size-5 shrink-0" />
               <div className="flex-1">
-                <div className="text-[0.844rem] font-semibold">{nearestExam.title}</div>
+                <div className="text-[0.813rem] font-semibold">{nearestExam.title}</div>
                 <div className="mt-0.5 text-xs opacity-80">
                   {localeFormatDate(locale, nearestExam.date)} · {nearestExam.time}
                   {nearestExam.location ? ` · ${nearestExam.location}` : ""}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[1.375rem] font-bold">{examUrgency}</div>
-                <div className="text-[0.688rem] opacity-75">{t("subject.days")}</div>
+                <div className="text-[1.375rem] font-bold">
+                  {examUrgency !== null && examUrgency <= 0 ? t("subject.today") : examUrgency}
+                </div>
+                <div className="text-[0.688rem] opacity-75">
+                  {examUrgency !== null && examUrgency <= 0 ? "" : t("subject.days")}
+                </div>
               </div>
             </div>
           )}
@@ -388,7 +392,10 @@ function SubjectPage() {
                 </span>
               )}
             </SheetTrigger>
-            <SheetContent side="bottom" className="max-h-[85vh] flex flex-col">
+            <SheetContent
+              side="bottom"
+              className="max-h-[85vh] flex flex-col data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-4"
+            >
               <div className="mx-auto mt-2 mb-3 h-1 w-10 shrink-0 rounded-full bg-[var(--border-strong)]" />
               <SheetHeader>
                 <SheetTitle className="text-left">{t("subject.filter_file_type")}</SheetTitle>
@@ -484,7 +491,7 @@ function SubjectPage() {
                   <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
                     <CatIcon className="size-4" />
                     {categoryConfig[cat].label}
-                    <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.656rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-hint)]">
+                    <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
                       {items.length}
                     </span>
                   </div>
@@ -493,7 +500,7 @@ function SubjectPage() {
 
                 <div
                   className={cn(
-                    "grid transition-[grid-template-rows,opacity] duration-500 ease-out",
+                    "grid transition-[grid-template-rows,opacity] duration-300 ease-out",
                     isCollapsed ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100",
                   )}
                 >

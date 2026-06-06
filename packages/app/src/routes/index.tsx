@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { Search, FileText, BookOpen, Calendar } from "lucide-react"
-import { fetchSubject } from "@/lib/api"
+import { Search, FileText, BookOpen, Calendar, X } from "lucide-react"
+import { fetchSubjects, fetchSubject } from "@/lib/api"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useGlobalSearch } from "@/lib/search"
@@ -30,26 +30,35 @@ function ExamCard({ exam, subjectName }: { exam: ExamEvent; subjectName: string 
   const t = (k: string, p?: Record<string, string | number>) => localeT(locale, k, p)
   const days = daysUntil(exam.date)
   const urgency = getUrgency(days, t)
-  const colorMap: Record<string, string> = {
-    soon: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
-    upcoming: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
-    later: "bg-[var(--status-later-bg)] text-[var(--status-later-text)]",
+  const colorMap: Record<string, { bg: string; border: string }> = {
+    soon: {
+      bg: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
+      border: "border-[var(--status-soon-text)]",
+    },
+    upcoming: {
+      bg: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
+      border: "border-[var(--status-mid-text)]",
+    },
+    later: {
+      bg: "bg-[var(--status-later-bg)] text-[var(--status-later-text)]",
+      border: "border-[var(--status-later-text)]",
+    },
   }
 
   return (
     <Link
       to="/subjects/$subjectId"
       params={{ subjectId: exam.subjectId }}
-      className="flex items-center justify-between rounded-[0.563rem] border bg-[var(--bg-surface)] border-[var(--border-default)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-[0.063rem]"
+      className={`flex items-center justify-between rounded-[0.563rem] border bg-[var(--bg-surface)] border-[var(--border-default)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5 ${colorMap[urgency.cls].border} border-r-2`}
     >
       <div className="flex flex-col gap-0.5">
-        <span className="text-[0.844rem] font-medium">{subjectName}</span>
-        <span className="text-xs text-[var(--text-secondary)]">{exam.title}</span>
+        <span className="text-[0.813rem] font-medium leading-tight">{subjectName}</span>
+        <span className="text-xs leading-relaxed text-[var(--text-secondary)]">{exam.title}</span>
       </div>
       <div className="text-right">
         <div className="text-[0.813rem] font-medium">{localeFormatDate(locale, exam.date)}</div>
         <span
-          className={`inline-block rounded-full px-1.5 py-0.5 text-[0.688rem] font-medium ${colorMap[urgency.cls]}`}
+          className={`inline-block rounded-full px-1.5 py-0.5 text-[0.688rem] font-medium ${colorMap[urgency.cls].bg}`}
         >
           {urgency.label}
         </span>
@@ -61,7 +70,9 @@ function ExamCard({ exam, subjectName }: { exam: ExamEvent; subjectName: string 
 export const Route = createFileRoute("/")({
   loader: async () => {
     try {
-      return await fetchSubject("matematicka-analiza-2")
+      const subjects = await fetchSubjects()
+      const details = await Promise.all(subjects.map((s) => fetchSubject(s.id)))
+      return { subjects, details }
     } catch {
       return null
     }
@@ -82,20 +93,12 @@ function HomePage() {
   const { locale } = useI18n()
   const t = (k: string, p?: Record<string, string | number>) => localeT(locale, k, p)
 
+  const subjectNameMap = Object.fromEntries((data?.subjects ?? []).map((s) => [s.id, s.name]))
+  const allMaterials = data?.details.flatMap((d) => d.materials) ?? []
+  const allExams = data?.details.flatMap((d) => d.exams) ?? []
+
   const searchData = data
-    ? {
-        subjects: [
-          {
-            id: data.subject.id,
-            name: data.subject.name,
-            semester: data.subject.semester,
-            espb: data.subject.espb,
-          },
-        ],
-        materials: data.materials,
-        exams: data.exams,
-        subjectName: data.subject.name,
-      }
+    ? { subjects: data.subjects, materials: allMaterials, exams: allExams, subjectNameMap }
     : null
 
   const results = useGlobalSearch(searchData, debouncedQuery)
@@ -121,8 +124,6 @@ function HomePage() {
     return () => document.removeEventListener("keydown", handler)
   }, [])
 
-  const exams = data?.exams ?? []
-
   return (
     <div className="mx-auto max-w-[35rem] md:px-6 md:pt-10 px-4 pt-5 pb-16">
       <div className="relative mb-12" ref={searchRef}>
@@ -130,7 +131,7 @@ function HomePage() {
           <Search className="absolute left-[0.688rem] top-1/2 size-[0.938rem] -translate-y-1/2 text-[var(--text-hint)]" />
           <input
             ref={inputRef}
-            type="search"
+            type="text"
             placeholder={t("home.search_placeholder")}
             value={searchQuery}
             onChange={(e) => {
@@ -158,8 +159,19 @@ function HomePage() {
                 inputRef.current?.blur()
               }
             }}
-            className="h-[2.5rem] w-full rounded-[0.563rem] pl-[2.25rem] pr-4 text-[0.844rem] text-[var(--text-primary)] bg-[var(--bg-subtle)] border-[0.094rem] border-[var(--border-default)] outline-none transition-colors duration-100 placeholder:text-[var(--text-hint)] focus:border-[var(--accent)] focus:bg-[var(--bg-surface)]"
+            className="h-[2.75rem] w-full rounded-[0.563rem] pl-[2.25rem] pr-10 text-[0.813rem] text-[var(--text-primary)] bg-[var(--bg-subtle)] border-[0.094rem] border-[var(--border-default)] outline-none transition-all duration-100 placeholder:text-[var(--text-hint)] shadow-sm focus:shadow-md focus:border-[var(--accent)] focus:bg-[var(--bg-surface)]"
           />
+          {searchQuery && (
+            <button
+              onClick={() => {
+                setSearchQuery("")
+                inputRef.current?.focus()
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <X className="size-[0.938rem]" />
+            </button>
+          )}
         </div>
 
         {isOpen && results.length > 0 && (
@@ -192,7 +204,7 @@ function HomePage() {
                     {r.description}
                   </div>
                 </div>
-                <span className="shrink-0 text-[0.688rem] text-[var(--text-hint)] capitalize">
+                <span className="shrink-0 inline-block rounded-full px-1.5 py-0.5 text-[0.625rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
                   {r.subtype ? t(`category.${r.subtype}`) : r.type}
                 </span>
               </button>
@@ -207,15 +219,19 @@ function HomePage() {
 
       <section className="mb-9">
         <div className="flex items-center gap-3 mb-3.5">
-          <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)] whitespace-nowrap">
+          <span className="text-[0.625rem] md:text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)] whitespace-nowrap">
             {t("home.upcoming_exams")}
           </span>
           <span className="h-px flex-1 bg-[var(--border-faint)]" />
         </div>
         <div className="flex flex-col gap-0.5">
-          {exams.length > 0 ? (
-            exams.map((exam) => (
-              <ExamCard key={exam.id} exam={exam} subjectName={data!.subject.name} />
+          {allExams.length > 0 ? (
+            allExams.map((exam) => (
+              <ExamCard
+                key={exam.id}
+                exam={exam}
+                subjectName={subjectNameMap[exam.subjectId] ?? ""}
+              />
             ))
           ) : (
             <p className="text-sm text-muted-foreground">{t("home.no_exams")}</p>
@@ -225,7 +241,7 @@ function HomePage() {
 
       <section>
         <div className="flex items-center gap-3 mb-3.5">
-          <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)] whitespace-nowrap">
+          <span className="text-[0.625rem] md:text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)] whitespace-nowrap">
             {t("home.recently_opened")}
           </span>
           <span className="h-px flex-1 bg-[var(--border-faint)]" />
@@ -237,16 +253,18 @@ function HomePage() {
                 key={item.materialId}
                 to="/subjects/$subjectId/materials/$materialId"
                 params={{ subjectId: item.subjectId, materialId: item.materialId }}
-                className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-[0.063rem]"
+                className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5"
               >
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-[0.438rem] border border-[var(--border-default)] bg-[var(--bg-subtle)]">
-                  <FileText className="size-4 text-[var(--text-hint)]" />
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-[0.438rem] bg-[var(--bg-subtle)]">
+                  <FileText className="size-4 text-[var(--text-secondary)]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[0.844rem] font-medium text-[var(--text-primary)]">
+                  <div className="truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
                     {item.title}
                   </div>
-                  <div className="text-xs text-[var(--text-secondary)]">{item.subjectName}</div>
+                  <div className="text-xs leading-relaxed text-[var(--text-secondary)]">
+                    {item.subjectName}
+                  </div>
                 </div>
                 <span className="shrink-0 text-xs text-[var(--text-hint)]">
                   {localeGetRelativeTime(locale, item.timestamp)}

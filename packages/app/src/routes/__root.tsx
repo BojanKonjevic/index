@@ -71,7 +71,7 @@ function BottomTabBar() {
     { to: "/", label: t("nav.home"), icon: Home },
     { to: "/subjects", label: t("nav.subjects"), icon: BookOpen },
     { to: "/bookmarks", label: t("nav.bookmarks"), icon: Bookmark },
-    { to: "#settings", label: "", icon: SlidersHorizontal, isSettings: true },
+    { to: "#settings", label: t("sidebar.settings"), icon: SlidersHorizontal, isSettings: true },
   ]
 
   return (
@@ -225,7 +225,7 @@ function Sidebar() {
   ]
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[13rem] flex-col border-r bg-[var(--bg-surface)] border-[var(--border-default)] z-40 hidden md:flex md:flex-col">
+    <aside className="fixed left-0 top-0 h-screen w-[14rem] flex-col border-r bg-[var(--bg-surface)] border-[var(--border-default)] z-40 hidden md:flex md:flex-col">
       <div className="flex items-center gap-2.5 px-4 py-[1.125rem] pb-3.5 border-b border-[var(--border-faint)]">
         <Link to="/" className="flex items-center gap-2.5">
           <div className="w-[1.875rem] h-[1.875rem] rounded-[0.5rem] bg-[var(--text-primary)] flex items-center justify-center">
@@ -237,10 +237,10 @@ function Sidebar() {
         </Link>
       </div>
 
-      <nav className="flex-1 flex flex-col gap-0 px-2 py-3">
+      <nav className="flex-1 flex flex-col gap-0.5 px-2 pt-[0.875rem] pb-3">
         {navItems.map((section) => (
           <div key={section.section}>
-            <div className="px-2 pb-1 pt-2 text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+            <div className="px-2 pb-[0.375rem] pt-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
               {section.section}
             </div>
             {section.items.map((item) => (
@@ -261,7 +261,7 @@ function Sidebar() {
               <span className="text-[0.625rem] text-[var(--text-hint)]">
                 {t("sidebar.group_label")}
               </span>
-              <span className="text-[0.781rem] font-medium text-[var(--text-primary)] truncate">
+              <span className="text-[0.75rem] font-medium text-[var(--text-primary)] truncate">
                 {group ? t("sidebar.group_fmt", { g: group }) : t("sidebar.group_placeholder")}
               </span>
             </div>
@@ -317,23 +317,26 @@ function Sidebar() {
           </button>
         )}
 
-        <div className="flex items-center gap-1 mt-1">
+        <div className="h-px bg-[var(--border-faint)] my-1.5" />
+        <div className="flex items-center gap-2">
           <button
             onClick={toggleLocale}
-            className="flex items-center justify-center w-8 h-8 rounded-[0.438rem] text-[var(--text-hint)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-2 py-1.5 text-[0.688rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
             title={locale === "sr" ? "Switch to English" : "Prebaci na srpski"}
           >
-            <Languages className="size-[0.938rem]" />
+            <Languages className="size-[0.875rem]" />
+            <span>{locale === "sr" ? "EN" : "SR"}</span>
           </button>
           <button
             onClick={toggleTheme}
-            className="flex items-center justify-center w-8 h-8 rounded-[0.438rem] text-[var(--text-hint)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-2 py-1.5 text-[0.688rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
           >
             {theme === "dark" ? (
-              <Sun className="size-[0.938rem]" />
+              <Sun className="size-[0.875rem]" />
             ) : (
-              <Moon className="size-[0.938rem]" />
+              <Moon className="size-[0.875rem]" />
             )}
+            <span>{theme === "dark" ? "Light" : "Dark"}</span>
           </button>
         </div>
       </div>
@@ -345,8 +348,9 @@ function Sidebar() {
 
 function AnimatedOutlet() {
   const location = useLocation()
+  const isViewer = location.pathname.includes("/materials/")
   return (
-    <div key={location.pathname} className="page-enter">
+    <div key={location.pathname} className={isViewer ? "slide-from-right" : "page-enter"}>
       <Outlet />
     </div>
   )
@@ -392,7 +396,7 @@ function RootContent() {
     <div className="min-h-screen" style={{ background: "var(--bg-page)" }}>
       <Sidebar />
       <BottomTabBar />
-      <main className="ml-0 md:ml-[13rem] min-h-screen pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
+      <main className="ml-0 md:ml-[14rem] min-h-screen pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
         <AnimatedOutlet />
       </main>
     </div>

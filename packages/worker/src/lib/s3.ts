@@ -4,6 +4,7 @@ export async function fetchFromR2(
   secretAccessKey: string,
   bucket: string,
   key: string,
+  contentType: string,
 ): Promise<Response | null> {
   const host = `${accountId}.r2.cloudflarestorage.com`
   const url = `https://${host}/${bucket}/${encodeURIComponent(key)}`
@@ -48,7 +49,7 @@ export async function fetchFromR2(
 
   return new Response(response.body, {
     headers: {
-      "Content-Type": "application/pdf",
+      "Content-Type": contentType,
       "Cache-Control": "public, max-age=86400",
       "Access-Control-Allow-Origin": "*",
     },

@@ -70,7 +70,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "subjects.sem_fmt": "{s}. sem",
     "subjects.elective": "Izborni",
     "subjects.empty": "Nema predmeta koji odgovaraju filteru.",
-    "subjects.material_count_fmt": "📄 {n} materijala",
+    "subjects.materials": "materijala",
+    "subjects.more": "još",
     "subjects.elective_badge": "IZBORNI",
     "subjects.semester_label_fmt": "{n}. semestar",
 
@@ -95,6 +96,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "subject.solved_badge": "rešeni",
     "subject.unsolved_badge": "nerešeni",
     "subject.exam_count_fmt": "{n} dana",
+    "subject.today": "Danas",
 
     // Categories
     "category.theory": "Teorija",
@@ -121,6 +123,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.not_found": "Materijal nije pronađen.",
     "viewer.sidebar_all": "Svi materijali",
     "viewer.shortcut_bookmark": "obeleži",
+    "viewer.shortcut_scroll": "pomeranje",
+    "viewer.shortcut_page": "stranica",
     "viewer.current": "trenutno",
 
     // Bookmarks
@@ -213,7 +217,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "subjects.sem_fmt": "Sem {s}",
     "subjects.elective": "Elective",
     "subjects.empty": "No subjects match the filter.",
-    "subjects.material_count_fmt": "📄 {n} materials",
+    "subjects.materials": "materials",
+    "subjects.more": "more",
     "subjects.elective_badge": "ELECTIVE",
     "subjects.semester_label_fmt": "Semester {n}",
 
@@ -237,6 +242,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "subject.solved_badge": "solved",
     "subject.unsolved_badge": "unsolved",
     "subject.exam_count_fmt": "{n} days",
+    "subject.today": "Today",
 
     "category.theory": "Theory",
     "category.problems": "Problems",
@@ -261,6 +267,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.not_found": "Material not found.",
     "viewer.sidebar_all": "All materials",
     "viewer.shortcut_bookmark": "bookmark",
+    "viewer.shortcut_scroll": "scroll",
+    "viewer.shortcut_page": "page",
     "viewer.current": "current",
 
     "bookmarks.title": "Bookmarked materials",

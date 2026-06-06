@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Search, LayoutGrid, List } from "lucide-react"
+import { Search, LayoutGrid, List, FileText } from "lucide-react"
 import { fetchSubjects } from "@/lib/api"
 import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { useDebounce } from "@/hooks/useDebounce"
@@ -69,12 +69,18 @@ function SubjectsPage() {
             placeholder={t("subjects.search_placeholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-[2.5rem] w-full rounded-[0.563rem] pl-[2.25rem] pr-4 text-[0.844rem] text-[var(--text-primary)] bg-[var(--bg-subtle)] border-[0.094rem] border-[var(--border-default)] outline-none transition-colors duration-100 placeholder:text-[var(--text-hint)] focus:border-[var(--accent)] focus:bg-[var(--bg-surface)]"
+            className="h-[2.5rem] w-full rounded-[0.563rem] pl-[2.25rem] pr-4 text-[0.813rem] text-[var(--text-primary)] bg-[var(--bg-subtle)] border-[0.094rem] border-[var(--border-default)] outline-none transition-colors duration-100 placeholder:text-[var(--text-hint)] focus:border-[var(--accent)] focus:bg-[var(--bg-surface)]"
           />
         </div>
 
         <div className="flex items-center gap-2.5">
-          <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 no-scrollbar flex-1">
+          <div
+            className="flex gap-1.5 overflow-x-auto -mx-4 px-4 no-scrollbar flex-1"
+            style={{
+              maskImage: "linear-gradient(to right, black calc(100% - 2rem), transparent)",
+              WebkitMaskImage: "linear-gradient(to right, black calc(100% - 2rem), transparent)",
+            }}
+          >
             {[
               {
                 label: t("subjects.all"),
@@ -156,38 +162,44 @@ function SubjectsPage() {
                   key={subject.id}
                   to="/subjects/$subjectId"
                   params={{ subjectId: subject.id }}
-                  className="relative flex flex-col rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 pr-5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-[0.063rem]"
+                  className={`relative flex flex-col rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 pr-5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5 ${viewMode === "list" ? "border-l-[3px] border-l-[var(--accent)]" : ""}`}
                 >
                   {subject.elective && (
-                    <span className="absolute right-0 top-0 rounded-bl-md rounded-tr-xl bg-[var(--status-info-bg)] px-2 py-0.5 text-[0.625rem] font-semibold tracking-[0.019rem] text-[var(--status-info-text)]">
+                    <span className="absolute right-0 top-0 rounded-bl-lg rounded-tr-[var(--radius-xl)] bg-[var(--status-info-bg)] px-2 py-0.5 text-[0.625rem] font-semibold tracking-[0.019rem] text-[var(--status-info-text)]">
                       {t("subjects.elective_badge")}
                     </span>
                   )}
 
                   <div className="mb-2.5 flex items-start justify-between">
                     <div className="flex gap-1.5">
-                      <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.656rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+                      <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
                         {subject.semester}. sem
                       </span>
-                      <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.656rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+                      <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
                         {subject.espb} ESPB
                       </span>
                     </div>
                   </div>
 
-                  <div className="mb-1 text-[0.938rem] font-semibold tracking-tight text-[var(--text-primary)]">
+                  <div className="mb-1 text-[0.938rem] font-semibold leading-tight tracking-tight text-[var(--text-primary)]">
                     {subject.name}
                   </div>
 
                   {subject.professors[0] && (
-                    <div className="mb-3.5 text-[0.781rem] text-[var(--text-secondary)]">
+                    <div className="mb-3.5 text-[0.75rem] text-[var(--text-secondary)]">
                       {subject.professors[0]}
+                      {subject.professors.length > 1 && (
+                        <span className="text-[var(--text-hint)] ml-1">
+                          + {subject.professors.length - 1} {t("subjects.more")}
+                        </span>
+                      )}
                     </div>
                   )}
 
                   <div className="mt-auto flex items-center justify-between border-t border-[var(--border-faint)] pt-3">
                     <span className="flex items-center gap-1 text-xs text-[var(--text-hint)]">
-                      {t("subjects.material_count_fmt", { n: subject.materialCount })}
+                      <FileText className="size-3" />
+                      {subject.materialCount} {t("subjects.materials")}
                     </span>
                   </div>
                 </Link>
