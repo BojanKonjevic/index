@@ -10,6 +10,7 @@
     "format": "prettier --check .",
     "typecheck": "tsc -b --noEmit",
     "preview": "vite preview",
+    "postinstall": "mkdir -p public && cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs",
     "deploy": "pnpm run build && wrangler pages deploy dist"
   },
   "dependencies": {
@@ -25,7 +26,7 @@
     "lucide-react": "^1.17.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "pdfjs-dist": "^4.0.379",
+    "pdfjs-dist": "5.4.296",
     "react-pdf": "^10.4.1",
     "shadcn": "^4.10.0",
     "tailwind-merge": "^3.6.0",

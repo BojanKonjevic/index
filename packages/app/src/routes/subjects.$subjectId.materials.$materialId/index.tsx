@@ -25,8 +25,7 @@ import "react-pdf/dist/Page/TextLayer.css"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 import { useVirtualizer } from "@tanstack/react-virtual"
 
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url"
-pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker
+pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
 
 export const Route = createFileRoute("/subjects/$subjectId/materials/$materialId/")({
   loader: ({ params }) => fetchSubject(params.subjectId),
