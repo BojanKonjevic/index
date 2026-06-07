@@ -15,17 +15,19 @@ import { fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 
 import { daysUntil } from "@/lib/utils"
-import { formatDate as localeFormatDate, t as localeT } from "@/lib/i18n"
+import { formatDate } from "@/lib/i18n"
 import { useI18n } from "@/hooks/useI18n"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { ErrorFallback } from "@/components/ErrorFallback"
+import { CATEGORY_ORDER } from "@index/shared"
 import type { Material } from "@index/shared"
+import { getVirtualCategory } from "@/lib/categories"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
-const categoryOrder = ["theory", "problems", "k1", "k2", "final", "misc"]
+const categoryOrder = CATEGORY_ORDER
 
 const typeBadgeStyles: Record<string, string> = {
   pdf: "bg-[var(--type-pdf-bg)] text-[var(--type-pdf-text)]",
@@ -62,13 +64,6 @@ const categoryBadgeStyles: Record<string, string> = {
   k2: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
   final: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
   misc: "bg-[var(--bg-subtle)] text-[var(--text-secondary)]",
-}
-
-function getVirtualCategory(m: Material): string {
-  if (m.category === "exam" && m.examPart) {
-    return m.examPart.toLowerCase()
-  }
-  return m.category
 }
 
 export const Route = createFileRoute("/subjects/$subjectId/")({
@@ -164,8 +159,7 @@ function MaterialRow({ material }: { material: Material }) {
 
 function SubjectPage() {
   const { subject, materials, exams } = Route.useLoaderData()
-  const { locale } = useI18n()
-  const t = (k: string, p?: Record<string, string | number>) => localeT(locale, k, p)
+  const { t, locale } = useI18n()
 
   const [fileTypeFilter, setFileTypeFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
@@ -289,7 +283,7 @@ function SubjectPage() {
               <div className="flex-1">
                 <div className="text-[0.813rem] font-semibold">{nearestExam.title}</div>
                 <div className="mt-0.5 text-xs opacity-80">
-                  {localeFormatDate(locale, nearestExam.date)} · {nearestExam.time}
+                  {formatDate(locale, nearestExam.date)} · {nearestExam.time}
                   {nearestExam.location ? ` · ${nearestExam.location}` : ""}
                 </div>
               </div>

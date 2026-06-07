@@ -1,7 +1,8 @@
 import { Hono } from "hono"
 import { msg } from "../lib/i18n"
 import type { Bindings } from ".."
-import type { SubjectListItem, SubjectDetail, Material, ExamEvent } from "@index/shared"
+import type { SubjectListItem, SubjectDetail, ExamEvent } from "@index/shared"
+import { mapMaterial } from "../lib/db"
 
 function mapSubjectListItem(row: Record<string, unknown>): SubjectListItem {
   return {
@@ -13,21 +14,6 @@ function mapSubjectListItem(row: Record<string, unknown>): SubjectListItem {
     electiveGroup: (row.elective_group as string) ?? null,
     professors: JSON.parse((row.professors as string) || "[]"),
     materialCount: row.material_count as number,
-  }
-}
-
-function mapMaterial(row: Record<string, unknown>): Material {
-  return {
-    id: row.id as string,
-    subjectId: row.subject_id as string,
-    title: row.title as string,
-    category: row.category as Material["category"],
-    examPart: (row.exam_part as string) ?? null,
-    solved: row.solved === null ? null : (row.solved as number) === 1,
-    fileType: row.file_type as Material["fileType"],
-    url: row.url as string,
-    tags: JSON.parse((row.tags as string) || "[]"),
-    pageCount: row.page_count as number | undefined,
   }
 }
 

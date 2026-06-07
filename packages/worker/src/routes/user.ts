@@ -1,16 +1,36 @@
 import { Hono } from "hono"
 import { msg } from "../lib/i18n"
-import { getSessionUser } from "../lib/session"
+import { getValidatedSessionUser } from "../lib/session"
 import {
   addBookmarkSchema,
   removeBookmarkSchema,
   updatePreferencesSchema,
 } from "@index/shared/schemas"
+import { mapMaterial } from "../lib/db"
 
 const app = new Hono<{ Bindings: { DB: D1Database; SESSION_SECRET: string } }>()
 
+app.get("/bookmarks/materials", async (c) => {
+  const user = await getValidatedSessionUser(c, c.env.DB, c.env.SESSION_SECRET)
+  if (!user) return c.json({ materials: [], subjectNameMap: {} })
+
+  const rows = await c.env.DB.prepare(
+    "SELECT m.*, s.name as subject_name FROM bookmarks b JOIN materials m ON m.id = b.material_id JOIN subjects s ON s.id = m.subject_id WHERE b.user_id = ? ORDER BY m.title",
+  )
+    .bind(user.id)
+    .all<Record<string, unknown>>()
+
+  const materials = rows.results.map(mapMaterial)
+  const subjectNameMap: Record<string, string> = {}
+  for (const row of rows.results) {
+    subjectNameMap[row.subject_id as string] = row.subject_name as string
+  }
+
+  return c.json({ materials, subjectNameMap })
+})
+
 app.get("/bookmarks", async (c) => {
-  const user = await getSessionUser(c, c.env.SESSION_SECRET)
+  const user = await getValidatedSessionUser(c, c.env.DB, c.env.SESSION_SECRET)
   if (!user) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const rows = await c.env.DB.prepare("SELECT material_id FROM bookmarks WHERE user_id = ?")
@@ -21,7 +41,7 @@ app.get("/bookmarks", async (c) => {
 })
 
 app.post("/bookmarks/add", async (c) => {
-  const user = await getSessionUser(c, c.env.SESSION_SECRET)
+  const user = await getValidatedSessionUser(c, c.env.DB, c.env.SESSION_SECRET)
   if (!user) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const raw = await c.req.json()
@@ -40,7 +60,7 @@ app.post("/bookmarks/add", async (c) => {
 })
 
 app.post("/bookmarks/remove", async (c) => {
-  const user = await getSessionUser(c, c.env.SESSION_SECRET)
+  const user = await getValidatedSessionUser(c, c.env.DB, c.env.SESSION_SECRET)
   if (!user) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const raw = await c.req.json()
@@ -55,7 +75,7 @@ app.post("/bookmarks/remove", async (c) => {
 })
 
 app.get("/preferences", async (c) => {
-  const user = await getSessionUser(c, c.env.SESSION_SECRET)
+  const user = await getValidatedSessionUser(c, c.env.DB, c.env.SESSION_SECRET)
   if (!user) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const row = await c.env.DB.prepare("SELECT group_number FROM preferences WHERE user_id = ?")
@@ -66,7 +86,7 @@ app.get("/preferences", async (c) => {
 })
 
 app.put("/preferences", async (c) => {
-  const user = await getSessionUser(c, c.env.SESSION_SECRET)
+  const user = await getValidatedSessionUser(c, c.env.DB, c.env.SESSION_SECRET)
   if (!user) return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
 
   const raw = await c.req.json()

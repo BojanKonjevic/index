@@ -11,9 +11,6 @@ export type Bindings = {
   DB: D1Database
   BUCKET: R2Bucket
   SESSION_SECRET: string
-  R2_ACCESS_KEY_ID?: string
-  R2_SECRET_ACCESS_KEY?: string
-  R2_ACCOUNT_ID?: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()

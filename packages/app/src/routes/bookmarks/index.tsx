@@ -1,21 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Star, FileText, FileVideo, FileImage, Bookmark, X } from "lucide-react"
-import { fetchDashboard } from "@/lib/api"
+import { fetchBookmarkedMaterials } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useI18n } from "@/hooks/useI18n"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import { useState, useEffect } from "react"
 
 export const Route = createFileRoute("/bookmarks/")({
-  loader: async () => {
-    return await fetchDashboard()
-  },
+  loader: () => fetchBookmarkedMaterials(),
   component: BookmarksPage,
   errorComponent: ErrorFallback,
 })
 
 function BookmarksPage() {
-  const dashboard = Route.useLoaderData()
+  const { materials, subjectNameMap } = Route.useLoaderData()
   const { bookmarks, removeBookmark } = useBookmarks()
   const [localBookmarks, setLocalBookmarks] = useState<string[]>(bookmarks)
   const [removingId, setRemovingId] = useState<string | null>(null)
@@ -52,23 +50,8 @@ function BookmarksPage() {
     setLocalBookmarks(bookmarks)
   }, [bookmarks])
 
-  const allMaterials = dashboard?.materials ?? []
-  const subjectNameMap = Object.fromEntries((dashboard?.subjects ?? []).map((s) => [s.id, s.name]))
-  const items: {
-    material: (typeof allMaterials)[0]
-    subjectName: string
-    subjectId: string
-  }[] = []
-  for (const m of allMaterials) {
-    if (localBookmarks.includes(m.id)) {
-      items.push({
-        material: m,
-        subjectName: subjectNameMap[m.subjectId] ?? "",
-        subjectId: m.subjectId,
-      })
-    }
-  }
-  items.sort((a, b) => a.material.title.localeCompare(b.material.title))
+  const items = materials.filter((m) => localBookmarks.includes(m.id))
+  items.sort((a, b) => a.title.localeCompare(b.title))
 
   return (
     <div className="mx-auto max-w-[45rem] md:p-8 p-4 md:pt-8 pt-5">
@@ -96,14 +79,15 @@ function BookmarksPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-1">
-          {items.map(({ material, subjectName, subjectId }) => {
+          {items.map((material) => {
             const ts = typeTagStyles[material.fileType]
             const TypeIcon = typeIconMap[material.fileType] || FileText
+            const subjectName = subjectNameMap[material.subjectId] || ""
             return (
               <Link
                 key={material.id}
                 to="/subjects/$subjectId/materials/$materialId"
-                params={{ subjectId, materialId: material.id }}
+                params={{ subjectId: material.subjectId, materialId: material.id }}
                 className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5"
               >
                 <div
@@ -119,18 +103,6 @@ function BookmarksPage() {
                   <div className="mt-0.5 text-xs leading-relaxed text-[var(--text-secondary)]">
                     {subjectName}
                   </div>
-                  {material.tags.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {material.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-block rounded-full bg-[var(--bg-subtle)] px-[0.375rem] py-[0.094rem] text-[0.625rem] font-medium text-[var(--text-secondary)]"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 <div className="shrink-0 text-right">

@@ -10,11 +10,22 @@ export interface Subject {
   assistants: string[]
 }
 
+export type MaterialCategory = "theory" | "problems" | "exam" | "misc"
+export type VirtualCategory = "k1" | "k2" | "final"
+export const CATEGORY_ORDER: (MaterialCategory | VirtualCategory)[] = [
+  "theory",
+  "problems",
+  "k1",
+  "k2",
+  "final",
+  "misc",
+]
+
 export interface Material {
   id: string
   subjectId: string
   title: string
-  category: "theory" | "problems" | "exam" | "misc"
+  category: MaterialCategory
   examPart: string | null
   solved: boolean | null
   fileType: "pdf" | "video" | "image"

@@ -6,11 +6,7 @@ import { useDebounce } from "@/hooks/useDebounce"
 import { useGlobalSearch } from "@/lib/search"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import { daysUntil } from "@/lib/utils"
-import {
-  formatDate as localeFormatDate,
-  getRelativeTime as localeGetRelativeTime,
-  t as localeT,
-} from "@/lib/i18n"
+import { formatDate, getRelativeTime } from "@/lib/i18n"
 import { useI18n } from "@/hooks/useI18n"
 import type { ExamEvent } from "@index/shared"
 import { useState, useRef, useEffect } from "react"
@@ -27,8 +23,7 @@ function getUrgency(
 }
 
 function ExamCard({ exam, subjectName }: { exam: ExamEvent; subjectName: string }) {
-  const { locale } = useI18n()
-  const t = (k: string, p?: Record<string, string | number>) => localeT(locale, k, p)
+  const { t, locale } = useI18n()
   const days = daysUntil(exam.date)
   const urgency = getUrgency(days, t)
   const colorMap: Record<string, { bg: string; border: string }> = {
@@ -57,7 +52,7 @@ function ExamCard({ exam, subjectName }: { exam: ExamEvent; subjectName: string 
         <span className="text-xs leading-relaxed text-[var(--text-secondary)]">{exam.title}</span>
       </div>
       <div className="text-right">
-        <div className="text-[0.813rem] font-medium">{localeFormatDate(locale, exam.date)}</div>
+        <div className="text-[0.813rem] font-medium">{formatDate(locale, exam.date)}</div>
         <span
           className={`inline-block rounded-full px-1.5 py-0.5 text-[0.688rem] font-medium ${colorMap[urgency.cls].bg}`}
         >
@@ -90,8 +85,7 @@ function HomePage() {
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const debouncedQuery = useDebounce(searchQuery, 200)
-  const { locale } = useI18n()
-  const t = (k: string, p?: Record<string, string | number>) => localeT(locale, k, p)
+  const { t, locale } = useI18n()
 
   const subjectNameMap = Object.fromEntries((data?.subjects ?? []).map((s) => [s.id, s.name]))
   const allMaterials = data?.materials ?? []
@@ -273,7 +267,7 @@ function HomePage() {
                   </div>
                 </div>
                 <span className="shrink-0 text-xs text-[var(--text-hint)]">
-                  {localeGetRelativeTime(locale, item.timestamp)}
+                  {getRelativeTime(locale, item.timestamp)}
                 </span>
               </Link>
             ))}

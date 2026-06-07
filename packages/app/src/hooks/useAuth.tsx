@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { localeHeaders } from "@/lib/api"
 
 interface User {
   id: string
@@ -26,11 +27,6 @@ export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error("useAuth must be used within AuthProvider")
   return ctx
-}
-
-function localeHeaders(extra?: Record<string, string>): Record<string, string> {
-  const locale = typeof window !== "undefined" ? localStorage.getItem("locale") : null
-  return { ...(locale ? { "x-locale": locale } : {}), ...extra }
 }
 
 function useAuthLogic(): AuthContextType {

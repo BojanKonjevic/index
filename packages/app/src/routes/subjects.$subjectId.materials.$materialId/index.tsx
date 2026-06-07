@@ -20,7 +20,7 @@ import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useI18n } from "@/hooks/useI18n"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import type { Material } from "@index/shared"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Document, Page, pdfjs } from "react-pdf"
 import "react-pdf/dist/Page/TextLayer.css"
@@ -139,11 +139,14 @@ function ViewerPage() {
     virtualizer.measure()
   }, [zoom, naturalPageWidth, virtualizer])
 
-  const goToPage = (num: number) => {
-    if (num < 1 || num > numPages) return
-    virtualizer.scrollToIndex(num - 1, { align: "start" })
-    setPageNum(num)
-  }
+  const goToPage = useCallback(
+    (num: number) => {
+      if (num < 1 || num > numPages) return
+      virtualizer.scrollToIndex(num - 1, { align: "start" })
+      setPageNum(num)
+    },
+    [numPages, virtualizer],
+  )
 
   useEffect(() => {
     setPageInput(String(pageNum))

@@ -1,12 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react"
 import { useAuth } from "@/hooks/useAuth"
-
-function localeHeaders(): Record<string, string> {
-  const locale = typeof window !== "undefined" ? localStorage.getItem("locale") : null
-  return locale
-    ? { "x-locale": locale, "Content-Type": "application/json" }
-    : { "Content-Type": "application/json" }
-}
+import { localeHeaders } from "@/lib/api"
 
 interface BookmarkContextValue {
   bookmarks: string[]

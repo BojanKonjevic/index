@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react"
 import { useAuth } from "@/hooks/useAuth"
+import { localeHeaders } from "@/lib/api"
 
 interface PreferencesContextValue {
   group: string | null
@@ -16,7 +17,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user?.id) return
     const thisFetch = ++fetchRef.current
-    fetch("/api/preferences")
+    fetch("/api/preferences", { headers: localeHeaders() })
       .then((r) => r.json())
       .then((data) => {
         if (thisFetch !== fetchRef.current) return
@@ -36,7 +37,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch("/api/preferences", {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: localeHeaders(),
           body: JSON.stringify({ group: value }),
         })
         if (!res.ok) throw new Error("Failed to save preference")
