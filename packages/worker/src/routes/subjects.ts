@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { msg } from "../lib/i18n"
 import type { Bindings } from ".."
 import type { SubjectListItem, SubjectDetail, ExamEvent } from "@index/shared"
-import { mapMaterial } from "../lib/db"
+import { mapMaterial, mapAsset } from "../lib/db"
 
 function mapSubjectListItem(row: Record<string, unknown>): SubjectListItem {
   return {
@@ -48,14 +48,24 @@ app.get("/subject/:id", async (c) => {
   const subjectRow = await db.prepare("SELECT * FROM subjects WHERE id = ?").bind(id).first()
   if (!subjectRow) return c.json({ error: msg(c, "error.notFound") }, 404)
 
-  const materialRows = await db
-    .prepare("SELECT * FROM materials WHERE subject_id = ? ORDER BY title")
-    .bind(id)
-    .all()
-  const examRows = await db
-    .prepare("SELECT * FROM exams WHERE subject_id = ? ORDER BY date")
-    .bind(id)
-    .all()
+  const [materialRows, examRows, assetRows] = await Promise.all([
+    db.prepare("SELECT * FROM materials WHERE subject_id = ? ORDER BY title").bind(id).all(),
+    db.prepare("SELECT * FROM exams WHERE subject_id = ? ORDER BY date").bind(id).all(),
+    db
+      .prepare(
+        "SELECT * FROM material_assets WHERE material_id IN (SELECT id FROM materials WHERE subject_id = ?) ORDER BY material_id, page_number",
+      )
+      .bind(id)
+      .all(),
+  ])
+
+  const assetsByMaterialId = new Map<string, ReturnType<typeof mapAsset>[]>()
+  for (const row of assetRows.results) {
+    const asset = mapAsset(row)
+    const list = assetsByMaterialId.get(asset.materialId)
+    if (list) list.push(asset)
+    else assetsByMaterialId.set(asset.materialId, [asset])
+  }
 
   const detail: SubjectDetail = {
     subject: {
@@ -69,7 +79,11 @@ app.get("/subject/:id", async (c) => {
       professors: JSON.parse((subjectRow.professors as string) || "[]"),
       assistants: JSON.parse((subjectRow.assistants as string) || "[]"),
     },
-    materials: materialRows.results.map(mapMaterial),
+    materials: materialRows.results.map((r) => {
+      const m = mapMaterial(r)
+      m.assets = assetsByMaterialId.get(m.id) ?? []
+      return m
+    }),
     exams: examRows.results.map(mapExamEvent),
   }
   return c.json(detail, 200)

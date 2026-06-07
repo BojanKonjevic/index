@@ -21,6 +21,13 @@ export const CATEGORY_ORDER: (MaterialCategory | VirtualCategory)[] = [
   "misc",
 ]
 
+export interface MaterialAsset {
+  id: string
+  materialId: string
+  pageNumber: number
+  url: string
+}
+
 export interface Material {
   id: string
   subjectId: string
@@ -32,6 +39,7 @@ export interface Material {
   url: string
   tags: string[]
   pageCount?: number
+  assets: MaterialAsset[]
 }
 
 export interface ExamEvent {
