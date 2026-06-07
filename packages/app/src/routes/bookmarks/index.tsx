@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Star, FileText, FileVideo, FileImage, Bookmark, X } from "lucide-react"
+import { Star, FileText, FileVideo, FileImage, Bookmark } from "lucide-react"
 import { fetchBookmarkedMaterials, fetchDashboard } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useI18n } from "@/hooks/useI18n"
 import { ErrorFallback } from "@/components/ErrorFallback"
-import { useState } from "react"
+import { getVirtualCategory } from "@/lib/categories"
 
 export const Route = createFileRoute("/bookmarks/")({
   loader: async () => {
@@ -26,14 +26,23 @@ export const Route = createFileRoute("/bookmarks/")({
 
 function BookmarksPage() {
   const { materials, subjectNameMap } = Route.useLoaderData()
-  const { removeBookmark } = useBookmarks()
-  const [removingId, setRemovingId] = useState<string | null>(null)
+  const { bookmarks, removeBookmark } = useBookmarks()
   const { t } = useI18n()
 
   const typeBadgeStyles: Record<string, string> = {
     pdf: "bg-[var(--type-pdf-bg)] text-[var(--type-pdf-text)]",
     video: "bg-[var(--type-video-bg)] text-[var(--type-video-text)]",
     image: "bg-[var(--type-image-bg)] text-[var(--type-image-text)]",
+  }
+
+  const categoryBadgeStyles: Record<string, string> = {
+    theory: "bg-[var(--status-info-bg)] text-[var(--status-info-text)]",
+    problems: "bg-[var(--status-later-bg)] text-[var(--status-later-text)]",
+    exam: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
+    k1: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
+    k2: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
+    final: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
+    misc: "bg-[var(--bg-subtle)] text-[var(--text-secondary)]",
   }
 
   const typeTagStyles: Record<string, { container: string; icon: string }> = {
@@ -57,7 +66,9 @@ function BookmarksPage() {
     image: FileImage,
   }
 
-  const items = [...materials].sort((a, b) => a.title.localeCompare(b.title))
+  const items = materials
+    .filter((m) => bookmarks.includes(m.id))
+    .sort((a, b) => a.title.localeCompare(b.title))
 
   return (
     <div className="mx-auto max-w-[45rem] md:p-8 p-4 md:pt-8 pt-5">
@@ -89,6 +100,7 @@ function BookmarksPage() {
             const ts = typeTagStyles[material.fileType]
             const TypeIcon = typeIconMap[material.fileType] || FileText
             const subjectName = subjectNameMap[material.subjectId] || ""
+            const vcat = getVirtualCategory(material)
             return (
               <Link
                 key={material.id}
@@ -103,36 +115,52 @@ function BookmarksPage() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
-                    {material.title}
+                  <div className="flex items-baseline gap-2">
+                    <div className="min-w-0 flex-1 truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
+                      {material.title}
+                    </div>
+                    <div className="shrink-0 text-xs text-[var(--text-secondary)]">
+                      {subjectName}
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-xs leading-relaxed text-[var(--text-secondary)]">
-                    {subjectName}
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    <span
+                      className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[material.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+                    >
+                      {t(`materialType.${material.fileType}`) || material.fileType}
+                    </span>
+                    <span
+                      className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+                    >
+                      {vcat === "final" ? t("category.exam") : t(`category.${vcat}`)}
+                    </span>
+                    {material.examPart && vcat !== material.examPart.toLowerCase() && (
+                      <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+                        {material.examPart}
+                      </span>
+                    )}
+                    {material.solved === true && (
+                      <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
+                        {t("subject.solved_badge")}
+                      </span>
+                    )}
+                    {material.solved === false && (
+                      <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--accent-bg)] text-[var(--accent-strong)]">
+                        {t("subject.unsolved_badge")}
+                      </span>
+                    )}
                   </div>
-                </div>
-
-                <div className="shrink-0 text-right">
-                  <span
-                    className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[material.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-                  >
-                    {t(`materialType.${material.fileType}`) || material.fileType}
-                  </span>
                 </div>
 
                 <button
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    setRemovingId(material.id)
-                    setTimeout(() => removeBookmark(material.id), 300)
+                    removeBookmark(material.id)
                   }}
                   className="shrink-0 cursor-pointer min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center transition-transform duration-150 hover:scale-110"
                 >
-                  {removingId === material.id ? (
-                    <X className="size-4 text-[var(--status-soon-text)] animate-bookmark-shrink" />
-                  ) : (
-                    <Star className="size-4 fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop transition-colors duration-150" />
-                  )}
+                  <Star className="size-4 fill-[var(--bookmark)] text-[var(--bookmark)] transition-colors duration-150" />
                 </button>
               </Link>
             )

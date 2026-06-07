@@ -695,6 +695,7 @@ function SidebarItem({
     <Link
       to="/subjects/$subjectId/materials/$materialId"
       params={{ subjectId: material.subjectId, materialId: material.id }}
+      resetScroll={false}
       className={`flex items-start gap-2.5 rounded-[0.438rem] px-2.5 py-2 text-left transition-colors duration-100 ${isActive ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]" : "hover:bg-[var(--bg-subtle)]"}`}
     >
       <FileText

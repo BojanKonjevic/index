@@ -60,8 +60,8 @@ const categoryBadgeStyles: Record<string, string> = {
   theory: "bg-[var(--status-info-bg)] text-[var(--status-info-text)]",
   problems: "bg-[var(--status-later-bg)] text-[var(--status-later-text)]",
   exam: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
-  k1: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
-  k2: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
+  k1: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
+  k2: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
   final: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
   misc: "bg-[var(--bg-subtle)] text-[var(--text-secondary)]",
 }
@@ -126,7 +126,7 @@ function MaterialRow({ material }: { material: Material }) {
             </span>
           )}
           {material.solved === false && (
-            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]">
+            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--accent-bg)] text-[var(--accent-strong)]">
               {t("subject.unsolved_badge")}
             </span>
           )}

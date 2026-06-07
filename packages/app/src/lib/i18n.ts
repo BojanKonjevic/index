@@ -93,8 +93,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "subject.solved_label_fmt": "✓ Rešeni ({n})",
     "subject.unsolved_label_fmt": "○ Nerešeni ({n})",
     "subject.other_label_fmt": "Ostali ispitni materijali ({n})",
-    "subject.solved_badge": "rešeni",
-    "subject.unsolved_badge": "nerešeni",
+    "subject.solved_badge": "Rešeni",
+    "subject.unsolved_badge": "Nerešeni",
     "subject.exam_count_fmt": "{n} dana",
     "subject.today": "Danas",
 
@@ -254,8 +254,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "subject.solved_label_fmt": "✓ Solved ({n})",
     "subject.unsolved_label_fmt": "○ Unsolved ({n})",
     "subject.other_label_fmt": "Other exam materials ({n})",
-    "subject.solved_badge": "solved",
-    "subject.unsolved_badge": "unsolved",
+    "subject.solved_badge": "Solved",
+    "subject.unsolved_badge": "Unsolved",
     "subject.exam_count_fmt": "{n} days",
     "subject.today": "Today",
 
