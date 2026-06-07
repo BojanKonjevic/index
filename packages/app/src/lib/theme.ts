@@ -6,14 +6,23 @@ export function toggleTheme(current: "light" | "dark"): "light" | "dark" {
 
   if (timeoutId) clearTimeout(timeoutId)
 
+  const overlay = document.createElement("div")
+  overlay.className = "theme-sweep-overlay"
+  root.appendChild(overlay)
+
   root.classList.add("theme-transitioning")
   root.setAttribute("data-theme", next)
   localStorage.setItem("theme", next)
 
+  requestAnimationFrame(() => {
+    overlay.classList.add("theme-sweep-active")
+  })
+
   timeoutId = setTimeout(() => {
     root.classList.remove("theme-transitioning")
+    overlay.remove()
     timeoutId = null
-  }, 380)
+  }, 400)
 
   return next
 }

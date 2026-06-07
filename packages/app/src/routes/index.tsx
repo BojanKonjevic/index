@@ -308,37 +308,39 @@ function HomePage() {
                         {item.subjectName}
                       </div>
                     </div>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {item.fileType && (
-                        <span
-                          className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[item.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-                        >
-                          {t(`materialType.${item.fileType}`) || item.fileType}
-                        </span>
-                      )}
-                      {vcat && (
-                        <span
-                          className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-                        >
-                          {vcat === "final" ? t("category.exam") : t(`category.${vcat}`)}
-                        </span>
-                      )}
-                      {item.examPart && vcat !== item.examPart.toLowerCase() && (
-                        <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                          {item.examPart}
-                        </span>
-                      )}
-                      {item.solved === true && (
-                        <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
-                          {t("subject.solved_badge")}
-                        </span>
-                      )}
-                      {item.solved === false && (
-                        <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--accent-bg)] text-[var(--accent-strong)]">
-                          {t("subject.unsolved_badge")}
-                        </span>
-                      )}
-                      <span className="shrink-0 text-xs text-[var(--text-hint)]">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <div className="flex flex-wrap gap-1.5">
+                        {item.fileType && (
+                          <span
+                            className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[item.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+                          >
+                            {t(`materialType.${item.fileType}`) || item.fileType}
+                          </span>
+                        )}
+                        {vcat && (
+                          <span
+                            className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+                          >
+                            {vcat === "final" ? t("category.exam") : t(`category.${vcat}`)}
+                          </span>
+                        )}
+                        {item.examPart && vcat !== item.examPart.toLowerCase() && (
+                          <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+                            {item.examPart}
+                          </span>
+                        )}
+                        {item.solved === true && (
+                          <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
+                            {t("subject.solved_badge")}
+                          </span>
+                        )}
+                        {item.solved === false && (
+                          <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--accent-bg)] text-[var(--accent-strong)]">
+                            {t("subject.unsolved_badge")}
+                          </span>
+                        )}
+                      </div>
+                      <span className="ml-auto text-xs text-[var(--text-hint)]">
                         {getRelativeTime(locale, item.timestamp)}
                       </span>
                     </div>

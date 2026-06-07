@@ -4,6 +4,7 @@ import { fetchSubjects } from "@/lib/api"
 import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useI18n } from "@/hooks/useI18n"
+import { usePreferences } from "@/hooks/usePreferences"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import type { SubjectListItem } from "@index/shared"
 import { useState } from "react"
@@ -19,7 +20,7 @@ function SubjectsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [semesterFilter, setSemesterFilter] = useState<number | null>(null)
   const [electiveOnly, setElectiveOnly] = useState(false)
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const { viewMode, setViewMode } = usePreferences()
   const { t } = useI18n()
 
   const debouncedQuery = useDebounce(searchQuery, 200)

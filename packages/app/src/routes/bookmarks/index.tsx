@@ -115,13 +115,8 @@ function BookmarksPage() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <div className="min-w-0 flex-1 truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
-                      {material.title}
-                    </div>
-                    <div className="shrink-0 text-xs text-[var(--text-secondary)]">
-                      {subjectName}
-                    </div>
+                  <div className="truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
+                    {material.title}
                   </div>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     <span
@@ -152,16 +147,21 @@ function BookmarksPage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    removeBookmark(material.id)
-                  }}
-                  className="shrink-0 cursor-pointer min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center transition-transform duration-150 hover:scale-110"
-                >
-                  <Star className="size-4 fill-[var(--bookmark)] text-[var(--bookmark)] transition-colors duration-150" />
-                </button>
+                <div className="flex shrink-0 flex-col items-end gap-0.5">
+                  <div className="text-xs text-[var(--text-secondary)] leading-tight pt-0.5">
+                    {subjectName}
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      removeBookmark(material.id)
+                    }}
+                    className="cursor-pointer flex items-center justify-center size-[1.375rem] transition-transform duration-150 hover:scale-110"
+                  >
+                    <Star className="size-4 fill-[var(--bookmark)] text-[var(--bookmark)] transition-colors duration-150" />
+                  </button>
+                </div>
               </Link>
             )
           })}
