@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { toggleTheme } from "@/lib/theme"
 
 import { useState } from "react"
 import { AuthProvider, useAuth } from "@/hooks/useAuth"
@@ -62,11 +63,8 @@ function BottomTabBar() {
     return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"
   })
 
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark"
-    setTheme(next)
-    document.documentElement.setAttribute("data-theme", next)
-    localStorage.setItem("theme", next)
+  const toggleThemeHandler = () => {
+    setTheme((prev) => toggleTheme(prev))
   }
 
   const tabs = [
@@ -155,7 +153,7 @@ function BottomTabBar() {
                           <span>{locale === "sr" ? "English" : "Srpski"}</span>
                         </button>
                         <button
-                          onClick={toggleTheme}
+                          onClick={toggleThemeHandler}
                           className="flex items-center justify-center rounded-[0.438rem] border border-[var(--border-default)] px-3 py-2 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                         >
                           {theme === "dark" ? (
@@ -205,11 +203,8 @@ function Sidebar() {
     return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"
   })
 
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark"
-    setTheme(next)
-    document.documentElement.setAttribute("data-theme", next)
-    localStorage.setItem("theme", next)
+  const toggleThemeHandler = () => {
+    setTheme((prev) => toggleTheme(prev))
   }
 
   const navItems = [
@@ -330,7 +325,7 @@ function Sidebar() {
             <span>{locale === "sr" ? "EN" : "SR"}</span>
           </button>
           <button
-            onClick={toggleTheme}
+            onClick={toggleThemeHandler}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-2 py-1.5 text-[0.688rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
           >
             {theme === "dark" ? (

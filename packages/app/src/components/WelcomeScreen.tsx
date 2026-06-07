@@ -3,21 +3,16 @@ import { useAuth } from "@/hooks/useAuth"
 import { AuthModal } from "@/components/AuthModal"
 import { GraduationCap, LogIn, UserPlus, Eye, Languages, Moon, Sun } from "lucide-react"
 import { useI18n } from "@/hooks/useI18n"
+import { toggleTheme, getInitialTheme } from "@/lib/theme"
 
 export function WelcomeScreen() {
   const { continueAsGuest } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
   const { t, toggleLocale, locale } = useI18n()
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof document === "undefined") return "light"
-    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"
-  })
+  const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme)
 
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark"
-    setTheme(next)
-    document.documentElement.setAttribute("data-theme", next)
-    localStorage.setItem("theme", next)
+  const toggleThemeHandler = () => {
+    setTheme((prev) => toggleTheme(prev))
   }
 
   return (
@@ -93,7 +88,7 @@ export function WelcomeScreen() {
             </span>
           </button>
           <button
-            onClick={toggleTheme}
+            onClick={toggleThemeHandler}
             className="flex cursor-pointer items-center justify-center rounded-md border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-all duration-100 hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
             style={{ background: "var(--bg-surface)" }}
           >
