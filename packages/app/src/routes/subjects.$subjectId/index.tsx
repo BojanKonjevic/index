@@ -19,8 +19,9 @@ import { formatDate as localeFormatDate, t as localeT } from "@/lib/i18n"
 import { useI18n } from "@/hooks/useI18n"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useFuseSearch } from "@/hooks/useFuseSearch"
+import { ErrorFallback } from "@/components/ErrorFallback"
 import type { Material } from "@index/shared"
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
@@ -73,6 +74,7 @@ function getVirtualCategory(m: Material): string {
 export const Route = createFileRoute("/subjects/$subjectId/")({
   loader: ({ params }) => fetchSubject(params.subjectId),
   component: SubjectPage,
+  errorComponent: ErrorFallback,
 })
 
 function MaterialRow({ material }: { material: Material }) {
@@ -190,40 +192,32 @@ function SubjectPage() {
     debouncedQuery,
   )
 
-  const filteredMaterials = useMemo(() => {
-    return searchedMaterials.filter((m) => {
-      if (fileTypeFilter !== "all" && m.fileType !== fileTypeFilter) return false
-      const vcat = getVirtualCategory(m)
-      if (categoryFilter !== "all" && vcat !== categoryFilter) return false
-      return true
-    })
-  }, [searchedMaterials, fileTypeFilter, categoryFilter])
+  const filteredMaterials = searchedMaterials.filter((m) => {
+    if (fileTypeFilter !== "all" && m.fileType !== fileTypeFilter) return false
+    const vcat = getVirtualCategory(m)
+    if (categoryFilter !== "all" && vcat !== categoryFilter) return false
+    return true
+  })
 
-  const grouped = useMemo(() => {
-    const groups: Record<string, Material[]> = {}
-    for (const cat of categoryOrder) {
-      groups[cat] = []
-    }
-    filteredMaterials.forEach((m) => {
-      const vcat = getVirtualCategory(m)
-      if (groups[vcat]) {
-        groups[vcat].push(m)
-      } else {
-        groups.misc.push(m)
-      }
-    })
-    return groups
-  }, [filteredMaterials])
+  type GroupedMaterials = { solved: Material[]; unsolved: Material[]; unknown: Material[] }
+  const grouped: Record<string, GroupedMaterials> = {}
+  for (const cat of categoryOrder) {
+    grouped[cat] = { solved: [], unsolved: [], unknown: [] }
+  }
+  filteredMaterials.forEach((m) => {
+    const vcat = getVirtualCategory(m)
+    const target = grouped[vcat] || grouped.misc
+    if (m.solved === true) target.solved.push(m)
+    else if (m.solved === false) target.unsolved.push(m)
+    else target.unknown.push(m)
+  })
 
-  const nearestExam = useMemo(() => {
-    const now = new Date()
-    now.setHours(0, 0, 0, 0)
-    return (
-      exams
-        .filter((e) => new Date(e.date + "T00:00:00") >= now)
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null
-    )
-  }, [exams])
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const nearestExam =
+    exams
+      .filter((e) => new Date(e.date + "T00:00:00") >= now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null
 
   const examUrgency = nearestExam ? daysUntil(nearestExam.date) : null
   const examColor =
@@ -234,8 +228,6 @@ function SubjectPage() {
           ? "bg-[var(--status-mid-bg)] border-[var(--status-mid-text)]/20 text-[var(--status-mid-text)]"
           : "bg-[var(--status-later-bg)] border-[var(--status-later-text)]/20 text-[var(--status-later-text)]"
       : ""
-
-  const examCatKeys = new Set(["k1", "k2", "final"])
 
   const categoryConfig: Record<string, { label: string; icon: typeof BookOpen }> = {
     theory: { label: t("category.theory"), icon: BookOpen },
@@ -464,11 +456,13 @@ function SubjectPage() {
           </div>
         ) : (
           categoryOrder.map((cat) => {
-            const items = grouped[cat]
-            if (items.length === 0) return null
+            const { solved, unsolved, unknown } = grouped[cat]
+            const total = solved.length + unsolved.length + unknown.length
+            if (total === 0) return null
 
             const CatIcon = categoryConfig[cat].icon
             const isCollapsed = collapsed.has(cat)
+            const isExamCat = cat === "k1" || cat === "k2" || cat === "final"
 
             return (
               <section key={cat} className="mb-8">
@@ -486,7 +480,7 @@ function SubjectPage() {
                     <CatIcon className="size-4" />
                     {categoryConfig[cat].label}
                     <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                      {items.length}
+                      {total}
                     </span>
                   </div>
                   <span className="h-px flex-1 bg-[var(--border-faint)]" />
@@ -499,11 +493,48 @@ function SubjectPage() {
                   )}
                 >
                   <div className="overflow-hidden min-h-0">
-                    {examCatKeys.has(cat) ? (
-                      <ExamSectionContent items={items} />
+                    {isExamCat ? (
+                      <div className="mt-3">
+                        {solved.length > 0 && (
+                          <div className="ml-5 mt-3">
+                            <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
+                              {t("subject.solved_label_fmt", { n: solved.length })}
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {solved.map((m) => (
+                                <MaterialRow key={m.id} material={m} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {unsolved.length > 0 && (
+                          <div className="ml-5 mt-3">
+                            <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
+                              {t("subject.unsolved_label_fmt", { n: unsolved.length })}
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {unsolved.map((m) => (
+                                <MaterialRow key={m.id} material={m} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {unknown.length > 0 && (
+                          <div className="ml-5 mt-3">
+                            <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
+                              {t("subject.other_label_fmt", { n: unknown.length })}
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {unknown.map((m) => (
+                                <MaterialRow key={m.id} material={m} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div className="flex flex-col gap-1 mt-3">
-                        {items.map((m) => (
+                        {[...solved, ...unsolved, ...unknown].map((m) => (
                           <MaterialRow key={m.id} material={m} />
                         ))}
                       </div>
@@ -515,54 +546,6 @@ function SubjectPage() {
           })
         )}
       </div>
-    </div>
-  )
-}
-
-function ExamSectionContent({ items }: { items: Material[] }) {
-  const { t } = useI18n()
-  const solved = items.filter((m) => m.solved === true)
-  const unsolved = items.filter((m) => m.solved === false)
-  const unknown = items.filter((m) => m.solved === null)
-
-  return (
-    <div className="mt-3">
-      {solved.length > 0 && (
-        <div className="ml-5 mt-3">
-          <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
-            {t("subject.solved_label_fmt", { n: solved.length })}
-          </div>
-          <div className="flex flex-col gap-1">
-            {solved.map((m) => (
-              <MaterialRow key={m.id} material={m} />
-            ))}
-          </div>
-        </div>
-      )}
-      {unsolved.length > 0 && (
-        <div className="ml-5 mt-3">
-          <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
-            {t("subject.unsolved_label_fmt", { n: unsolved.length })}
-          </div>
-          <div className="flex flex-col gap-1">
-            {unsolved.map((m) => (
-              <MaterialRow key={m.id} material={m} />
-            ))}
-          </div>
-        </div>
-      )}
-      {unknown.length > 0 && (
-        <div className="ml-5 mt-3">
-          <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
-            {t("subject.other_label_fmt", { n: unknown.length })}
-          </div>
-          <div className="flex flex-col gap-1">
-            {unknown.map((m) => (
-              <MaterialRow key={m.id} material={m} />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

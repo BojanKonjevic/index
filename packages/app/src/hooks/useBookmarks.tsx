@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  type ReactNode,
-} from "react"
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react"
 import { useAuth } from "@/hooks/useAuth"
 
 function localeHeaders(): Record<string, string> {
@@ -65,65 +57,59 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
       })
   }, [user?.id])
 
-  const addBookmark = useCallback(
-    async (id: string) => {
-      setBookmarks((prev) => {
-        if (prev.includes(id)) return prev
-        const next = [...prev, id]
-        localStorage.setItem("bookmarks", JSON.stringify(next))
-        return next
-      })
-      if (user) {
-        try {
-          const res = await fetch("/api/bookmarks/add", {
-            method: "POST",
-            headers: localeHeaders(),
-            body: JSON.stringify({ materialId: id }),
-          })
-          if (!res.ok) throw new Error("Failed to add bookmark")
-        } catch (e) {
-          setBookmarks((prev) => {
-            const next = prev.filter((b) => b !== id)
-            localStorage.setItem("bookmarks", JSON.stringify(next))
-            return next
-          })
-          console.error("Failed to add bookmark:", e)
-        }
+  const addBookmark = async (id: string) => {
+    setBookmarks((prev) => {
+      if (prev.includes(id)) return prev
+      const next = [...prev, id]
+      localStorage.setItem("bookmarks", JSON.stringify(next))
+      return next
+    })
+    if (user) {
+      try {
+        const res = await fetch("/api/bookmarks/add", {
+          method: "POST",
+          headers: localeHeaders(),
+          body: JSON.stringify({ materialId: id }),
+        })
+        if (!res.ok) throw new Error("Failed to add bookmark")
+      } catch (e) {
+        setBookmarks((prev) => {
+          const next = prev.filter((b) => b !== id)
+          localStorage.setItem("bookmarks", JSON.stringify(next))
+          return next
+        })
+        console.error("Failed to add bookmark:", e)
       }
-    },
-    [user],
-  )
+    }
+  }
 
-  const removeBookmark = useCallback(
-    async (id: string) => {
-      setBookmarks((prev) => {
-        const next = prev.filter((b) => b !== id)
-        localStorage.setItem("bookmarks", JSON.stringify(next))
-        return next
-      })
-      if (user) {
-        try {
-          const res = await fetch("/api/bookmarks/remove", {
-            method: "POST",
-            headers: localeHeaders(),
-            body: JSON.stringify({ materialId: id }),
-          })
-          if (!res.ok) throw new Error("Failed to remove bookmark")
-        } catch (e) {
-          setBookmarks((prev) => {
-            if (prev.includes(id)) return prev
-            const next = [...prev, id]
-            localStorage.setItem("bookmarks", JSON.stringify(next))
-            return next
-          })
-          console.error("Failed to remove bookmark:", e)
-        }
+  const removeBookmark = async (id: string) => {
+    setBookmarks((prev) => {
+      const next = prev.filter((b) => b !== id)
+      localStorage.setItem("bookmarks", JSON.stringify(next))
+      return next
+    })
+    if (user) {
+      try {
+        const res = await fetch("/api/bookmarks/remove", {
+          method: "POST",
+          headers: localeHeaders(),
+          body: JSON.stringify({ materialId: id }),
+        })
+        if (!res.ok) throw new Error("Failed to remove bookmark")
+      } catch (e) {
+        setBookmarks((prev) => {
+          if (prev.includes(id)) return prev
+          const next = [...prev, id]
+          localStorage.setItem("bookmarks", JSON.stringify(next))
+          return next
+        })
+        console.error("Failed to remove bookmark:", e)
       }
-    },
-    [user],
-  )
+    }
+  }
 
-  const isBookmarked = useCallback((id: string) => bookmarks.includes(id), [bookmarks])
+  const isBookmarked = (id: string) => bookmarks.includes(id)
 
   return (
     <BookmarkContext.Provider value={{ bookmarks, addBookmark, removeBookmark, isBookmarked }}>

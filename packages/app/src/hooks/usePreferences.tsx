@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  type ReactNode,
-} from "react"
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react"
 import { useAuth } from "@/hooks/useAuth"
 
 interface PreferencesContextValue {
@@ -36,32 +28,29 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
   }, [user?.id])
 
-  const setGroup = useCallback(
-    async (value: string) => {
-      const prevValue = group
-      setGroupState(value)
-      localStorage.setItem("group", value)
-      if (user) {
-        try {
-          const res = await fetch("/api/preferences", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ group: value }),
-          })
-          if (!res.ok) throw new Error("Failed to save preference")
-        } catch (e) {
-          setGroupState(prevValue)
-          if (prevValue) {
-            localStorage.setItem("group", prevValue)
-          } else {
-            localStorage.removeItem("group")
-          }
-          console.error("Failed to save preference:", e)
+  const setGroup = async (value: string) => {
+    const prevValue = group
+    setGroupState(value)
+    localStorage.setItem("group", value)
+    if (user) {
+      try {
+        const res = await fetch("/api/preferences", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ group: value }),
+        })
+        if (!res.ok) throw new Error("Failed to save preference")
+      } catch (e) {
+        setGroupState(prevValue)
+        if (prevValue) {
+          localStorage.setItem("group", prevValue)
+        } else {
+          localStorage.removeItem("group")
         }
+        console.error("Failed to save preference:", e)
       }
-    },
-    [user, group],
-  )
+    }
+  }
 
   return (
     <PreferencesContext.Provider value={{ group, setGroup }}>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react"
+import { createContext, useContext, useState, type ReactNode } from "react"
 import type { Locale } from "@/lib/i18n"
 import { t as translate } from "@/lib/i18n"
 
@@ -20,19 +20,17 @@ function getInitialLocale(): Locale {
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(getInitialLocale)
 
-  const setLocale = useCallback((newLocale: Locale) => {
+  const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale)
     localStorage.setItem("locale", newLocale)
-  }, [])
+  }
 
-  const toggleLocale = useCallback(() => {
+  const toggleLocale = () => {
     setLocale(locale === "sr" ? "en" : "sr")
-  }, [locale, setLocale])
+  }
 
-  const t = useMemo(
-    () => (key: string, params?: Record<string, string | number>) => translate(locale, key, params),
-    [locale],
-  )
+  const t = (key: string, params?: Record<string, string | number>) =>
+    translate(locale, key, params)
 
   return (
     <I18nContext.Provider value={{ locale, setLocale, toggleLocale, t }}>

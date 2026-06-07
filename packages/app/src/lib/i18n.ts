@@ -144,6 +144,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "bookmarks.empty": "Još uvek nemate obeleženih materijala.",
     "bookmarks.browse": "Pregledaj predmete",
 
+    // Error
+    "error.title": "Nešto je pošlo naopako",
+    "error.description": "Došlo je do greške prilikom učitavanja.",
+    "error.retry": "Pokušaj ponovo",
+
     // Months
     "month.0": "januar",
     "month.1": "februar",
@@ -295,6 +300,10 @@ const translations: Record<Locale, Record<string, string>> = {
     "bookmarks.count_plural_fmt": "{n} materials",
     "bookmarks.empty": "No bookmarked materials yet.",
     "bookmarks.browse": "Browse subjects",
+
+    "error.title": "Something went wrong",
+    "error.description": "An error occurred while loading.",
+    "error.retry": "Try again",
 
     "month.0": "January",
     "month.1": "February",

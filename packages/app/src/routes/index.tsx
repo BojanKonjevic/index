@@ -4,6 +4,7 @@ import { fetchDashboard } from "@/lib/api"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useGlobalSearch } from "@/lib/search"
+import { ErrorFallback } from "@/components/ErrorFallback"
 import { daysUntil } from "@/lib/utils"
 import {
   formatDate as localeFormatDate,
@@ -76,6 +77,7 @@ export const Route = createFileRoute("/")({
     }
   },
   component: HomePage,
+  errorComponent: ErrorFallback,
 })
 
 function HomePage() {

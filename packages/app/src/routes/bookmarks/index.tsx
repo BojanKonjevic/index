@@ -3,13 +3,15 @@ import { Star, FileText, FileVideo, FileImage, Bookmark, X } from "lucide-react"
 import { fetchDashboard } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useI18n } from "@/hooks/useI18n"
-import { useState, useMemo, useEffect } from "react"
+import { ErrorFallback } from "@/components/ErrorFallback"
+import { useState, useEffect } from "react"
 
 export const Route = createFileRoute("/bookmarks/")({
   loader: async () => {
     return await fetchDashboard()
   },
   component: BookmarksPage,
+  errorComponent: ErrorFallback,
 })
 
 function BookmarksPage() {
@@ -50,27 +52,23 @@ function BookmarksPage() {
     setLocalBookmarks(bookmarks)
   }, [bookmarks])
 
-  const items = useMemo(() => {
-    const allMaterials = dashboard?.materials ?? []
-    const subjectNameMap = Object.fromEntries(
-      (dashboard?.subjects ?? []).map((s) => [s.id, s.name]),
-    )
-    const result: {
-      material: (typeof allMaterials)[0]
-      subjectName: string
-      subjectId: string
-    }[] = []
-    for (const m of allMaterials) {
-      if (localBookmarks.includes(m.id)) {
-        result.push({
-          material: m,
-          subjectName: subjectNameMap[m.subjectId] ?? "",
-          subjectId: m.subjectId,
-        })
-      }
+  const allMaterials = dashboard?.materials ?? []
+  const subjectNameMap = Object.fromEntries((dashboard?.subjects ?? []).map((s) => [s.id, s.name]))
+  const items: {
+    material: (typeof allMaterials)[0]
+    subjectName: string
+    subjectId: string
+  }[] = []
+  for (const m of allMaterials) {
+    if (localBookmarks.includes(m.id)) {
+      items.push({
+        material: m,
+        subjectName: subjectNameMap[m.subjectId] ?? "",
+        subjectId: m.subjectId,
+      })
     }
-    return result.sort((a, b) => a.material.title.localeCompare(b.material.title))
-  }, [dashboard, localBookmarks])
+  }
+  items.sort((a, b) => a.material.title.localeCompare(b.material.title))
 
   return (
     <div className="mx-auto max-w-[45rem] md:p-8 p-4 md:pt-8 pt-5">

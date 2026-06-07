@@ -14,11 +14,13 @@ import {
 } from "lucide-react"
 
 import { fetchSubject } from "@/lib/api"
+import { cn } from "@/lib/utils"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useI18n } from "@/hooks/useI18n"
+import { ErrorFallback } from "@/components/ErrorFallback"
 import type { Material } from "@index/shared"
-import { useState, useMemo, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Document, Page, pdfjs } from "react-pdf"
 import "react-pdf/dist/Page/TextLayer.css"
@@ -30,6 +32,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
 export const Route = createFileRoute("/subjects/$subjectId/materials/$materialId/")({
   loader: ({ params }) => fetchSubject(params.subjectId),
   component: ViewerPage,
+  errorComponent: ErrorFallback,
 })
 
 function ViewerPage() {
@@ -53,10 +56,7 @@ function ViewerPage() {
   const [fitWidthMode, setFitWidthMode] = useState(true)
   const parentRef = useRef<HTMLDivElement>(null)
 
-  const material = useMemo(
-    () => materials.find((m) => m.id === materialId),
-    [materials, materialId],
-  )
+  const material = materials.find((m) => m.id === materialId)
 
   const { addRecent } = useRecentlyOpened()
 
@@ -69,7 +69,7 @@ function ViewerPage() {
       subjectName: subject.name,
       timestamp: Date.now(),
     })
-  }, [materialId])
+  }, [material, materialId, subjectId, subject?.name, addRecent])
 
   useEffect(() => {
     setNumPages(0)
@@ -98,9 +98,11 @@ function ViewerPage() {
   })
 
   const handleScroll = () => {
-    const range = virtualizer.range
-    if (range) {
-      setPageNum(range.startIndex + 1)
+    const items = virtualizer.getVirtualItems()
+    const scrollTop = parentRef.current?.scrollTop ?? 0
+    const firstVisible = items.find((item) => item.end > scrollTop) ?? items[items.length - 1]
+    if (firstVisible) {
+      setPageNum(firstVisible.index + 1)
     }
   }
 
@@ -119,12 +121,12 @@ function ViewerPage() {
     setZoom((z) => (z / 1.25 <= MIN_ZOOM ? z : Math.max(z / 1.25, MIN_ZOOM)))
   }
 
-  const fitWidth = useCallback(() => {
+  const fitWidth = () => {
     if (!naturalPageWidth || containerWidth <= 0) return
     const fit = (containerWidth - 64) / naturalPageWidth
     setZoom(fit)
     setFitWidthMode(true)
-  }, [naturalPageWidth, containerWidth])
+  }
 
   useEffect(() => {
     if (fitWidthMode && naturalPageWidth && containerWidth > 0) {
@@ -137,14 +139,11 @@ function ViewerPage() {
     virtualizer.measure()
   }, [zoom, naturalPageWidth, virtualizer])
 
-  const goToPage = useCallback(
-    (num: number) => {
-      if (num < 1 || num > numPages) return
-      virtualizer.scrollToIndex(num - 1, { align: "start" })
-      setPageNum(num)
-    },
-    [numPages, virtualizer],
-  )
+  const goToPage = (num: number) => {
+    if (num < 1 || num > numPages) return
+    virtualizer.scrollToIndex(num - 1, { align: "start" })
+    setPageNum(num)
+  }
 
   useEffect(() => {
     setPageInput(String(pageNum))
@@ -203,45 +202,39 @@ function ViewerPage() {
           ? t("category.exams")
           : t("category.other")
 
-  const sidebarMaterials = useMemo(() => {
-    if (sidebarMode === "category" && material) {
-      return materials.filter((m) => m.category === material.category)
+  const sidebarMaterials =
+    sidebarMode === "category" && material
+      ? materials.filter((m) => m.category === material.category)
+      : materials
+
+  const groups: Record<string, Material[]> = {}
+  const noPart: Material[] = []
+  sidebarMaterials.forEach((m) => {
+    if (m.examPart) {
+      if (!groups[m.examPart]) groups[m.examPart] = []
+      groups[m.examPart].push(m)
+    } else {
+      noPart.push(m)
     }
-    return materials
-  }, [materials, material, sidebarMode])
+  })
+  const groupedByExamPart: { label: string; items: Material[] }[] = []
+  const partOrder = ["K1", "K2", "final"]
+  partOrder.forEach((part) => {
+    if (groups[part]) groupedByExamPart.push({ label: part, items: groups[part] })
+  })
+  Object.entries(groups).forEach(([part, items]) => {
+    if (!partOrder.includes(part)) groupedByExamPart.push({ label: part, items })
+  })
+  if (noPart.length > 0) groupedByExamPart.push({ label: "", items: noPart })
 
-  const groupedByExamPart = useMemo(() => {
-    const groups: Record<string, Material[]> = {}
-    const noPart: Material[] = []
-    sidebarMaterials.forEach((m) => {
-      if (m.examPart) {
-        if (!groups[m.examPart]) groups[m.examPart] = []
-        groups[m.examPart].push(m)
-      } else {
-        noPart.push(m)
-      }
-    })
-    const ordered: { label: string; items: Material[] }[] = []
-    const partOrder = ["K1", "K2", "final"]
-    partOrder.forEach((part) => {
-      if (groups[part]) ordered.push({ label: part, items: groups[part] })
-    })
-    Object.entries(groups).forEach(([part, items]) => {
-      if (!partOrder.includes(part)) ordered.push({ label: part, items })
-    })
-    if (noPart.length > 0) ordered.push({ label: "", items: noPart })
-    return ordered
-  }, [sidebarMaterials, sidebarMode])
-
-  const groupedByCategory = useMemo(() => {
-    if (sidebarMode !== "all") return null
-    const groups: Record<string, Material[]> = {}
-    materials.forEach((m) => {
-      if (!groups[m.category]) groups[m.category] = []
-      groups[m.category].push(m)
-    })
-    return groups
-  }, [materials, sidebarMode])
+  const groupedByCategory =
+    sidebarMode === "all"
+      ? materials.reduce<Record<string, Material[]>>((acc, m) => {
+          if (!acc[m.category]) acc[m.category] = []
+          acc[m.category].push(m)
+          return acc
+        }, {})
+      : null
 
   const bookmarkStar = (id: string) => {
     const b = isBookmarked(id)
@@ -390,8 +383,10 @@ function ViewerPage() {
         <div
           ref={parentRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-auto md:px-8 px-0 py-6 transition-colors"
-          style={{ backgroundColor: inverted ? "var(--bg-surface)" : "var(--pdf-bg)" }}
+          className={cn(
+            "flex-1 overflow-auto md:px-8 px-0 py-6 transition-colors",
+            inverted ? "bg-bg-surface" : "bg-pdf-bg",
+          )}
         >
           {!material.url ? (
             <div className="pt-20 text-sm text-[var(--text-secondary)]">{t("viewer.no_url")}</div>

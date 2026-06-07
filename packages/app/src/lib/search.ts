@@ -1,6 +1,6 @@
 import Fuse from "fuse.js"
-import { useMemo } from "react"
 import type { Material, ExamEvent } from "@index/shared"
+import { normalizeSr } from "@/lib/normalize"
 
 export type SearchResultItem = {
   id: string
@@ -64,22 +64,26 @@ function buildGlobalIndex(data: GlobalData): SearchResultItem[] {
 }
 
 export function useGlobalSearch(data: GlobalData | null, query: string, limit = 8) {
-  const index = useMemo(() => {
-    if (!data) return [] as SearchResultItem[]
-    return buildGlobalIndex(data)
-  }, [data])
+  const index = data ? buildGlobalIndex(data) : ([] as SearchResultItem[])
 
-  const fuse = useMemo(
-    () =>
-      new Fuse(index, { keys: ["label", "description"], threshold: 0.4, ignoreDiacritics: true }),
-    [index],
-  )
+  const fuse = new Fuse(index, {
+    keys: ["label", "description"],
+    threshold: 0.4,
+    getFn: (obj: unknown, path: string | string[]) => {
+      const keys = Array.isArray(path) ? path : [path]
+      let value: unknown = obj
+      for (const key of keys) {
+        value = (value as Record<string, unknown>)?.[key]
+      }
+      return normalizeSr(String(value ?? ""))
+    },
+  })
 
-  return useMemo(() => {
-    if (!query.trim()) return []
-    return fuse
-      .search(query)
-      .slice(0, limit)
-      .map((r) => r.item)
-  }, [fuse, query, limit])
+  const normalizedQuery = normalizeSr(query)
+
+  if (!query.trim()) return []
+  return fuse
+    .search(normalizedQuery)
+    .slice(0, limit)
+    .map((r) => r.item)
 }

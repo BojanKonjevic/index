@@ -31,6 +31,39 @@
   --color-ring: var(--accent);
   --color-destructive: hsl(0 84.2% 60.2%);
   --color-destructive-foreground: hsl(0 0% 98%);
+
+  --color-bg-page: var(--bg-page);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-raised: var(--bg-raised);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-bg-inset: var(--bg-inset);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-border-faint: var(--border-faint);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-hint: var(--text-hint);
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-border: var(--accent-border);
+  --color-accent-strong: var(--accent-strong);
+  --color-bookmark: var(--bookmark);
+  --color-pdf-bg: var(--pdf-bg);
+  --color-status-soon-bg: var(--status-soon-bg);
+  --color-status-soon-text: var(--status-soon-text);
+  --color-status-mid-bg: var(--status-mid-bg);
+  --color-status-mid-text: var(--status-mid-text);
+  --color-status-later-bg: var(--status-later-bg);
+  --color-status-later-text: var(--status-later-text);
+  --color-status-info-bg: var(--status-info-bg);
+  --color-status-info-text: var(--status-info-text);
+  --color-type-pdf-bg: var(--type-pdf-bg);
+  --color-type-pdf-text: var(--type-pdf-text);
+  --color-type-video-bg: var(--type-video-bg);
+  --color-type-video-text: var(--type-video-text);
+  --color-type-image-bg: var(--type-image-bg);
+  --color-type-image-text: var(--type-image-text);
+  --color-nav-active-bg: var(--nav-active-bg);
+  --color-nav-active-text: var(--nav-active-text);
 }
 
 :root {
@@ -207,6 +240,15 @@ html {
     to {
       opacity: 1;
       transform: translateX(0);
+    }
+  }
+  @keyframes skeleton-pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.7;
     }
   }
 

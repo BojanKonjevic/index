@@ -1,5 +1,5 @@
 import Fuse, { type IFuseOptions } from "fuse.js"
-import { useMemo } from "react"
+import { normalizeSr } from "@/lib/normalize"
 
 export function useFuseSearch<T>(
   items: T[],
@@ -7,13 +7,24 @@ export function useFuseSearch<T>(
   query: string,
   limit?: number,
 ): T[] {
-  const opts = useMemo(() => ({ ...options, ignoreDiacritics: true }), [options])
-  const fuse = useMemo(() => new Fuse(items, opts), [items, opts])
+  const opts = { ...options }
 
-  return useMemo(() => {
-    if (!query.trim()) return items
-    const results = fuse.search(query)
-    const mapped = results.map((r) => r.item)
-    return limit ? mapped.slice(0, limit) : mapped
-  }, [fuse, query, limit])
+  const fuse = new Fuse(items, {
+    ...opts,
+    getFn: (obj: unknown, path: string | string[]) => {
+      const keys = Array.isArray(path) ? path : [path]
+      let value: unknown = obj
+      for (const key of keys) {
+        value = (value as Record<string, unknown>)?.[key]
+      }
+      return normalizeSr(String(value ?? ""))
+    },
+  })
+
+  const normalizedQuery = normalizeSr(query)
+
+  if (!query.trim()) return items
+  const results = fuse.search(normalizedQuery)
+  const mapped = results.map((r) => r.item)
+  return limit ? mapped.slice(0, limit) : mapped
 }

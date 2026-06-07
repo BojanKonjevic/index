@@ -4,12 +4,14 @@ import { fetchSubjects } from "@/lib/api"
 import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useI18n } from "@/hooks/useI18n"
+import { ErrorFallback } from "@/components/ErrorFallback"
 import type { SubjectListItem } from "@index/shared"
-import { useState, useMemo } from "react"
+import { useState } from "react"
 
 export const Route = createFileRoute("/subjects/")({
   loader: () => fetchSubjects(),
   component: SubjectsPage,
+  errorComponent: ErrorFallback,
 })
 
 function SubjectsPage() {
@@ -24,22 +26,17 @@ function SubjectsPage() {
 
   const fuseFiltered = useFuseSearch(subjects, { keys: ["name"], threshold: 0.4 }, debouncedQuery)
 
-  const filtered = useMemo(() => {
-    return fuseFiltered.filter((s) => {
-      if (semesterFilter !== null && s.semester !== semesterFilter) return false
-      if (electiveOnly && !s.elective) return false
-      return true
-    })
-  }, [fuseFiltered, semesterFilter, electiveOnly])
+  const filtered = fuseFiltered.filter((s) => {
+    if (semesterFilter !== null && s.semester !== semesterFilter) return false
+    if (electiveOnly && !s.elective) return false
+    return true
+  })
 
-  const grouped = useMemo(() => {
-    const groups: Record<number, SubjectListItem[]> = {}
-    filtered.forEach((s) => {
-      if (!groups[s.semester]) groups[s.semester] = []
-      groups[s.semester].push(s)
-    })
-    return groups
-  }, [filtered])
+  const grouped: Record<number, SubjectListItem[]> = {}
+  filtered.forEach((s) => {
+    if (!grouped[s.semester]) grouped[s.semester] = []
+    grouped[s.semester].push(s)
+  })
 
   const semesters = Object.keys(grouped).map(Number).sort()
   const uniqueSemesters = [...new Set(subjects.map((s) => s.semester))].sort()
