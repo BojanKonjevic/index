@@ -149,7 +149,7 @@ function MaterialRow({ material }: { material: Material }) {
           className={`size-4 transition-colors duration-150 ${
             bookmarked
               ? "fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop"
-              : "text-[var(--border-strong)] hover:text-[var(--text-hint)]"
+              : "text-[var(--text-hint)] hover:text-[var(--text-secondary)]"
           }`}
         />
       </button>

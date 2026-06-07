@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { Search, FileText, BookOpen, Calendar, X } from "lucide-react"
+import { Search, FileText, FileVideo, FileImage, BookOpen, Calendar, X } from "lucide-react"
 import { fetchDashboard } from "@/lib/api"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useDebounce } from "@/hooks/useDebounce"
@@ -9,6 +9,7 @@ import { daysUntil } from "@/lib/utils"
 import { formatDate, getRelativeTime } from "@/lib/i18n"
 import { useI18n } from "@/hooks/useI18n"
 import type { ExamEvent } from "@index/shared"
+import { getVirtualCategory } from "@/lib/categories"
 import { useState, useRef, useEffect } from "react"
 
 function getUrgency(
@@ -86,6 +87,40 @@ function HomePage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const debouncedQuery = useDebounce(searchQuery, 200)
   const { t, locale } = useI18n()
+
+  const typeIconMap: Record<string, typeof FileText> = {
+    pdf: FileText,
+    video: FileVideo,
+    image: FileImage,
+  }
+  const typeTagStyles: Record<string, { container: string; icon: string }> = {
+    pdf: {
+      container: "border-[var(--type-pdf-text)] bg-[var(--type-pdf-bg)]",
+      icon: "text-[var(--type-pdf-text)]",
+    },
+    video: {
+      container: "border-[var(--type-video-text)] bg-[var(--type-video-bg)]",
+      icon: "text-[var(--type-video-text)]",
+    },
+    image: {
+      container: "border-[var(--type-image-text)] bg-[var(--type-image-bg)]",
+      icon: "text-[var(--type-image-text)]",
+    },
+  }
+  const typeBadgeStyles: Record<string, string> = {
+    pdf: "bg-[var(--type-pdf-bg)] text-[var(--type-pdf-text)]",
+    video: "bg-[var(--type-video-bg)] text-[var(--type-video-text)]",
+    image: "bg-[var(--type-image-bg)] text-[var(--type-image-text)]",
+  }
+  const categoryBadgeStyles: Record<string, string> = {
+    theory: "bg-[var(--status-info-bg)] text-[var(--status-info-text)]",
+    problems: "bg-[var(--status-later-bg)] text-[var(--status-later-text)]",
+    exam: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
+    k1: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
+    k2: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
+    final: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
+    misc: "bg-[var(--bg-subtle)] text-[var(--text-secondary)]",
+  }
 
   const subjectNameMap = Object.fromEntries((data?.subjects ?? []).map((s) => [s.id, s.name]))
   const allMaterials = data?.materials ?? []
@@ -248,32 +283,81 @@ function HomePage() {
         </div>
         {recent.length > 0 ? (
           <div className="flex flex-col gap-0.5">
-            {recent.map((item) => (
-              <Link
-                key={item.materialId}
-                to="/subjects/$subjectId/materials/$materialId"
-                params={{ subjectId: item.subjectId, materialId: item.materialId }}
-                className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5"
-              >
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-[0.438rem] bg-[var(--bg-subtle)]">
-                  <FileText className="size-4 text-[var(--text-secondary)]" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
-                    {item.title}
+            {recent.map((item) => {
+              const vcat = item.category ? getVirtualCategory(item as any) : ""
+              const TypeIcon = typeIconMap[item.fileType] || FileText
+              const ts = typeTagStyles[item.fileType]
+              return (
+                <Link
+                  key={item.materialId}
+                  to="/subjects/$subjectId/materials/$materialId"
+                  params={{ subjectId: item.subjectId, materialId: item.materialId }}
+                  className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5"
+                >
+                  <div
+                    className={`flex size-9 shrink-0 items-center justify-center rounded-[0.438rem] border ${ts?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]"}`}
+                  >
+                    <TypeIcon className={`size-4 ${ts?.icon || "text-[var(--text-hint)]"}`} />
                   </div>
-                  <div className="text-xs leading-relaxed text-[var(--text-secondary)]">
-                    {item.subjectName}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2">
+                      <div className="min-w-0 flex-1 truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
+                        {item.title}
+                      </div>
+                      <div className="shrink-0 text-xs text-[var(--text-secondary)]">
+                        {item.subjectName}
+                      </div>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {item.fileType && (
+                        <span
+                          className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[item.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+                        >
+                          {t(`materialType.${item.fileType}`) || item.fileType}
+                        </span>
+                      )}
+                      {vcat && (
+                        <span
+                          className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+                        >
+                          {vcat === "final" ? t("category.exam") : t(`category.${vcat}`)}
+                        </span>
+                      )}
+                      {item.examPart && vcat !== item.examPart.toLowerCase() && (
+                        <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+                          {item.examPart}
+                        </span>
+                      )}
+                      {item.solved === true && (
+                        <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
+                          {t("subject.solved_badge")}
+                        </span>
+                      )}
+                      {item.solved === false && (
+                        <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--accent-bg)] text-[var(--accent-strong)]">
+                          {t("subject.unsolved_badge")}
+                        </span>
+                      )}
+                      <span className="shrink-0 text-xs text-[var(--text-hint)]">
+                        {getRelativeTime(locale, item.timestamp)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <span className="shrink-0 text-xs text-[var(--text-hint)]">
-                  {getRelativeTime(locale, item.timestamp)}
-                </span>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">{t("home.nothing_opened")}</p>
+          <div className="flex flex-col items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] py-12">
+            <FileText className="size-10 text-[var(--text-hint)]" />
+            <p className="text-sm text-[var(--text-secondary)]">{t("home.nothing_opened")}</p>
+            <Link
+              to="/subjects"
+              className="rounded-[0.5rem] px-4 py-2 text-sm font-medium bg-[var(--text-primary)] text-[var(--bg-surface)] transition-all duration-100 hover:opacity-85 active:scale-[0.98]"
+            >
+              {t("bookmarks.browse")}
+            </Link>
+          </div>
         )}
       </section>
     </div>

@@ -20,6 +20,8 @@ import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useI18n } from "@/hooks/useI18n"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import type { Material } from "@index/shared"
+import { CATEGORY_ORDER } from "@index/shared"
+import { getVirtualCategory } from "@/lib/categories"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Document, Page, pdfjs } from "react-pdf"
@@ -67,6 +69,10 @@ function ViewerPage() {
       subjectId,
       title: material.title,
       subjectName: subject.name,
+      fileType: material.fileType,
+      category: material.category,
+      examPart: material.examPart,
+      solved: material.solved,
       timestamp: Date.now(),
     })
   }, [material, materialId, subjectId, subject?.name, addRecent])
@@ -171,10 +177,10 @@ function ViewerPage() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.key === "ArrowUp") {
         e.preventDefault()
-        parentRef.current?.scrollBy({ top: -100, behavior: "auto" })
+        parentRef.current?.scrollBy({ top: -300, behavior: "smooth" })
       } else if (e.key === "ArrowDown") {
         e.preventDefault()
-        parentRef.current?.scrollBy({ top: 100, behavior: "auto" })
+        parentRef.current?.scrollBy({ top: 300, behavior: "smooth" })
       } else if (e.key === "PageUp") {
         e.preventDefault()
         goToPage(pageNum - 1)
@@ -198,12 +204,12 @@ function ViewerPage() {
 
   const categoryName =
     material?.category === "theory"
-      ? t("category.lectures")
+      ? t("category.theory")
       : material?.category === "problems"
-        ? t("category.exercises")
+        ? t("category.problems")
         : material?.category === "exam"
-          ? t("category.exams")
-          : t("category.other")
+          ? t("category.exam")
+          : t("category.misc")
 
   const sidebarMaterials =
     sidebarMode === "category" && material
@@ -223,7 +229,10 @@ function ViewerPage() {
   const groupedByExamPart: { label: string; items: Material[] }[] = []
   const partOrder = ["K1", "K2", "final"]
   partOrder.forEach((part) => {
-    if (groups[part]) groupedByExamPart.push({ label: part, items: groups[part] })
+    if (groups[part]) {
+      const label = part === "final" ? t("category.exam") : t(`category.${part.toLowerCase()}`)
+      groupedByExamPart.push({ label, items: groups[part] })
+    }
   })
   Object.entries(groups).forEach(([part, items]) => {
     if (!partOrder.includes(part)) groupedByExamPart.push({ label: part, items })
@@ -233,8 +242,12 @@ function ViewerPage() {
   const groupedByCategory =
     sidebarMode === "all"
       ? materials.reduce<Record<string, Material[]>>((acc, m) => {
-          if (!acc[m.category]) acc[m.category] = []
-          acc[m.category].push(m)
+          const vcat = getVirtualCategory(m)
+          const key = CATEGORY_ORDER.includes(vcat as (typeof CATEGORY_ORDER)[number])
+            ? vcat
+            : "misc"
+          if (!acc[key]) acc[key] = []
+          acc[key].push(m)
           return acc
         }, {})
       : null
@@ -251,124 +264,111 @@ function ViewerPage() {
         className="cursor-pointer min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center"
       >
         <Star
-          className={`size-6 transition-colors duration-150 ${b ? "fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop" : "text-[var(--border-strong)] hover:text-[var(--text-hint)]"}`}
+          className={`size-6 transition-colors duration-150 ${b ? "fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop" : "text-[var(--text-hint)] hover:text-[var(--text-secondary)]"}`}
         />
       </button>
-    )
-  }
-
-  if (!material) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[var(--bg-page)] text-[var(--text-primary)]">
-        {t("viewer.not_found")}
-      </div>
     )
   }
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       {/* ── Top bar (desktop) ── */}
-      <div className="hidden md:flex flex-col shrink-0 border-b bg-[var(--bg-surface)] border-[var(--border-default)]">
-        <div className="flex h-9 items-center border-b border-[var(--border-faint)]">
-          <button
-            onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
-            className="flex cursor-pointer items-center gap-1 rounded-[0.438rem] px-2.5 py-1 text-[0.813rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+      <div className="hidden sm:flex h-11 items-center gap-3 shrink-0 border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-3">
+        <button
+          onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
+          className="flex shrink-0 cursor-pointer items-center justify-center size-9 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+        >
+          <ArrowLeft className="size-4" />
+        </button>
+
+        <div className="flex items-center gap-1.5 text-[0.75rem] text-[var(--text-hint)] min-w-0 overflow-hidden">
+          <Link
+            to="/subjects"
+            className="shrink-0 hover:text-[var(--text-primary)] transition-colors duration-100"
           >
-            <ArrowLeft className="size-4" />
-            {t("viewer.back")}
+            {t("viewer.breadcrumb_subjects")}
+          </Link>
+          <span className="shrink-0">›</span>
+          <Link
+            to="/subjects/$subjectId"
+            params={{ subjectId }}
+            className="truncate hover:text-[var(--text-primary)] transition-colors duration-100"
+          >
+            {subject.name}
+          </Link>
+          <span className="shrink-0">›</span>
+          <span className="shrink-0 text-[var(--text-secondary)]">{categoryName}</span>
+          <span className="shrink-0">›</span>
+          <span className="truncate font-medium text-[var(--text-primary)]">{material?.title}</span>
+        </div>
+
+        <div className="flex-1" />
+
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="flex items-center gap-1 whitespace-nowrap px-1.5 text-[0.813rem] text-[var(--text-secondary)]">
+            <input
+              type="text"
+              value={pageInput}
+              onChange={handlePageInputChange}
+              onBlur={handlePageInputCommit}
+              onKeyDown={handlePageInputKeyDown}
+              className="w-14 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
+            />
+            <span className="text-[var(--text-hint)]">/</span>
+            <span>{numPages || "?"}</span>
+          </span>
+
+          <span className="mx-1 h-5 w-px bg-[var(--border-faint)]" />
+
+          <button
+            onClick={zoomOut}
+            disabled={atMinZoom}
+            title={t("viewer.zoom_out")}
+            className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <ZoomOut className="size-4" />
           </button>
-          <span className="mx-1.5 h-4 w-px bg-[var(--border-faint)]" />
-          <div className="flex items-center gap-1.5 text-[0.75rem] text-[var(--text-hint)] min-w-0 overflow-hidden">
-            <Link
-              to="/subjects"
-              className="shrink-0 hover:text-[var(--text-primary)] transition-colors duration-100"
-            >
-              {t("viewer.breadcrumb_subjects")}
-            </Link>
-            <span className="shrink-0">›</span>
-            <Link
-              to="/subjects/$subjectId"
-              params={{ subjectId }}
-              className="truncate hover:text-[var(--text-primary)] transition-colors duration-100"
-            >
-              {subject.name}
-            </Link>
-            <span className="shrink-0">›</span>
-            <span className="shrink-0 font-medium text-[var(--text-primary)]">{categoryName}</span>
-          </div>
+          <span className="w-8 text-center text-[0.688rem] font-medium text-[var(--text-secondary)] tabular-nums">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={zoomIn}
+            disabled={atMaxZoom}
+            title={t("viewer.zoom_in")}
+            className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <ZoomIn className="size-4" />
+          </button>
+          <button
+            onClick={fitWidth}
+            title={t("viewer.fit_width")}
+            className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+          >
+            <Maximize className="size-4" />
+          </button>
+
+          <span className="mx-1 h-5 w-px bg-[var(--border-faint)]" />
+
+          <button
+            onClick={() => setInverted((v) => !v)}
+            title={t("viewer.invert")}
+            className={`flex size-9 items-center justify-center rounded-[0.438rem] transition-all duration-100 ${
+              inverted
+                ? "bg-[var(--accent-bg)] text-[var(--accent)]"
+                : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <SunMoon className="size-4" />
+          </button>
         </div>
 
-        <div className="flex h-10 items-center px-3">
-          <div className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-primary)]">
-            {material.title}
-          </div>
+        <span className="h-5 w-px bg-[var(--border-faint)]" />
 
-          <div className="flex items-center gap-1">
-            <span className="flex items-center gap-1 whitespace-nowrap px-1.5 text-[0.813rem] text-[var(--text-secondary)]">
-              <input
-                type="text"
-                value={pageInput}
-                onChange={handlePageInputChange}
-                onBlur={handlePageInputCommit}
-                onKeyDown={handlePageInputKeyDown}
-                className="w-14 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
-              />
-              <span className="text-[var(--text-hint)]">/</span>
-              <span>{numPages || "?"}</span>
-            </span>
-
-            <span className="mx-1 h-5 w-px bg-[var(--border-faint)]" />
-
-            <button
-              onClick={zoomOut}
-              disabled={atMinZoom}
-              title={t("viewer.zoom_out")}
-              className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ZoomOut className="size-4" />
-            </button>
-            <span className="w-8 text-center text-[0.688rem] font-medium text-[var(--text-secondary)] tabular-nums">
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              onClick={zoomIn}
-              disabled={atMaxZoom}
-              title={t("viewer.zoom_in")}
-              className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ZoomIn className="size-4" />
-            </button>
-            <button
-              onClick={fitWidth}
-              title={t("viewer.fit_width")}
-              className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
-            >
-              <Maximize className="size-4" />
-            </button>
-
-            <span className="mx-1 h-5 w-px bg-[var(--border-faint)]" />
-
-            <button
-              onClick={() => setInverted((v) => !v)}
-              title={t("viewer.invert")}
-              className={`flex size-9 items-center justify-center rounded-[0.438rem] transition-all duration-100 ${
-                inverted
-                  ? "bg-[var(--accent-bg)] text-[var(--accent)]"
-                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              <SunMoon className="size-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center border-l border-[var(--border-faint)] ml-3 pl-3">
-            {bookmarkStar(material.id)}
-          </div>
-        </div>
+        {material && bookmarkStar(material.id)}
       </div>
 
       {/* ── Top bar (mobile) ── */}
-      <div className="md:hidden flex h-[3.75rem] shrink-0 items-center border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-3 gap-3">
+      <div className="sm:hidden flex h-[3.75rem] shrink-0 items-center border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-3 gap-3">
         <button
           onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
           className="flex shrink-0 cursor-pointer items-center justify-center size-10 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
@@ -376,9 +376,9 @@ function ViewerPage() {
           <ArrowLeft className="size-5" />
         </button>
         <div className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-primary)]">
-          {material.title}
+          {material?.title}
         </div>
-        {bookmarkStar(material.id)}
+        {material && bookmarkStar(material.id)}
       </div>
 
       {/* ── PDF viewer ── */}
@@ -391,7 +391,11 @@ function ViewerPage() {
             inverted ? "bg-bg-surface" : "bg-pdf-bg",
           )}
         >
-          {!material.url ? (
+          {!material ? (
+            <div className="pt-20 text-sm text-[var(--text-secondary)]">
+              {t("viewer.not_found")}
+            </div>
+          ) : !material.url ? (
             <div className="pt-20 text-sm text-[var(--text-secondary)]">{t("viewer.no_url")}</div>
           ) : (
             <Document
@@ -466,7 +470,7 @@ function ViewerPage() {
         </div>
 
         {/* ── Right sidebar (desktop) ── */}
-        <div className="hidden md:flex w-[17.5rem] shrink-0 flex-col overflow-hidden border-l bg-[var(--bg-surface)] border-[var(--border-default)]">
+        <div className="hidden sm:flex w-[17.5rem] shrink-0 flex-col overflow-hidden border-l bg-[var(--bg-surface)] border-[var(--border-default)]">
           <div className="flex items-center gap-1.5 border-b border-[var(--border-faint)] px-3 py-2.5">
             <button
               onClick={() => setSidebarMode("category")}
@@ -510,12 +514,12 @@ function ViewerPage() {
                   </div>
                 ))
               : groupedByCategory &&
-                Object.entries(groupedByCategory).map(([cat, items]) => (
+                CATEGORY_ORDER.filter((cat) => groupedByCategory[cat]).map((cat) => (
                   <div key={cat}>
                     <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                      {t(`category.${cat}`)}
+                      {cat === "final" ? t("category.exam") : t(`category.${cat}`)}
                     </div>
-                    {items.map((m) => (
+                    {groupedByCategory[cat].map((m) => (
                       <SidebarItem
                         key={m.id}
                         material={m}
@@ -530,15 +534,9 @@ function ViewerPage() {
           <div className="flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[var(--border-faint)] px-3 py-2.5 text-[0.688rem] text-[var(--text-hint)]">
             <span>
               <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
-                ← →
+                ↑ ↓
               </kbd>{" "}
               <span className="text-[var(--text-secondary)]">{t("viewer.shortcut_scroll")}</span>
-            </span>
-            <span>
-              <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
-                PgUp/PgDn
-              </kbd>{" "}
-              <span className="text-[var(--text-secondary)]">{t("viewer.shortcut_page")}</span>
             </span>
             <span>
               <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
@@ -551,7 +549,7 @@ function ViewerPage() {
       </div>
 
       {/* ── Bottom toolbar (mobile) ── */}
-      <div className="md:hidden flex h-14 shrink-0 items-center border-t bg-[var(--bg-surface)] border-[var(--border-default)] px-2 gap-2 pb-safe">
+      <div className="sm:hidden flex h-14 shrink-0 items-center border-t bg-[var(--bg-surface)] border-[var(--border-default)] px-2 gap-2 pb-safe">
         <button
           onClick={() => goToPage(pageNum - 1)}
           disabled={pageNum <= 1}
@@ -657,12 +655,12 @@ function ViewerPage() {
                     </div>
                   ))
                 : groupedByCategory &&
-                  Object.entries(groupedByCategory).map(([cat, items]) => (
+                  CATEGORY_ORDER.filter((cat) => groupedByCategory[cat]).map((cat) => (
                     <div key={cat}>
                       <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                        {t(`category.${cat}`)}
+                        {cat === "final" ? t("category.exam") : t(`category.${cat}`)}
                       </div>
-                      {items.map((m) => (
+                      {groupedByCategory[cat].map((m) => (
                         <div key={m.id} onClick={() => setMaterialsSheetOpen(false)}>
                           <SidebarItem
                             material={m}

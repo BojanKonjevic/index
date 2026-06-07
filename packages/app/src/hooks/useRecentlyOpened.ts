@@ -5,6 +5,10 @@ export interface RecentItem {
   subjectId: string
   title: string
   subjectName: string
+  fileType: string
+  category: string
+  examPart: string | null
+  solved: boolean | null
   timestamp: number
 }
 

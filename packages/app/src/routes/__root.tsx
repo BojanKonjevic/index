@@ -1,4 +1,4 @@
-import { createRootRoute, Outlet, Link, useLocation, useMatchRoute } from "@tanstack/react-router"
+import { createRootRoute, Outlet, Link, useLocation } from "@tanstack/react-router"
 import {
   Home,
   BookOpen,
@@ -344,11 +344,8 @@ function Sidebar() {
 }
 
 function AnimatedOutlet() {
-  const location = useLocation()
-  const matchRoute = useMatchRoute()
-  const isViewer = matchRoute({ to: "/subjects/$subjectId/materials/$materialId" })
   return (
-    <div key={location.pathname} className={isViewer ? "slide-from-right" : "page-enter"}>
+    <div className="page-enter">
       <Outlet />
     </div>
   )
@@ -373,22 +370,11 @@ function RootLayout() {
 
 function RootContent() {
   const { user, isGuest, loading } = useAuth()
-  const matchRoute = useMatchRoute()
 
   if (loading) return <Skeleton />
 
   if (!user && !isGuest) {
     return <WelcomeScreen />
-  }
-
-  const isViewer = matchRoute({ to: "/subjects/$subjectId/materials/$materialId" })
-
-  if (isViewer) {
-    return (
-      <div className="min-h-screen bg-bg-page">
-        <Outlet />
-      </div>
-    )
   }
 
   return (
