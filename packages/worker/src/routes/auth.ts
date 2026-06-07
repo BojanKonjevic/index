@@ -1,9 +1,14 @@
 import { Hono } from "hono"
 import { msg } from "../lib/i18n"
-import { createSessionCookie, clearSessionCookie, getSessionUser } from "../lib/session"
+import {
+  createSessionCookie,
+  clearSessionCookie,
+  getSessionUser,
+  getValidatedSessionUser,
+} from "../lib/session"
 import { registerSchema, loginSchema } from "@index/shared/schemas"
 
-const PBKDF2_ITERATIONS = 300_000
+const PBKDF2_ITERATIONS = 100_000
 
 function bytesToHex(bytes: Uint8Array): string {
   return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("")
@@ -175,7 +180,7 @@ app.post("/auth/login", async (c) => {
 })
 
 app.get("/auth/me", async (c) => {
-  const user = await getSessionUser(c, c.env.SESSION_SECRET)
+  const user = await getValidatedSessionUser(c, c.env.DB, c.env.SESSION_SECRET)
   return c.json({ user })
 })
 

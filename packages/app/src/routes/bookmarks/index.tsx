@@ -1,21 +1,32 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Star, FileText, FileVideo, FileImage, Bookmark, X } from "lucide-react"
-import { fetchBookmarkedMaterials } from "@/lib/api"
+import { fetchBookmarkedMaterials, fetchDashboard } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useI18n } from "@/hooks/useI18n"
 import { ErrorFallback } from "@/components/ErrorFallback"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 
 export const Route = createFileRoute("/bookmarks/")({
-  loader: () => fetchBookmarkedMaterials(),
+  loader: async () => {
+    const isGuest = typeof window !== "undefined" && localStorage.getItem("guest") === "true"
+    if (isGuest) {
+      const [dashboard, stored] = await Promise.all([
+        fetchDashboard(),
+        Promise.resolve(localStorage.getItem("bookmarks")),
+      ])
+      const bookmarkIds: string[] = stored ? JSON.parse(stored) : []
+      const materials = dashboard.materials.filter((m) => bookmarkIds.includes(m.id))
+      return { materials, subjectNameMap: dashboard.subjectNameMap }
+    }
+    return fetchBookmarkedMaterials()
+  },
   component: BookmarksPage,
   errorComponent: ErrorFallback,
 })
 
 function BookmarksPage() {
   const { materials, subjectNameMap } = Route.useLoaderData()
-  const { bookmarks, removeBookmark } = useBookmarks()
-  const [localBookmarks, setLocalBookmarks] = useState<string[]>(bookmarks)
+  const { removeBookmark } = useBookmarks()
   const [removingId, setRemovingId] = useState<string | null>(null)
   const { t } = useI18n()
 
@@ -46,12 +57,7 @@ function BookmarksPage() {
     image: FileImage,
   }
 
-  useEffect(() => {
-    setLocalBookmarks(bookmarks)
-  }, [bookmarks])
-
-  const items = materials.filter((m) => localBookmarks.includes(m.id))
-  items.sort((a, b) => a.title.localeCompare(b.title))
+  const items = [...materials].sort((a, b) => a.title.localeCompare(b.title))
 
   return (
     <div className="mx-auto max-w-[45rem] md:p-8 p-4 md:pt-8 pt-5">
