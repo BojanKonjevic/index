@@ -3,8 +3,6 @@ import {
   Home,
   BookOpen,
   Bookmark,
-  Search,
-  Settings,
   LogOut,
   Sun,
   Moon,
