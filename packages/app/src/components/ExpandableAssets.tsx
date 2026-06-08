@@ -1,36 +1,10 @@
-import { ChevronRight, FileImage, FileText, FileVideo, Layers, Loader2 } from "lucide-react"
+import { ChevronRight, FileImage, Layers, Loader2 } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 import type { MaterialAsset } from "@index/shared"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/hooks/useI18n"
-
-const typeTagStyles: Record<string, { container: string; icon: string }> = {
-  pdf: {
-    container: "border-[var(--type-pdf-text)] bg-[var(--type-pdf-bg)]",
-    icon: "text-[var(--type-pdf-text)]",
-  },
-  video: {
-    container: "border-[var(--type-video-text)] bg-[var(--type-video-bg)]",
-    icon: "text-[var(--type-video-text)]",
-  },
-  image: {
-    container: "border-[var(--type-image-text)] bg-[var(--type-image-bg)]",
-    icon: "text-[var(--type-image-text)]",
-  },
-}
-
-const typeBadgeStyles: Record<string, string> = {
-  pdf: "bg-[var(--type-pdf-bg)] text-[var(--type-pdf-text)]",
-  video: "bg-[var(--type-video-bg)] text-[var(--type-video-text)]",
-  image: "bg-[var(--type-image-bg)] text-[var(--type-image-text)]",
-}
-
-const typeIconMap: Record<string, typeof FileText> = {
-  pdf: FileText,
-  video: FileVideo,
-  image: FileImage,
-}
+import { typeIconMap, typeTagStyles, typeBadgeStyles } from "@/lib/styles"
 
 export default function ExpandableAssets({
   assets,

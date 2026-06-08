@@ -10,7 +10,10 @@ const API_BASE = import.meta.env.VITE_API_URL || "/api"
 
 export function localeHeaders(extra?: Record<string, string>): Record<string, string> {
   const locale = typeof window !== "undefined" ? localStorage.getItem("locale") : null
-  return { "Content-Type": "application/json", ...(locale ? { "x-locale": locale } : {}), ...extra }
+  return {
+    ...(locale ? { "x-locale": locale } : {}),
+    ...extra,
+  }
 }
 
 export async function fetchSubjects(): Promise<SubjectListItem[]> {

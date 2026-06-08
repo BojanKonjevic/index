@@ -7,7 +7,6 @@ import {
   SunMoon,
   Star,
   FileText,
-  FileVideo,
   FileImage,
   Loader2,
   ChevronLeft,
@@ -34,6 +33,7 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import ImageViewer from "@/components/ImageViewer"
 import VideoViewer from "@/components/VideoViewer"
 import AssetGallery from "@/components/AssetGallery"
+import { typeIconMap, typeTagStyles, typeBadgeStyles } from "@/lib/styles"
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
 
@@ -42,6 +42,8 @@ export const Route = createFileRoute("/subjects/$subjectId/materials/$materialId
     ...(typeof search.asset === "string" ? { asset: search.asset } : {}),
   }),
   loader: ({ params }) => fetchSubject(params.subjectId),
+  staleTime: 30_000,
+  gcTime: 60_000,
   component: ViewerPage,
   errorComponent: ErrorFallback,
 })
@@ -108,7 +110,10 @@ function ViewerPage() {
   useEffect(() => {
     const el = parentRef.current
     if (!el) return
-    const update = () => setContainerWidth(el.clientWidth)
+    const update = () => {
+      const w = Math.round(el.clientWidth)
+      setContainerWidth((prev) => (prev === w ? prev : w))
+    }
     update()
     const observer = new ResizeObserver(update)
     observer.observe(el)
@@ -162,7 +167,8 @@ function ViewerPage() {
 
   useEffect(() => {
     virtualizer.measure()
-  }, [zoom, naturalPageWidth, virtualizer])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoom, naturalPageWidth])
 
   const goToPage = useCallback(
     (num: number) => {
@@ -191,48 +197,47 @@ function ViewerPage() {
     if (e.key === "Enter") handlePageInputCommit()
   }
 
-  useEffect(() => {
-    const isPdf = material?.fileType === "pdf" && !showAssetGallery
-    const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      if (e.key === "b" && material) {
-        e.preventDefault()
-        isBookmarked(material.id) ? removeBookmark(material.id) : addBookmark(material.id)
-        return
-      }
-      if (!isPdf) return
-      if (e.key === "ArrowUp") {
-        e.preventDefault()
-        parentRef.current?.scrollBy({ top: -300, behavior: "smooth" })
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault()
-        parentRef.current?.scrollBy({ top: 300, behavior: "smooth" })
-      } else if (e.key === "PageUp") {
-        e.preventDefault()
-        goToPage(pageNum - 1)
-      } else if (e.key === "PageDown") {
-        e.preventDefault()
-        goToPage(pageNum + 1)
-      } else if (e.key === "Home") {
-        e.preventDefault()
-        goToPage(1)
-      } else if (e.key === "End") {
-        e.preventDefault()
-        goToPage(numPages)
-      }
+  const handlerRef = useRef<((e: KeyboardEvent) => void) | null>(null)
+  handlerRef.current = (e: KeyboardEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+    const m = materials.find((m) => m.id === materialId)
+    const isPdf =
+      m?.fileType === "pdf" &&
+      material?.fileType !== "image" &&
+      !(hasAssets && !isContainer && viewerTab === "assets")
+    if (e.key === "b" && m) {
+      e.preventDefault()
+      if (isBookmarked(m.id)) removeBookmark(m.id)
+      else addBookmark(m.id)
+      return
     }
+    if (!isPdf) return
+    if (e.key === "ArrowUp") {
+      e.preventDefault()
+      parentRef.current?.scrollBy({ top: -300, behavior: "smooth" })
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault()
+      parentRef.current?.scrollBy({ top: 300, behavior: "smooth" })
+    } else if (e.key === "PageUp") {
+      e.preventDefault()
+      goToPage(pageNum - 1)
+    } else if (e.key === "PageDown") {
+      e.preventDefault()
+      goToPage(pageNum + 1)
+    } else if (e.key === "Home") {
+      e.preventDefault()
+      goToPage(1)
+    } else if (e.key === "End") {
+      e.preventDefault()
+      goToPage(numPages)
+    }
+  }
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => handlerRef.current?.(e)
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [
-    pageNum,
-    numPages,
-    material,
-    isBookmarked,
-    addBookmark,
-    removeBookmark,
-    goToPage,
-    showAssetGallery,
-  ])
+  }, [])
 
   const categoryName =
     material?.category === "theory"
@@ -285,24 +290,6 @@ function ViewerPage() {
           return acc
         }, {})
       : null
-
-  const bookmarkStar = (id: string) => {
-    const b = isBookmarked(id)
-    return (
-      <button
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          b ? removeBookmark(id) : addBookmark(id)
-        }}
-        className="cursor-pointer min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center"
-      >
-        <Star
-          className={`size-6 transition-colors duration-150 ${b ? "fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop" : "text-[var(--text-hint)] hover:text-[var(--text-secondary)]"}`}
-        />
-      </button>
-    )
-  }
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
@@ -402,7 +389,7 @@ function ViewerPage() {
 
         <span className="h-5 w-px bg-[var(--border-faint)]" />
 
-        {material && bookmarkStar(material.id)}
+        {material && <BookmarkButton id={material.id} />}
       </div>
 
       {/* ── Top bar (mobile) ── */}
@@ -416,7 +403,7 @@ function ViewerPage() {
         <div className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-primary)]">
           {material?.title}
         </div>
-        {material && bookmarkStar(material.id)}
+        {material && <BookmarkButton id={material.id} />}
       </div>
 
       {/* ── Main content area ── */}
@@ -608,15 +595,11 @@ function ViewerPage() {
             {sidebarMode === "this"
               ? sidebarMaterials.map((m) => (
                   <div key={m.id}>
-                    <SidebarItem
-                      material={m}
-                      isActive={m.id === materialId}
-                      bookmarkStar={bookmarkStar(m.id)}
-                    />
+                    <SidebarItem material={m} isActive={m.id === materialId} />
                     {m.assets.length > 0 && (
                       <div className="flex flex-col gap-0.5 pb-1">
                         {m.assets.map((a, i) => {
-                          const AssetIcon = sidebarIconMap[a.fileType] || FileImage
+                          const AssetIcon = typeIconMap[a.fileType] || FileImage
                           const ts = typeTagStyles[a.fileType]
                           const isCurrentAsset = m.id === materialId && assetFromUrl === i + 1
                           return (
@@ -662,11 +645,7 @@ function ViewerPage() {
                       )}
                       {section.items.map((m) => (
                         <div key={m.id}>
-                          <SidebarItem
-                            material={m}
-                            isActive={m.id === materialId}
-                            bookmarkStar={bookmarkStar(m.id)}
-                          />
+                          <SidebarItem material={m} isActive={m.id === materialId} />
                           {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
                             <ExpandableAssets
                               assets={m.assets}
@@ -689,11 +668,7 @@ function ViewerPage() {
                       </div>
                       {groupedByCategory[cat].map((m) => (
                         <div key={m.id}>
-                          <SidebarItem
-                            material={m}
-                            isActive={m.id === materialId}
-                            bookmarkStar={bookmarkStar(m.id)}
-                          />
+                          <SidebarItem material={m} isActive={m.id === materialId} />
                           {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
                             <ExpandableAssets
                               assets={m.assets}
@@ -831,16 +806,12 @@ function ViewerPage() {
                 ? sidebarMaterials.map((m) => (
                     <div key={m.id}>
                       <div onClick={() => setMaterialsSheetOpen(false)}>
-                        <SidebarItem
-                          material={m}
-                          isActive={m.id === materialId}
-                          bookmarkStar={bookmarkStar(m.id)}
-                        />
+                        <SidebarItem material={m} isActive={m.id === materialId} />
                       </div>
                       {m.assets.length > 0 && (
                         <div className="flex flex-col gap-0.5 pb-1">
                           {m.assets.map((a, i) => {
-                            const AssetIcon = sidebarIconMap[a.fileType] || FileImage
+                            const AssetIcon = typeIconMap[a.fileType] || FileImage
                             const ts = typeTagStyles[a.fileType]
                             const isCurrentAsset = m.id === materialId && assetFromUrl === i + 1
                             return (
@@ -890,11 +861,7 @@ function ViewerPage() {
                         {section.items.map((m) => (
                           <div key={m.id}>
                             <div onClick={() => setMaterialsSheetOpen(false)}>
-                              <SidebarItem
-                                material={m}
-                                isActive={m.id === materialId}
-                                bookmarkStar={bookmarkStar(m.id)}
-                              />
+                              <SidebarItem material={m} isActive={m.id === materialId} />
                             </div>
                             {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
                               <ExpandableAssets
@@ -919,11 +886,7 @@ function ViewerPage() {
                         {groupedByCategory[cat].map((m) => (
                           <div key={m.id}>
                             <div onClick={() => setMaterialsSheetOpen(false)}>
-                              <SidebarItem
-                                material={m}
-                                isActive={m.id === materialId}
-                                bookmarkStar={bookmarkStar(m.id)}
-                              />
+                              <SidebarItem material={m} isActive={m.id === materialId} />
                             </div>
                             {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
                               <ExpandableAssets
@@ -947,44 +910,29 @@ function ViewerPage() {
   )
 }
 
-const typeTagStyles: Record<string, { container: string; icon: string }> = {
-  pdf: {
-    container: "border-[var(--type-pdf-text)] bg-[var(--type-pdf-bg)]",
-    icon: "text-[var(--type-pdf-text)]",
-  },
-  video: {
-    container: "border-[var(--type-video-text)] bg-[var(--type-video-bg)]",
-    icon: "text-[var(--type-video-text)]",
-  },
-  image: {
-    container: "border-[var(--type-image-text)] bg-[var(--type-image-bg)]",
-    icon: "text-[var(--type-image-text)]",
-  },
+function BookmarkButton({ id, size = "size-6" }: { id: string; size?: string }) {
+  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
+  const bookmarked = isBookmarked(id)
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (bookmarked) removeBookmark(id)
+        else addBookmark(id)
+      }}
+      className="cursor-pointer min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center"
+    >
+      <Star
+        className={`${size} transition-colors duration-150 ${bookmarked ? "fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop" : "text-[var(--text-hint)] hover:text-[var(--text-secondary)]"}`}
+      />
+    </button>
+  )
 }
 
-const typeBadgeStyles: Record<string, string> = {
-  pdf: "bg-[var(--type-pdf-bg)] text-[var(--type-pdf-text)]",
-  video: "bg-[var(--type-video-bg)] text-[var(--type-video-text)]",
-  image: "bg-[var(--type-image-bg)] text-[var(--type-image-text)]",
-}
-
-const sidebarIconMap: Record<string, typeof FileText> = {
-  pdf: FileText,
-  video: FileVideo,
-  image: FileImage,
-}
-
-function SidebarItem({
-  material,
-  isActive,
-  bookmarkStar,
-}: {
-  material: Material
-  isActive: boolean
-  bookmarkStar: React.ReactNode
-}) {
+function SidebarItem({ material, isActive }: { material: Material; isActive: boolean }) {
   const { t } = useI18n()
-  const Icon = sidebarIconMap[material.fileType] || FileText
+  const Icon = typeIconMap[material.fileType] || FileText
   const ts = typeTagStyles[material.fileType]
   const badge = typeBadgeStyles[material.fileType]
   return (
@@ -1015,7 +963,7 @@ function SidebarItem({
         </div>
       </div>
       <span onClick={(e) => e.preventDefault()} className="shrink-0">
-        {bookmarkStar}
+        <BookmarkButton id={material.id} size="size-5" />
       </span>
     </Link>
   )

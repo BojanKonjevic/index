@@ -42,7 +42,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch("/api/preferences", {
           method: "PUT",
-          headers: localeHeaders(),
+          headers: localeHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ group: value }),
         })
         if (!res.ok) throw new Error("Failed to save preference")

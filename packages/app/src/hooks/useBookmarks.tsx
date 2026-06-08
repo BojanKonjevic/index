@@ -62,7 +62,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch("/api/bookmarks/add", {
           method: "POST",
-          headers: localeHeaders(),
+          headers: localeHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ materialId: id }),
         })
         if (!res.ok) throw new Error("Failed to add bookmark")
@@ -87,7 +87,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch("/api/bookmarks/remove", {
           method: "POST",
-          headers: localeHeaders(),
+          headers: localeHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ materialId: id }),
         })
         if (!res.ok) throw new Error("Failed to remove bookmark")

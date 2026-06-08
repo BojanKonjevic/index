@@ -17,9 +17,7 @@ function getMimeType(ext: string): string {
 const app = new Hono<{ Bindings: Bindings }>()
 
 app.get("/file/*", async (c) => {
-  const url = c.req.url
-  // R2 keys use percent-encoded paths, keep the encoded form
-  const path = url.replace(/^https?:\/\/[^/]+\/api\/file\//, "")
+  const path = c.req.path.replace(/^\/api\/file\//, "")
 
   const object = await c.env.BUCKET.get(path)
   if (!object) return c.notFound()

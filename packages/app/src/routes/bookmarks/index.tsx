@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Star, FileText, FileVideo, FileImage, Bookmark } from "lucide-react"
-import { useState } from "react"
-import { fetchBookmarkedMaterials, fetchDashboard, fetchMaterialAssets } from "@/lib/api"
+import { Star, FileText, Bookmark } from "lucide-react"
+import { fetchBookmarkedMaterials, fetchDashboard } from "@/lib/api"
+import { useAssetCache } from "@/hooks/useAssetCache"
+import { MaterialBadges } from "@/components/MaterialBadges"
 import ExpandableAssets from "@/components/ExpandableAssets"
-import type { MaterialAsset } from "@index/shared"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useI18n } from "@/hooks/useI18n"
 import { ErrorFallback } from "@/components/ErrorFallback"
-import { getVirtualCategory } from "@/lib/categories"
+import { typeIconMap, typeTagStyles } from "@/lib/styles"
 
 export const Route = createFileRoute("/bookmarks/")({
   loader: async () => {
@@ -31,56 +31,7 @@ function BookmarksPage() {
   const { materials, subjectNameMap } = Route.useLoaderData()
   const { bookmarks, removeBookmark } = useBookmarks()
   const { t } = useI18n()
-  const [assetCache, setAssetCache] = useState<Record<string, MaterialAsset[]>>({})
-  const [loadingAssets, setLoadingAssets] = useState<Record<string, boolean>>({})
-
-  const handleExpandAssets = async (materialId: string) => {
-    if (assetCache[materialId] || loadingAssets[materialId]) return
-    setLoadingAssets((prev) => ({ ...prev, [materialId]: true }))
-    try {
-      const assets = await fetchMaterialAssets(materialId)
-      setAssetCache((prev) => ({ ...prev, [materialId]: assets }))
-    } finally {
-      setLoadingAssets((prev) => ({ ...prev, [materialId]: false }))
-    }
-  }
-
-  const typeBadgeStyles: Record<string, string> = {
-    pdf: "bg-[var(--type-pdf-bg)] text-[var(--type-pdf-text)]",
-    video: "bg-[var(--type-video-bg)] text-[var(--type-video-text)]",
-    image: "bg-[var(--type-image-bg)] text-[var(--type-image-text)]",
-  }
-
-  const categoryBadgeStyles: Record<string, string> = {
-    theory: "bg-[var(--status-info-bg)] text-[var(--status-info-text)]",
-    problems: "bg-[var(--status-later-bg)] text-[var(--status-later-text)]",
-    exam: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
-    k1: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
-    k2: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
-    final: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
-    misc: "bg-[var(--bg-subtle)] text-[var(--text-secondary)]",
-  }
-
-  const typeTagStyles: Record<string, { container: string; icon: string }> = {
-    pdf: {
-      container: "border-[var(--type-pdf-text)] bg-[var(--type-pdf-bg)]",
-      icon: "text-[var(--type-pdf-text)]",
-    },
-    video: {
-      container: "border-[var(--type-video-text)] bg-[var(--type-video-bg)]",
-      icon: "text-[var(--type-video-text)]",
-    },
-    image: {
-      container: "border-[var(--type-image-text)] bg-[var(--type-image-bg)]",
-      icon: "text-[var(--type-image-text)]",
-    },
-  }
-
-  const typeIconMap: Record<string, typeof FileText> = {
-    pdf: FileText,
-    video: FileVideo,
-    image: FileImage,
-  }
+  const { cache: assetCache, loading: loadingAssets, load: handleExpandAssets } = useAssetCache()
 
   const items = materials
     .filter((m) => bookmarks.includes(m.id))
@@ -116,7 +67,6 @@ function BookmarksPage() {
             const ts = typeTagStyles[material.fileType]
             const TypeIcon = typeIconMap[material.fileType] || FileText
             const subjectName = subjectNameMap[material.subjectId] || ""
-            const vcat = getVirtualCategory(material)
             const assetCount = material.assetCount ?? 0
             return (
               <div key={material.id}>
@@ -137,31 +87,7 @@ function BookmarksPage() {
                       {material.title}
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      <span
-                        className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[material.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-                      >
-                        {t(`materialType.${material.fileType}`) || material.fileType}
-                      </span>
-                      <span
-                        className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-                      >
-                        {vcat === "final" ? t("category.exam") : t(`category.${vcat}`)}
-                      </span>
-                      {material.examPart && vcat !== material.examPart.toLowerCase() && (
-                        <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                          {material.examPart}
-                        </span>
-                      )}
-                      {material.solved === true && (
-                        <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
-                          {t("subject.solved_badge")}
-                        </span>
-                      )}
-                      {material.solved === false && (
-                        <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--accent-bg)] text-[var(--accent-strong)]">
-                          {t("subject.unsolved_badge")}
-                        </span>
-                      )}
+                      <MaterialBadges material={material} />
                     </div>
                   </div>
 

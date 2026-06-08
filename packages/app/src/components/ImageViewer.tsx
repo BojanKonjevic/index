@@ -19,10 +19,6 @@ export default function ImageViewer({ url }: { url: string }) {
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const refCallback = useCallback((node: HTMLDivElement | null) => {
-    containerRef.current = node
-  }, [])
-
   const clampOffset = useCallback(
     (x: number, y: number) => {
       const img = imgRef.current
@@ -84,7 +80,7 @@ export default function ImageViewer({ url }: { url: string }) {
 
   return (
     <div
-      ref={refCallback}
+      ref={containerRef}
       onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

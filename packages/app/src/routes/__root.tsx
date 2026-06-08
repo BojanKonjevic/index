@@ -14,9 +14,9 @@ import {
   SlidersHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { toggleTheme } from "@/lib/theme"
+import { toggleTheme, getInitialTheme } from "@/lib/theme"
 
-import { useState } from "react"
+import { useState, useMemo, useRef } from "react"
 import { AuthProvider, useAuth } from "@/hooks/useAuth"
 import { BookmarkProvider } from "@/hooks/useBookmarks"
 import { ErrorFallback } from "@/components/ErrorFallback"
@@ -27,7 +27,7 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/co
 import { useI18n } from "@/hooks/useI18n"
 import { Skeleton } from "@/components/Skeleton"
 
-const groups = Array.from({ length: 14 }, (_, i) => i + 1)
+const GROUP_NUMBERS = Array.from({ length: 14 }, (_, i) => i + 1)
 
 function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof Home; label: string }) {
   const location = useLocation()
@@ -51,28 +51,34 @@ function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof Home; lab
   )
 }
 
-function BottomTabBar() {
+function BottomTabBar({
+  theme,
+  onToggleTheme,
+}: {
+  theme: "light" | "dark"
+  onToggleTheme: () => void
+}) {
   const location = useLocation()
   const { t, toggleLocale, locale } = useI18n()
   const { user, isGuest, logout } = useAuth()
   const { group, setGroup: setGroupPreference } = usePreferences()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof document === "undefined") return "light"
-    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"
-  })
 
-  const toggleThemeHandler = () => {
-    setTheme((prev) => toggleTheme(prev))
-  }
-
-  const tabs = [
-    { to: "/", label: t("nav.home"), icon: Home },
-    { to: "/subjects", label: t("nav.subjects"), icon: BookOpen },
-    { to: "/bookmarks", label: t("nav.bookmarks"), icon: Bookmark },
-    { to: "#settings", label: t("sidebar.settings"), icon: SlidersHorizontal, isSettings: true },
-  ]
+  const tabs = useMemo(
+    () => [
+      { to: "/", label: t("nav.home"), icon: Home },
+      { to: "/subjects", label: t("nav.subjects"), icon: BookOpen },
+      { to: "/bookmarks", label: t("nav.bookmarks"), icon: Bookmark },
+      {
+        to: "#settings",
+        label: t("sidebar.settings"),
+        icon: SlidersHorizontal,
+        isSettings: true as const,
+      },
+    ],
+    [t],
+  )
 
   return (
     <>
@@ -96,7 +102,7 @@ function BottomTabBar() {
                           {t("sidebar.group_label")}
                         </span>
                         <div className="flex flex-wrap gap-1.5">
-                          {groups.map((g) => (
+                          {GROUP_NUMBERS.map((g) => (
                             <button
                               key={g}
                               onClick={() => setGroupPreference(String(g))}
@@ -153,7 +159,7 @@ function BottomTabBar() {
                           <span>{locale === "sr" ? "English" : "Srpski"}</span>
                         </button>
                         <button
-                          onClick={toggleThemeHandler}
+                          onClick={onToggleTheme}
                           className="flex items-center justify-center rounded-[0.438rem] border border-[var(--border-default)] px-3 py-2 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                         >
                           {theme === "dark" ? (
@@ -192,34 +198,30 @@ function BottomTabBar() {
   )
 }
 
-function Sidebar() {
+function Sidebar({ theme, onToggleTheme }: { theme: "light" | "dark"; onToggleTheme: () => void }) {
   const { group, setGroup: setGroupPreference } = usePreferences()
   const { user, isGuest, logout } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
   const [groupOpen, setGroupOpen] = useState(false)
+  const groupRef = useRef<HTMLDivElement>(null)
   const { t, toggleLocale, locale } = useI18n()
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof document === "undefined") return "light"
-    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"
-  })
 
-  const toggleThemeHandler = () => {
-    setTheme((prev) => toggleTheme(prev))
-  }
-
-  const navItems = [
-    {
-      section: t("nav.navigation"),
-      items: [
-        { to: "/", label: t("nav.home"), icon: Home },
-        { to: "/subjects", label: t("nav.subjects"), icon: BookOpen },
-      ],
-    },
-    {
-      section: t("nav.personal"),
-      items: [{ to: "/bookmarks", label: t("nav.bookmarks"), icon: Bookmark }],
-    },
-  ]
+  const navItems = useMemo(
+    () => [
+      {
+        section: t("nav.navigation"),
+        items: [
+          { to: "/", label: t("nav.home"), icon: Home },
+          { to: "/subjects", label: t("nav.subjects"), icon: BookOpen },
+        ],
+      },
+      {
+        section: t("nav.personal"),
+        items: [{ to: "/bookmarks", label: t("nav.bookmarks"), icon: Bookmark }],
+      },
+    ],
+    [t],
+  )
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[14rem] flex-col border-r bg-[var(--bg-surface)] border-[var(--border-default)] z-40 hidden md:flex md:flex-col">
@@ -248,7 +250,7 @@ function Sidebar() {
       </nav>
 
       <div className="mt-auto border-t border-[var(--border-faint)] px-2 py-3 flex flex-col gap-1">
-        <div className="relative">
+        <div className="relative" ref={groupRef}>
           <button
             onClick={() => setGroupOpen(!groupOpen)}
             className="flex w-full items-center gap-2 rounded-[0.438rem] bg-[var(--bg-subtle)] px-[0.563rem] py-[0.438rem] text-xs transition-colors hover:bg-[var(--bg-inset)] cursor-pointer"
@@ -268,7 +270,7 @@ function Sidebar() {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setGroupOpen(false)} />
               <div className="absolute bottom-full left-0 right-0 z-50 mb-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-md overflow-y-auto max-h-[18.75rem] dropdown-enter">
-                {groups.map((g) => (
+                {GROUP_NUMBERS.map((g) => (
                   <button
                     key={g}
                     onClick={() => {
@@ -325,7 +327,7 @@ function Sidebar() {
             <span>{locale === "sr" ? "EN" : "SR"}</span>
           </button>
           <button
-            onClick={toggleThemeHandler}
+            onClick={onToggleTheme}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-2 py-1.5 text-[0.688rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
           >
             {theme === "dark" ? (
@@ -370,6 +372,8 @@ function RootLayout() {
 
 function RootContent() {
   const { user, isGuest, loading } = useAuth()
+  const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme)
+  const toggleThemeHandler = () => setTheme((prev) => toggleTheme(prev))
 
   if (loading) return <Skeleton />
 
@@ -379,8 +383,8 @@ function RootContent() {
 
   return (
     <div className="min-h-screen bg-bg-page">
-      <Sidebar />
-      <BottomTabBar />
+      <Sidebar theme={theme} onToggleTheme={toggleThemeHandler} />
+      <BottomTabBar theme={theme} onToggleTheme={toggleThemeHandler} />
       <main className="ml-0 md:ml-[14rem] min-h-screen pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
         <AnimatedOutlet />
       </main>

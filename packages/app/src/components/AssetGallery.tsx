@@ -17,6 +17,10 @@ export default function AssetGallery({
 }) {
   const [index, setIndex] = useState(Math.min(initialIndex, Math.max(assets.length - 1, 0)))
   const [zoom, setZoom] = useState(1)
+  const zoomRef = useRef(zoom)
+  useEffect(() => {
+    zoomRef.current = zoom
+  }, [zoom])
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -52,23 +56,21 @@ export default function AssetGallery({
     }
   }, [initialIndex, assets.length])
 
-  const clampOffset = useCallback(
-    (x: number, y: number) => {
-      const img = imgRef.current
-      if (!img) return { x, y }
-      const cw = containerSize.current.w
-      const ch = containerSize.current.h
-      const iw = img.clientWidth
-      const ih = img.clientHeight
-      const maxX = Math.max(0, (iw * zoom - cw) / 2)
-      const maxY = Math.max(0, (ih * zoom - ch) / 2)
-      return {
-        x: Math.min(Math.max(x, -maxX), maxX),
-        y: Math.min(Math.max(y, -maxY), maxY),
-      }
-    },
-    [zoom],
-  )
+  const clampOffset = useCallback((x: number, y: number) => {
+    const img = imgRef.current
+    if (!img) return { x, y }
+    const cw = containerSize.current.w
+    const ch = containerSize.current.h
+    const iw = img.clientWidth
+    const ih = img.clientHeight
+    const z = zoomRef.current
+    const maxX = Math.max(0, (iw * z - cw) / 2)
+    const maxY = Math.max(0, (ih * z - ch) / 2)
+    return {
+      x: Math.min(Math.max(x, -maxX), maxX),
+      y: Math.min(Math.max(y, -maxY), maxY),
+    }
+  }, [])
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {

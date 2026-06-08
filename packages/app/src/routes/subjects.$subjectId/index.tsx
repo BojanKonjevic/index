@@ -2,8 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import {
   Star,
   FileText,
-  FileVideo,
-  FileImage,
   BookOpen,
   Pencil,
   Search,
@@ -20,6 +18,7 @@ import { useI18n } from "@/hooks/useI18n"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { ErrorFallback } from "@/components/ErrorFallback"
+import { MaterialBadges } from "@/components/MaterialBadges"
 import ExpandableAssets from "@/components/ExpandableAssets"
 import { CATEGORY_ORDER } from "@index/shared"
 import type { Material } from "@index/shared"
@@ -27,45 +26,9 @@ import { getVirtualCategory } from "@/lib/categories"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { typeIconMap, typeTagStyles } from "@/lib/styles"
 
 const categoryOrder = CATEGORY_ORDER
-
-const typeBadgeStyles: Record<string, string> = {
-  pdf: "bg-[var(--type-pdf-bg)] text-[var(--type-pdf-text)]",
-  video: "bg-[var(--type-video-bg)] text-[var(--type-video-text)]",
-  image: "bg-[var(--type-image-bg)] text-[var(--type-image-text)]",
-}
-
-const typeIconMap: Record<string, typeof FileText> = {
-  pdf: FileText,
-  video: FileVideo,
-  image: FileImage,
-}
-
-const typeTagStyles: Record<string, { container: string; icon: string }> = {
-  pdf: {
-    container: "border-[var(--type-pdf-text)] bg-[var(--type-pdf-bg)]",
-    icon: "text-[var(--type-pdf-text)]",
-  },
-  video: {
-    container: "border-[var(--type-video-text)] bg-[var(--type-video-bg)]",
-    icon: "text-[var(--type-video-text)]",
-  },
-  image: {
-    container: "border-[var(--type-image-text)] bg-[var(--type-image-bg)]",
-    icon: "text-[var(--type-image-text)]",
-  },
-}
-
-const categoryBadgeStyles: Record<string, string> = {
-  theory: "bg-[var(--status-info-bg)] text-[var(--status-info-text)]",
-  problems: "bg-[var(--status-later-bg)] text-[var(--status-later-text)]",
-  exam: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
-  k1: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
-  k2: "bg-[var(--status-mid-bg)] text-[var(--status-mid-text)]",
-  final: "bg-[var(--status-soon-bg)] text-[var(--status-soon-text)]",
-  misc: "bg-[var(--bg-subtle)] text-[var(--text-secondary)]",
-}
 
 export const Route = createFileRoute("/subjects/$subjectId/")({
   loader: ({ params }) => fetchSubject(params.subjectId),
@@ -75,8 +38,6 @@ export const Route = createFileRoute("/subjects/$subjectId/")({
 
 function MaterialRow({ material }: { material: Material }) {
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
-  const { t } = useI18n()
-  const vcat = getVirtualCategory(material)
   const bookmarked = isBookmarked(material.id)
   const TypeIcon = typeIconMap[material.fileType] || FileText
   const assetCount = material.assets?.length ?? material.assetCount ?? 0
@@ -109,31 +70,7 @@ function MaterialRow({ material }: { material: Material }) {
             {material.title}
           </div>
           <div className="mt-0.5 flex flex-wrap gap-1.5">
-            <span
-              className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[material.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-            >
-              {t(`materialType.${material.fileType}`) || material.fileType}
-            </span>
-            <span
-              className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-            >
-              {vcat === "final" ? t("category.exam") : t(`category.${vcat}`)}
-            </span>
-            {material.examPart && vcat !== material.examPart.toLowerCase() && (
-              <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                {material.examPart}
-              </span>
-            )}
-            {material.solved === true && (
-              <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
-                {t("subject.solved_badge")}
-              </span>
-            )}
-            {material.solved === false && (
-              <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--accent-bg)] text-[var(--accent-strong)]">
-                {t("subject.unsolved_badge")}
-              </span>
-            )}
+            <MaterialBadges material={material} />
           </div>
         </div>
 
