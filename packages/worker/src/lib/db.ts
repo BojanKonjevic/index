@@ -13,6 +13,7 @@ export function mapMaterial(row: Record<string, unknown>): Material {
     tags: JSON.parse((row.tags as string) || "[]"),
     pageCount: row.page_count as number | undefined,
     assets: [],
+    assetCount: (row.asset_count as number) ?? 0,
   }
 }
 
@@ -21,6 +22,8 @@ export function mapAsset(row: Record<string, unknown>): MaterialAsset {
     id: row.id as string,
     materialId: row.material_id as string,
     pageNumber: row.page_number as number,
+    name: row.name as string,
+    fileType: (row.file_type as MaterialAsset["fileType"]) ?? "image",
     url: row.url as string,
   }
 }

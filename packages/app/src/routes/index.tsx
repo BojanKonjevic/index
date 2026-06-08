@@ -1,14 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Search, FileText, FileVideo, FileImage, BookOpen, Calendar, X } from "lucide-react"
-import { fetchDashboard } from "@/lib/api"
+import { fetchDashboard, fetchMaterialAssets } from "@/lib/api"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useGlobalSearch } from "@/lib/search"
 import { ErrorFallback } from "@/components/ErrorFallback"
+import ExpandableAssets from "@/components/ExpandableAssets"
 import { daysUntil } from "@/lib/utils"
 import { formatDate, getRelativeTime } from "@/lib/i18n"
 import { useI18n } from "@/hooks/useI18n"
-import type { ExamEvent } from "@index/shared"
+import type { ExamEvent, MaterialAsset } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
 import { useState, useRef, useEffect } from "react"
 
@@ -87,6 +88,19 @@ function HomePage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const debouncedQuery = useDebounce(searchQuery, 200)
   const { t, locale } = useI18n()
+  const [recentAssetCache, setRecentAssetCache] = useState<Record<string, MaterialAsset[]>>({})
+  const [recentLoadingAssets, setRecentLoadingAssets] = useState<Record<string, boolean>>({})
+
+  const handleRecentExpandAssets = async (materialId: string) => {
+    if (recentAssetCache[materialId] || recentLoadingAssets[materialId]) return
+    setRecentLoadingAssets((prev) => ({ ...prev, [materialId]: true }))
+    try {
+      const assets = await fetchMaterialAssets(materialId)
+      setRecentAssetCache((prev) => ({ ...prev, [materialId]: assets }))
+    } finally {
+      setRecentLoadingAssets((prev) => ({ ...prev, [materialId]: false }))
+    }
+  }
 
   const typeIconMap: Record<string, typeof FileText> = {
     pdf: FileText,
@@ -228,7 +242,15 @@ function HomePage() {
                   {r.type === "subject" ? (
                     <BookOpen className="size-3.5 text-[var(--text-secondary)]" />
                   ) : r.type === "material" ? (
-                    <FileText className="size-3.5 text-[var(--text-secondary)]" />
+                    (() => {
+                      const iconMap: Record<string, typeof FileText> = {
+                        pdf: FileText,
+                        video: FileVideo,
+                        image: FileImage,
+                      }
+                      const Icon = iconMap[r.subtype || ""] || FileText
+                      return <Icon className="size-3.5 text-[var(--text-secondary)]" />
+                    })()
                   ) : (
                     <Calendar className="size-3.5 text-[var(--text-secondary)]" />
                   )}
@@ -287,65 +309,76 @@ function HomePage() {
               const vcat = item.category ? getVirtualCategory(item as any) : ""
               const TypeIcon = typeIconMap[item.fileType] || FileText
               const ts = typeTagStyles[item.fileType]
+              const assetCount = item.assetCount ?? 0
               return (
-                <Link
-                  key={item.materialId}
-                  to="/subjects/$subjectId/materials/$materialId"
-                  params={{ subjectId: item.subjectId, materialId: item.materialId }}
-                  className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5"
-                >
-                  <div
-                    className={`flex size-9 shrink-0 items-center justify-center rounded-[0.438rem] border ${ts?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]"}`}
+                <div key={item.materialId}>
+                  <Link
+                    to="/subjects/$subjectId/materials/$materialId"
+                    params={{ subjectId: item.subjectId, materialId: item.materialId }}
+                    className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5"
                   >
-                    <TypeIcon className={`size-4 ${ts?.icon || "text-[var(--text-hint)]"}`} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2">
-                      <div className="min-w-0 flex-1 truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
-                        {item.title}
+                    <div
+                      className={`flex size-9 shrink-0 items-center justify-center rounded-[0.438rem] border ${ts?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]"}`}
+                    >
+                      <TypeIcon className={`size-4 ${ts?.icon || "text-[var(--text-hint)]"}`} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <div className="min-w-0 flex-1 truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
+                          {item.title}
+                        </div>
+                        <div className="shrink-0 text-xs text-[var(--text-secondary)]">
+                          {item.subjectName}
+                        </div>
                       </div>
-                      <div className="shrink-0 text-xs text-[var(--text-secondary)]">
-                        {item.subjectName}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <div className="flex flex-wrap gap-1.5">
+                          {item.fileType && (
+                            <span
+                              className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[item.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+                            >
+                              {t(`materialType.${item.fileType}`) || item.fileType}
+                            </span>
+                          )}
+                          {vcat && (
+                            <span
+                              className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+                            >
+                              {vcat === "final" ? t("category.exam") : t(`category.${vcat}`)}
+                            </span>
+                          )}
+                          {item.examPart && vcat !== item.examPart.toLowerCase() && (
+                            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+                              {item.examPart}
+                            </span>
+                          )}
+                          {item.solved === true && (
+                            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
+                              {t("subject.solved_badge")}
+                            </span>
+                          )}
+                          {item.solved === false && (
+                            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--accent-bg)] text-[var(--accent-strong)]">
+                              {t("subject.unsolved_badge")}
+                            </span>
+                          )}
+                        </div>
+                        <span className="ml-auto text-xs text-[var(--text-hint)]">
+                          {getRelativeTime(locale, item.timestamp)}
+                        </span>
                       </div>
                     </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <div className="flex flex-wrap gap-1.5">
-                        {item.fileType && (
-                          <span
-                            className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[item.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-                          >
-                            {t(`materialType.${item.fileType}`) || item.fileType}
-                          </span>
-                        )}
-                        {vcat && (
-                          <span
-                            className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-                          >
-                            {vcat === "final" ? t("category.exam") : t(`category.${vcat}`)}
-                          </span>
-                        )}
-                        {item.examPart && vcat !== item.examPart.toLowerCase() && (
-                          <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                            {item.examPart}
-                          </span>
-                        )}
-                        {item.solved === true && (
-                          <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
-                            {t("subject.solved_badge")}
-                          </span>
-                        )}
-                        {item.solved === false && (
-                          <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--accent-bg)] text-[var(--accent-strong)]">
-                            {t("subject.unsolved_badge")}
-                          </span>
-                        )}
-                      </div>
-                      <span className="ml-auto text-xs text-[var(--text-hint)]">
-                        {getRelativeTime(locale, item.timestamp)}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
+                  </Link>
+
+                  <ExpandableAssets
+                    assets={recentAssetCache[item.materialId]}
+                    subjectId={item.subjectId}
+                    materialId={item.materialId}
+                    assetCount={assetCount}
+                    loading={!!recentLoadingAssets[item.materialId]}
+                    onExpand={() => handleRecentExpandAssets(item.materialId)}
+                  />
+                </div>
               )
             })}
           </div>

@@ -9,6 +9,7 @@ export interface RecentItem {
   category: string
   examPart: string | null
   solved: boolean | null
+  assetCount: number
   timestamp: number
 }
 

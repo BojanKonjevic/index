@@ -41,7 +41,12 @@ app.get("/dashboard", async (c) => {
         "SELECT id, name, semester, espb, elective, elective_group, professors, (SELECT COUNT(*) FROM materials WHERE subject_id = subjects.id) as material_count FROM subjects ORDER BY semester, name",
       )
       .all(),
-    db.prepare("SELECT * FROM materials ORDER BY title LIMIT ?").bind(materialLimit).all(),
+    db
+      .prepare(
+        "SELECT *, (SELECT COUNT(*) FROM material_assets WHERE material_id = materials.id) as asset_count FROM materials ORDER BY title LIMIT ?",
+      )
+      .bind(materialLimit)
+      .all(),
     db.prepare("SELECT * FROM exams ORDER BY date LIMIT ?").bind(examLimit).all(),
   ])
 

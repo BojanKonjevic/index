@@ -15,7 +15,7 @@ app.get("/bookmarks/materials", async (c) => {
   if (!user) return c.json({ materials: [], subjectNameMap: {} })
 
   const rows = await c.env.DB.prepare(
-    "SELECT m.*, s.name as subject_name FROM bookmarks b JOIN materials m ON m.id = b.material_id JOIN subjects s ON s.id = m.subject_id WHERE b.user_id = ? ORDER BY m.title",
+    "SELECT m.*, s.name as subject_name, (SELECT COUNT(*) FROM material_assets WHERE material_id = m.id) as asset_count FROM bookmarks b JOIN materials m ON m.id = b.material_id JOIN subjects s ON s.id = m.subject_id WHERE b.user_id = ? ORDER BY m.title",
   )
     .bind(user.id)
     .all<Record<string, unknown>>()

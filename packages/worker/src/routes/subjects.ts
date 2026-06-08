@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { msg } from "../lib/i18n"
 import type { Bindings } from ".."
-import type { SubjectListItem, SubjectDetail, ExamEvent } from "@index/shared"
+import type { SubjectListItem, SubjectDetail, ExamEvent, MaterialAsset } from "@index/shared"
 import { mapMaterial, mapAsset } from "../lib/db"
 
 function mapSubjectListItem(row: Record<string, unknown>): SubjectListItem {
@@ -49,7 +49,12 @@ app.get("/subject/:id", async (c) => {
   if (!subjectRow) return c.json({ error: msg(c, "error.notFound") }, 404)
 
   const [materialRows, examRows, assetRows] = await Promise.all([
-    db.prepare("SELECT * FROM materials WHERE subject_id = ? ORDER BY title").bind(id).all(),
+    db
+      .prepare(
+        "SELECT *, (SELECT COUNT(*) FROM material_assets WHERE material_id = materials.id) as asset_count FROM materials WHERE subject_id = ? ORDER BY title",
+      )
+      .bind(id)
+      .all(),
     db.prepare("SELECT * FROM exams WHERE subject_id = ? ORDER BY date").bind(id).all(),
     db
       .prepare(
@@ -87,6 +92,17 @@ app.get("/subject/:id", async (c) => {
     exams: examRows.results.map(mapExamEvent),
   }
   return c.json(detail, 200)
+})
+
+app.get("/material/:id/assets", async (c) => {
+  const id = c.req.param("id")
+  const rows = await c.env.DB.prepare(
+    "SELECT * FROM material_assets WHERE material_id = ? ORDER BY page_number",
+  )
+    .bind(id)
+    .all()
+  const assets: MaterialAsset[] = rows.results.map(mapAsset)
+  return c.json(assets, 200)
 })
 
 export default app

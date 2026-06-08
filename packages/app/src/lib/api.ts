@@ -1,4 +1,10 @@
-import type { SubjectListItem, SubjectDetail, DashboardData, Material } from "@index/shared"
+import type {
+  SubjectListItem,
+  SubjectDetail,
+  DashboardData,
+  Material,
+  MaterialAsset,
+} from "@index/shared"
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api"
 
@@ -31,5 +37,11 @@ export async function fetchBookmarkedMaterials(): Promise<{
 }> {
   const res = await fetch(`${API_BASE}/bookmarks/materials`, { headers: localeHeaders() })
   if (!res.ok) throw new Error("Failed to fetch bookmarked materials")
+  return res.json()
+}
+
+export async function fetchMaterialAssets(id: string): Promise<MaterialAsset[]> {
+  const res = await fetch(`${API_BASE}/material/${id}/assets`)
+  if (!res.ok) throw new Error("Failed to fetch material assets")
   return res.json()
 }

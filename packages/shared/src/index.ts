@@ -25,6 +25,8 @@ export interface MaterialAsset {
   id: string
   materialId: string
   pageNumber: number
+  name: string
+  fileType: "pdf" | "video" | "image"
   url: string
 }
 
@@ -40,6 +42,7 @@ export interface Material {
   tags: string[]
   pageCount?: number
   assets: MaterialAsset[]
+  assetCount?: number
 }
 
 export interface ExamEvent {

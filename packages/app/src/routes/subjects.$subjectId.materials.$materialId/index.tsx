@@ -7,10 +7,12 @@ import {
   SunMoon,
   Star,
   FileText,
+  FileVideo,
+  FileImage,
   Loader2,
   ChevronLeft,
   ChevronRight,
-  Layers,
+  Layers as LayersIcon,
 } from "lucide-react"
 
 import { fetchSubject } from "@/lib/api"
@@ -19,6 +21,7 @@ import { useBookmarks } from "@/hooks/useBookmarks"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useI18n } from "@/hooks/useI18n"
 import { ErrorFallback } from "@/components/ErrorFallback"
+import ExpandableAssets from "@/components/ExpandableAssets"
 import type { Material } from "@index/shared"
 import { CATEGORY_ORDER } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
@@ -28,6 +31,9 @@ import { Document, Page, pdfjs } from "react-pdf"
 import "react-pdf/dist/Page/TextLayer.css"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 import { useVirtualizer } from "@tanstack/react-virtual"
+import ImageViewer from "@/components/ImageViewer"
+import VideoViewer from "@/components/VideoViewer"
+import AssetGallery from "@/components/AssetGallery"
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
 
@@ -43,7 +49,7 @@ function ViewerPage() {
   const navigate = useNavigate()
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
   const { t } = useI18n()
-  const [sidebarMode, setSidebarMode] = useState<"category" | "all">("category")
+  const [sidebarMode, setSidebarMode] = useState<"category" | "all" | "this">("category")
   const [materialsSheetOpen, setMaterialsSheetOpen] = useState(false)
 
   const [pageNum, setPageNum] = useState(1)
@@ -58,7 +64,17 @@ function ViewerPage() {
   const [fitWidthMode, setFitWidthMode] = useState(true)
   const parentRef = useRef<HTMLDivElement>(null)
 
+  const assetFromUrl =
+    typeof window !== "undefined"
+      ? parseInt(new URLSearchParams(window.location.search).get("asset") || "", 10) || 0
+      : 0
+  const viewerTab = assetFromUrl > 0 ? "assets" : "material"
+  const assetIndex = assetFromUrl > 0 ? assetFromUrl - 1 : 0
+
   const material = materials.find((m) => m.id === materialId)
+  const hasAssets = material && material.assets.length > 0
+  const isContainer = material?.fileType === "image" && hasAssets
+  const showAssetGallery = isContainer || viewerTab === "assets"
 
   const { addRecent } = useRecentlyOpened()
 
@@ -73,6 +89,7 @@ function ViewerPage() {
       category: material.category,
       examPart: material.examPart,
       solved: material.solved,
+      assetCount: material.assets?.length ?? material.assetCount ?? 0,
       timestamp: Date.now(),
     })
   }, [material, materialId, subjectId, subject?.name, addRecent])
@@ -84,7 +101,14 @@ function ViewerPage() {
     setNaturalPageWidth(null)
     setFitWidthMode(true)
     setPageNum(1)
+    setZoom(1)
   }, [material?.url])
+
+  useEffect(() => {
+    if (material && material.assets.length > 0) {
+      setSidebarMode("this")
+    }
+  }, [material?.id])
 
   useEffect(() => {
     const el = parentRef.current
@@ -173,8 +197,15 @@ function ViewerPage() {
   }
 
   useEffect(() => {
+    const isPdf = material?.fileType === "pdf" && !showAssetGallery
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.key === "b" && material) {
+        e.preventDefault()
+        isBookmarked(material.id) ? removeBookmark(material.id) : addBookmark(material.id)
+        return
+      }
+      if (!isPdf) return
       if (e.key === "ArrowUp") {
         e.preventDefault()
         parentRef.current?.scrollBy({ top: -300, behavior: "smooth" })
@@ -193,14 +224,20 @@ function ViewerPage() {
       } else if (e.key === "End") {
         e.preventDefault()
         goToPage(numPages)
-      } else if (e.key === "b" && material) {
-        e.preventDefault()
-        isBookmarked(material.id) ? removeBookmark(material.id) : addBookmark(material.id)
       }
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [pageNum, numPages, material, isBookmarked, addBookmark, removeBookmark, goToPage])
+  }, [
+    pageNum,
+    numPages,
+    material,
+    isBookmarked,
+    addBookmark,
+    removeBookmark,
+    goToPage,
+    showAssetGallery,
+  ])
 
   const categoryName =
     material?.category === "theory"
@@ -212,9 +249,11 @@ function ViewerPage() {
           : t("category.misc")
 
   const sidebarMaterials =
-    sidebarMode === "category" && material
-      ? materials.filter((m) => m.category === material.category)
-      : materials
+    sidebarMode === "this" && material
+      ? [material]
+      : sidebarMode === "category" && material
+        ? materials.filter((m) => m.category === material.category)
+        : materials
 
   const groups: Record<string, Material[]> = {}
   const noPart: Material[] = []
@@ -305,61 +344,65 @@ function ViewerPage() {
         <div className="flex-1" />
 
         <div className="flex items-center gap-1 shrink-0">
-          <span className="flex items-center gap-1 whitespace-nowrap px-1.5 text-[0.813rem] text-[var(--text-secondary)]">
-            <input
-              type="text"
-              value={pageInput}
-              onChange={handlePageInputChange}
-              onBlur={handlePageInputCommit}
-              onKeyDown={handlePageInputKeyDown}
-              className="w-14 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
-            />
-            <span className="text-[var(--text-hint)]">/</span>
-            <span>{numPages || "?"}</span>
-          </span>
+          {material?.fileType === "pdf" && !showAssetGallery && (
+            <>
+              <span className="flex items-center gap-1 whitespace-nowrap px-1.5 text-[0.813rem] text-[var(--text-secondary)]">
+                <input
+                  type="text"
+                  value={pageInput}
+                  onChange={handlePageInputChange}
+                  onBlur={handlePageInputCommit}
+                  onKeyDown={handlePageInputKeyDown}
+                  className="w-14 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
+                />
+                <span className="text-[var(--text-hint)]">/</span>
+                <span>{numPages || "?"}</span>
+              </span>
 
-          <span className="mx-1 h-5 w-px bg-[var(--border-faint)]" />
+              <span className="mx-1 h-5 w-px bg-[var(--border-faint)]" />
 
-          <button
-            onClick={zoomOut}
-            disabled={atMinZoom}
-            title={t("viewer.zoom_out")}
-            className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-          >
-            <ZoomOut className="size-4" />
-          </button>
-          <span className="w-8 text-center text-[0.688rem] font-medium text-[var(--text-secondary)] tabular-nums">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            onClick={zoomIn}
-            disabled={atMaxZoom}
-            title={t("viewer.zoom_in")}
-            className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-          >
-            <ZoomIn className="size-4" />
-          </button>
-          <button
-            onClick={fitWidth}
-            title={t("viewer.fit_width")}
-            className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
-          >
-            <Maximize className="size-4" />
-          </button>
+              <button
+                onClick={zoomOut}
+                disabled={atMinZoom}
+                title={t("viewer.zoom_out")}
+                className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <ZoomOut className="size-4" />
+              </button>
+              <span className="w-8 text-center text-[0.688rem] font-medium text-[var(--text-secondary)] tabular-nums">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                onClick={zoomIn}
+                disabled={atMaxZoom}
+                title={t("viewer.zoom_in")}
+                className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <ZoomIn className="size-4" />
+              </button>
+              <button
+                onClick={fitWidth}
+                title={t("viewer.fit_width")}
+                className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+              >
+                <Maximize className="size-4" />
+              </button>
 
-          <span className="mx-1 h-5 w-px bg-[var(--border-faint)]" />
+              <span className="mx-1 h-5 w-px bg-[var(--border-faint)]" />
 
-          <button
-            onClick={() => setInverted((v) => !v)}
-            title={t("viewer.invert")}
-            className={`flex size-9 items-center justify-center rounded-[0.438rem] transition-all duration-100 ${
-              inverted
-                ? "bg-[var(--accent-bg)] text-[var(--accent)]"
-                : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            <SunMoon className="size-4" />
-          </button>
+              <button
+                onClick={() => setInverted((v) => !v)}
+                title={t("viewer.invert")}
+                className={`flex size-9 items-center justify-center rounded-[0.438rem] transition-all duration-100 ${
+                  inverted
+                    ? "bg-[var(--accent-bg)] text-[var(--accent)]"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                <SunMoon className="size-4" />
+              </button>
+            </>
+          )}
         </div>
 
         <span className="h-5 w-px bg-[var(--border-faint)]" />
@@ -381,100 +424,154 @@ function ViewerPage() {
         {material && bookmarkStar(material.id)}
       </div>
 
-      {/* ── PDF viewer ── */}
+      {/* ── Main content area ── */}
       <div className="flex flex-1 overflow-hidden">
-        <div
-          ref={parentRef}
-          onScroll={handleScroll}
-          className={cn(
-            "flex-1 overflow-auto md:px-8 px-0 py-6 transition-colors",
-            inverted ? "bg-bg-surface" : "bg-pdf-bg",
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Tab bar for materials with both primary file and assets */}
+          {hasAssets && !isContainer && (
+            <div className="flex shrink-0 items-center gap-1 border-b border-[var(--border-default)] bg-[var(--bg-surface)] px-3">
+              <button
+                onClick={() => navigate({ to: ".", search: {}, replace: true })}
+                className={`px-3 py-2 text-[0.75rem] font-medium border-b-2 transition-colors ${
+                  viewerTab === "material"
+                    ? "border-[var(--accent)] text-[var(--accent-strong)]"
+                    : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                {t("viewer.tab_material")}
+              </button>
+              <button
+                onClick={() => navigate({ to: ".", search: { asset: "1" }, replace: true })}
+                className={`px-3 py-2 text-[0.75rem] font-medium border-b-2 transition-colors ${
+                  viewerTab === "assets"
+                    ? "border-[var(--accent)] text-[var(--accent-strong)]"
+                    : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                {t("viewer.tab_assets")} ({material!.assets.length})
+              </button>
+            </div>
           )}
-        >
+
           {!material ? (
-            <div className="pt-20 text-sm text-[var(--text-secondary)]">
+            <div className="flex-1 flex items-center justify-center pt-20 text-sm text-[var(--text-secondary)]">
               {t("viewer.not_found")}
             </div>
+          ) : showAssetGallery ? (
+            <AssetGallery
+              assets={material.assets}
+              initialIndex={assetIndex}
+              onIndexChange={(i) =>
+                navigate({ to: ".", search: { asset: String(i + 1) }, replace: true })
+              }
+            />
+          ) : material.fileType === "image" ? (
+            <ImageViewer url={material.url} />
+          ) : material.fileType === "video" ? (
+            <VideoViewer url={material.url} />
           ) : !material.url ? (
-            <div className="pt-20 text-sm text-[var(--text-secondary)]">{t("viewer.no_url")}</div>
+            <div className="flex-1 flex items-center justify-center pt-20 text-sm text-[var(--text-secondary)]">
+              {t("viewer.no_url")}
+            </div>
           ) : (
-            <Document
-              file={material.url}
-              onLoadSuccess={async (pdf) => {
-                setNumPages(pdf.numPages)
-                setPdfLoading(false)
-                const page = await pdf.getPage(1)
-                const vp = page.getViewport({ scale: 1 })
-                setNaturalPageWidth(vp.width)
-                if (parentRef.current) {
-                  setZoom((parentRef.current.clientWidth - 64) / vp.width)
-                }
-              }}
-              onLoadError={() => {
-                setPdfError(
-                  t("viewer.load_error_fmt", {
-                    type: t(`materialType.${material?.fileType || "pdf"}`) || "PDF",
-                  }),
-                )
-                setPdfLoading(false)
-              }}
-              loading={null}
+            <div
+              ref={parentRef}
+              onScroll={handleScroll}
+              className={cn(
+                "flex-1 overflow-auto md:px-8 px-0 py-6 transition-colors",
+                inverted ? "bg-bg-surface" : "bg-pdf-bg",
+              )}
             >
-              {pdfLoading && (
-                <div className="flex items-center gap-2 pt-20 text-sm text-[var(--text-secondary)]">
-                  <Loader2 className="size-5 animate-spin" />
-                  {t("viewer.loading")}
-                </div>
-              )}
-              {pdfError && (
-                <div className="flex items-center justify-center pt-20 text-sm text-[var(--text-secondary)]">
-                  {pdfError}
-                </div>
-              )}
+              <Document
+                file={material.url}
+                onLoadSuccess={async (pdf) => {
+                  setNumPages(pdf.numPages)
+                  setPdfLoading(false)
+                  const page = await pdf.getPage(1)
+                  const vp = page.getViewport({ scale: 1 })
+                  setNaturalPageWidth(vp.width)
+                  if (parentRef.current) {
+                    setZoom((parentRef.current.clientWidth - 64) / vp.width)
+                  }
+                }}
+                onLoadError={() => {
+                  setPdfError(
+                    t("viewer.load_error_fmt", {
+                      type: t(`materialType.${material?.fileType || "pdf"}`) || "PDF",
+                    }),
+                  )
+                  setPdfLoading(false)
+                }}
+                loading={null}
+              >
+                {pdfLoading && (
+                  <div className="flex items-center gap-2 pt-20 text-sm text-[var(--text-secondary)]">
+                    <Loader2 className="size-5 animate-spin" />
+                    {t("viewer.loading")}
+                  </div>
+                )}
+                {pdfError && (
+                  <div className="flex items-center justify-center pt-20 text-sm text-[var(--text-secondary)]">
+                    {pdfError}
+                  </div>
+                )}
 
-              <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
-                {virtualizer.getVirtualItems().map((virtualItem) => (
-                  <div
-                    key={virtualItem.key}
-                    data-index={virtualItem.index}
-                    ref={virtualizer.measureElement}
-                    style={{
-                      position: "absolute",
-                      top: virtualItem.start,
-                      left: 0,
-                      right: 0,
-                      display: "flex",
-                      justifyContent: "center",
-                      paddingBottom: "16px",
-                    }}
-                  >
+                <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+                  {virtualizer.getVirtualItems().map((virtualItem) => (
                     <div
+                      key={virtualItem.key}
+                      data-index={virtualItem.index}
+                      ref={virtualizer.measureElement}
                       style={{
-                        boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
-                        filter: inverted ? "invert(1)" : "none",
+                        position: "absolute",
+                        top: virtualItem.start,
+                        left: 0,
+                        right: 0,
+                        display: "flex",
+                        justifyContent: "center",
+                        paddingBottom: "16px",
                       }}
                     >
-                      <Page
-                        pageNumber={virtualItem.index + 1}
-                        scale={zoom}
-                        renderTextLayer={true}
-                        renderAnnotationLayer={true}
-                        loading={null}
-                      />
+                      <div
+                        style={{
+                          boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+                          filter: inverted ? "invert(1)" : "none",
+                        }}
+                      >
+                        <Page
+                          pageNumber={virtualItem.index + 1}
+                          scale={zoom}
+                          renderTextLayer={true}
+                          renderAnnotationLayer={true}
+                          loading={null}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </Document>
+                  ))}
+                </div>
+              </Document>
+            </div>
           )}
         </div>
 
         {/* ── Right sidebar (desktop) ── */}
         <div className="hidden sm:flex w-[17.5rem] shrink-0 flex-col overflow-hidden border-l bg-[var(--bg-surface)] border-[var(--border-default)]">
           <div className="flex items-center gap-1.5 border-b border-[var(--border-faint)] px-3 py-2.5">
+            {hasAssets && (
+              <button
+                onClick={() => setSidebarMode("this")}
+                className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
+                  sidebarMode === "this"
+                    ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
+                    : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
+                }`}
+              >
+                {t("viewer.sidebar_this")}
+              </button>
+            )}
             <button
               onClick={() => setSidebarMode("category")}
-              className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 ${
+              className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
                 sidebarMode === "category"
                   ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
                   : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
@@ -484,7 +581,7 @@ function ViewerPage() {
             </button>
             <button
               onClick={() => setSidebarMode("all")}
-              className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 ${
+              className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
                 sidebarMode === "all"
                   ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
                   : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
@@ -495,40 +592,99 @@ function ViewerPage() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-2">
-            {sidebarMode === "category"
-              ? groupedByExamPart.map((section) => (
-                  <div key={section.label || "__default"}>
-                    {section.label && (
-                      <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                        {section.label}
+            {sidebarMode === "this"
+              ? sidebarMaterials.map((m) => (
+                  <div key={m.id}>
+                    <SidebarItem
+                      material={m}
+                      isActive={m.id === materialId}
+                      bookmarkStar={bookmarkStar(m.id)}
+                    />
+                    {m.assets.length > 0 && (
+                      <div className="flex flex-col gap-0.5 pb-1">
+                        {m.assets.map((a, i) => {
+                          const AssetIcon = sidebarIconMap[a.fileType] || FileImage
+                          const ts = typeTagStyles[a.fileType]
+                          return (
+                            <Link
+                              key={a.id}
+                              to="/subjects/$subjectId/materials/$materialId"
+                              params={{ subjectId, materialId }}
+                              search={{ asset: String(i + 1) }}
+                              className="flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 transition-colors duration-100 hover:bg-[var(--bg-subtle)]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div
+                                className={`flex size-5 shrink-0 items-center justify-center rounded-[0.25rem] ${ts?.container || "text-[var(--text-hint)]"}`}
+                              >
+                                <AssetIcon
+                                  className={`size-3 ${ts?.icon || "text-[var(--text-hint)]"}`}
+                                />
+                              </div>
+                              <span className="truncate text-[0.688rem] font-medium leading-snug text-[var(--text-primary)]">
+                                {a.name}
+                              </span>
+                            </Link>
+                          )
+                        })}
                       </div>
                     )}
-                    {section.items.map((m) => (
-                      <SidebarItem
-                        key={m.id}
-                        material={m}
-                        isActive={m.id === materialId}
-                        bookmarkStar={bookmarkStar(m.id)}
-                      />
-                    ))}
                   </div>
                 ))
-              : groupedByCategory &&
-                CATEGORY_ORDER.filter((cat) => groupedByCategory[cat]).map((cat) => (
-                  <div key={cat}>
-                    <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                      {cat === "final" ? t("category.exam") : t(`category.${cat}`)}
+              : sidebarMode === "category"
+                ? groupedByExamPart.map((section) => (
+                    <div key={section.label || "__default"}>
+                      {section.label && (
+                        <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+                          {section.label}
+                        </div>
+                      )}
+                      {section.items.map((m) => (
+                        <div key={m.id}>
+                          <SidebarItem
+                            material={m}
+                            isActive={m.id === materialId}
+                            bookmarkStar={bookmarkStar(m.id)}
+                          />
+                          {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
+                            <ExpandableAssets
+                              assets={m.assets}
+                              subjectId={m.subjectId}
+                              materialId={m.id}
+                              assetCount={m.assets?.length ?? m.assetCount ?? 0}
+                              compact
+                            />
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    {groupedByCategory[cat].map((m) => (
-                      <SidebarItem
-                        key={m.id}
-                        material={m}
-                        isActive={m.id === materialId}
-                        bookmarkStar={bookmarkStar(m.id)}
-                      />
-                    ))}
-                  </div>
-                ))}
+                  ))
+                : groupedByCategory &&
+                  CATEGORY_ORDER.filter((cat) => groupedByCategory[cat]).map((cat) => (
+                    <div key={cat}>
+                      <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+                        {cat === "final" ? t("category.exam") : t(`category.${cat}`)}
+                      </div>
+                      {groupedByCategory[cat].map((m) => (
+                        <div key={m.id}>
+                          <SidebarItem
+                            material={m}
+                            isActive={m.id === materialId}
+                            bookmarkStar={bookmarkStar(m.id)}
+                          />
+                          {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
+                            <ExpandableAssets
+                              assets={m.assets}
+                              subjectId={m.subjectId}
+                              materialId={m.id}
+                              assetCount={m.assets?.length ?? m.assetCount ?? 0}
+                              compact
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
           </div>
 
           <div className="flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[var(--border-faint)] px-3 py-2.5 text-[0.688rem] text-[var(--text-hint)]">
@@ -550,72 +706,91 @@ function ViewerPage() {
 
       {/* ── Bottom toolbar (mobile) ── */}
       <div className="sm:hidden flex h-14 shrink-0 items-center border-t bg-[var(--bg-surface)] border-[var(--border-default)] px-2 gap-2 pb-safe">
-        <button
-          onClick={() => goToPage(pageNum - 1)}
-          disabled={pageNum <= 1}
-          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-        >
-          <ChevronLeft className="size-5" />
-        </button>
+        {material?.fileType === "pdf" && !showAssetGallery ? (
+          <>
+            <button
+              onClick={() => goToPage(pageNum - 1)}
+              disabled={pageNum <= 1}
+              className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
 
-        <span className="flex items-center gap-1 px-2 text-[0.813rem] text-[var(--text-secondary)]">
-          <input
-            type="text"
-            value={pageInput}
-            onChange={handlePageInputChange}
-            onBlur={handlePageInputCommit}
-            onKeyDown={handlePageInputKeyDown}
-            className="w-10 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
-          />
-          <span className="text-[var(--text-hint)]">/</span>
-          <span>{numPages || "?"}</span>
-        </span>
+            <span className="flex items-center gap-1 px-2 text-[0.813rem] text-[var(--text-secondary)]">
+              <input
+                type="text"
+                value={pageInput}
+                onChange={handlePageInputChange}
+                onBlur={handlePageInputCommit}
+                onKeyDown={handlePageInputKeyDown}
+                className="w-10 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
+              />
+              <span className="text-[var(--text-hint)]">/</span>
+              <span>{numPages || "?"}</span>
+            </span>
 
-        <button
-          onClick={() => goToPage(pageNum + 1)}
-          disabled={pageNum >= numPages}
-          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-        >
-          <ChevronRight className="size-5" />
-        </button>
+            <button
+              onClick={() => goToPage(pageNum + 1)}
+              disabled={pageNum >= numPages}
+              className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronRight className="size-5" />
+            </button>
 
-        <span className="h-6 w-px bg-[var(--border-faint)]" />
+            <span className="h-6 w-px bg-[var(--border-faint)]" />
 
-        <button
-          onClick={zoomOut}
-          disabled={atMinZoom}
-          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-        >
-          <ZoomOut className="size-5" />
-        </button>
-        <span className="text-[0.625rem] font-medium text-[var(--text-secondary)] tabular-nums">
-          {Math.round(zoom * 100)}%
-        </span>
-        <button
-          onClick={zoomIn}
-          disabled={atMaxZoom}
-          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-        >
-          <ZoomIn className="size-5" />
-        </button>
+            <button
+              onClick={zoomOut}
+              disabled={atMinZoom}
+              className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ZoomOut className="size-5" />
+            </button>
+            <span className="text-[0.625rem] font-medium text-[var(--text-secondary)] tabular-nums">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              onClick={zoomIn}
+              disabled={atMaxZoom}
+              className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ZoomIn className="size-5" />
+            </button>
+          </>
+        ) : null}
 
-        <span className="h-6 w-px bg-[var(--border-faint)]" />
-
+        <div className="flex-1" />
         <Sheet open={materialsSheetOpen} onOpenChange={setMaterialsSheetOpen}>
           <SheetTrigger className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]">
-            <Layers className="size-5" />
+            <LayersIcon className="size-5" />
           </SheetTrigger>
           <SheetContent side="bottom" className="max-h-[70vh] flex flex-col">
             <div className="mx-auto mt-2 mb-3 h-1 w-10 shrink-0 rounded-full bg-[var(--border-strong)]" />
             <SheetHeader>
               <SheetTitle className="text-left">
-                {sidebarMode === "category" ? categoryName : t("viewer.sidebar_all")}
+                {sidebarMode === "category"
+                  ? categoryName
+                  : sidebarMode === "this"
+                    ? t("viewer.sidebar_this")
+                    : t("viewer.sidebar_all")}
               </SheetTitle>
             </SheetHeader>
             <div className="flex items-center gap-1.5 px-4 pb-2">
+              {hasAssets && (
+                <button
+                  onClick={() => setSidebarMode("this")}
+                  className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
+                    sidebarMode === "this"
+                      ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
+                      : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
+                  }`}
+                >
+                  {t("viewer.sidebar_this")}
+                </button>
+              )}
               <button
                 onClick={() => setSidebarMode("category")}
-                className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 ${
+                className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
                   sidebarMode === "category"
                     ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
                     : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
@@ -625,7 +800,7 @@ function ViewerPage() {
               </button>
               <button
                 onClick={() => setSidebarMode("all")}
-                className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 ${
+                className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
                   sidebarMode === "all"
                     ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
                     : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
@@ -635,48 +810,135 @@ function ViewerPage() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-2 pb-6">
-              {sidebarMode === "category"
-                ? groupedByExamPart.map((section) => (
-                    <div key={section.label || "__default"}>
-                      {section.label && (
-                        <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                          {section.label}
+              {sidebarMode === "this"
+                ? sidebarMaterials.map((m) => (
+                    <div key={m.id}>
+                      <div onClick={() => setMaterialsSheetOpen(false)}>
+                        <SidebarItem
+                          material={m}
+                          isActive={m.id === materialId}
+                          bookmarkStar={bookmarkStar(m.id)}
+                        />
+                      </div>
+                      {m.assets.length > 0 && (
+                        <div className="flex flex-col gap-0.5 pb-1">
+                          {m.assets.map((a, i) => {
+                            const AssetIcon = sidebarIconMap[a.fileType] || FileImage
+                            const ts = typeTagStyles[a.fileType]
+                            return (
+                              <Link
+                                key={a.id}
+                                to="/subjects/$subjectId/materials/$materialId"
+                                params={{ subjectId, materialId }}
+                                search={{ asset: String(i + 1) }}
+                                className="flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 transition-colors duration-100 hover:bg-[var(--bg-subtle)]"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setMaterialsSheetOpen(false)
+                                }}
+                              >
+                                <div
+                                  className={`flex size-5 shrink-0 items-center justify-center rounded-[0.25rem] ${ts?.container || "text-[var(--text-hint)]"}`}
+                                >
+                                  <AssetIcon
+                                    className={`size-3 ${ts?.icon || "text-[var(--text-hint)]"}`}
+                                  />
+                                </div>
+                                <span className="truncate text-[0.688rem] font-medium leading-snug text-[var(--text-primary)]">
+                                  {a.name}
+                                </span>
+                              </Link>
+                            )
+                          })}
                         </div>
                       )}
-                      {section.items.map((m) => (
-                        <div key={m.id} onClick={() => setMaterialsSheetOpen(false)}>
-                          <SidebarItem
-                            material={m}
-                            isActive={m.id === materialId}
-                            bookmarkStar={bookmarkStar(m.id)}
-                          />
-                        </div>
-                      ))}
                     </div>
                   ))
-                : groupedByCategory &&
-                  CATEGORY_ORDER.filter((cat) => groupedByCategory[cat]).map((cat) => (
-                    <div key={cat}>
-                      <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                        {cat === "final" ? t("category.exam") : t(`category.${cat}`)}
+                : sidebarMode === "category"
+                  ? groupedByExamPart.map((section) => (
+                      <div key={section.label || "__default"}>
+                        {section.label && (
+                          <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+                            {section.label}
+                          </div>
+                        )}
+                        {section.items.map((m) => (
+                          <div key={m.id}>
+                            <div onClick={() => setMaterialsSheetOpen(false)}>
+                              <SidebarItem
+                                material={m}
+                                isActive={m.id === materialId}
+                                bookmarkStar={bookmarkStar(m.id)}
+                              />
+                            </div>
+                            {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
+                              <ExpandableAssets
+                                assets={m.assets}
+                                subjectId={m.subjectId}
+                                materialId={m.id}
+                                assetCount={m.assets?.length ?? m.assetCount ?? 0}
+                                compact
+                              />
+                            )}
+                          </div>
+                        ))}
                       </div>
-                      {groupedByCategory[cat].map((m) => (
-                        <div key={m.id} onClick={() => setMaterialsSheetOpen(false)}>
-                          <SidebarItem
-                            material={m}
-                            isActive={m.id === materialId}
-                            bookmarkStar={bookmarkStar(m.id)}
-                          />
+                    ))
+                  : groupedByCategory &&
+                    CATEGORY_ORDER.filter((cat) => groupedByCategory[cat]).map((cat) => (
+                      <div key={cat}>
+                        <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+                          {cat === "final" ? t("category.exam") : t(`category.${cat}`)}
                         </div>
-                      ))}
-                    </div>
-                  ))}
+                        {groupedByCategory[cat].map((m) => (
+                          <div key={m.id}>
+                            <div onClick={() => setMaterialsSheetOpen(false)}>
+                              <SidebarItem
+                                material={m}
+                                isActive={m.id === materialId}
+                                bookmarkStar={bookmarkStar(m.id)}
+                              />
+                            </div>
+                            {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
+                              <ExpandableAssets
+                                assets={m.assets}
+                                subjectId={m.subjectId}
+                                materialId={m.id}
+                                assetCount={m.assets?.length ?? m.assetCount ?? 0}
+                                compact
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
             </div>
           </SheetContent>
         </Sheet>
       </div>
     </div>
   )
+}
+
+const typeTagStyles: Record<string, { container: string; icon: string }> = {
+  pdf: {
+    container: "border-[var(--type-pdf-text)] bg-[var(--type-pdf-bg)]",
+    icon: "text-[var(--type-pdf-text)]",
+  },
+  video: {
+    container: "border-[var(--type-video-text)] bg-[var(--type-video-bg)]",
+    icon: "text-[var(--type-video-text)]",
+  },
+  image: {
+    container: "border-[var(--type-image-text)] bg-[var(--type-image-bg)]",
+    icon: "text-[var(--type-image-text)]",
+  },
+}
+
+const sidebarIconMap: Record<string, typeof FileText> = {
+  pdf: FileText,
+  video: FileVideo,
+  image: FileImage,
 }
 
 function SidebarItem({
@@ -689,27 +951,28 @@ function SidebarItem({
   bookmarkStar: React.ReactNode
 }) {
   const { t } = useI18n()
+  const Icon = sidebarIconMap[material.fileType] || FileText
   return (
     <Link
       to="/subjects/$subjectId/materials/$materialId"
       params={{ subjectId: material.subjectId, materialId: material.id }}
       resetScroll={false}
-      className={`flex items-start gap-2.5 rounded-[0.438rem] px-2.5 py-2 text-left transition-colors duration-100 ${isActive ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]" : "hover:bg-[var(--bg-subtle)]"}`}
+      className={`flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 text-left transition-colors duration-100 ${isActive ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]" : "hover:bg-[var(--bg-subtle)]"}`}
     >
-      <FileText
-        className={`mt-0.5 size-6 shrink-0 ${isActive ? "text-[var(--nav-active-text)]" : "text-[var(--text-hint)]"}`}
+      <Icon
+        className={`size-5 shrink-0 ${isActive ? "text-[var(--nav-active-text)]" : "text-[var(--text-hint)]"}`}
       />
       <div className="min-w-0 flex-1">
         <div
-          className={`truncate text-[0.75rem] font-medium ${isActive ? "text-[var(--nav-active-text)]" : "text-[var(--text-primary)]"}`}
+          className={`truncate text-[0.75rem] font-medium leading-snug ${isActive ? "text-[var(--nav-active-text)]" : "text-[var(--text-primary)]"}`}
         >
           {material.title}
         </div>
-        <div
-          className={`text-[0.688rem] ${isActive ? "text-[var(--text-hint)]" : "text-[var(--text-hint)]"}`}
-        >
-          {isActive ? t("viewer.current") : ""}
-        </div>
+        {isActive && (
+          <div className="text-[0.625rem] text-[var(--text-hint)] leading-snug">
+            {t("viewer.current")}
+          </div>
+        )}
       </div>
       <span onClick={(e) => e.preventDefault()} className="shrink-0">
         {bookmarkStar}

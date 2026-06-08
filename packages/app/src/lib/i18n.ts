@@ -122,10 +122,20 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.loading": "Učitavanje PDF-a…",
     "viewer.not_found": "Materijal nije pronađen.",
     "viewer.sidebar_all": "Svi materijali",
+    "viewer.sidebar_this": "Ovaj materijal",
     "viewer.shortcut_bookmark": "obeleži",
     "viewer.shortcut_scroll": "pomeranje",
     "viewer.shortcut_page": "stranica",
     "viewer.current": "trenutno",
+    "viewer.tab_material": "Materijal",
+    "viewer.tab_assets": "Prilozi",
+    "viewer.gallery_prev": "Prethodno",
+    "viewer.gallery_next": "Sledeće",
+
+    // Assets
+    "asset.count": "{n} prilog",
+    "asset.count_plural": "{n} priloga",
+    "asset.loading": "Učitavanje...",
 
     // Material types
     "materialType.subject": "Predmet",
@@ -281,10 +291,20 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.loading": "Loading PDF…",
     "viewer.not_found": "Material not found.",
     "viewer.sidebar_all": "All materials",
+    "viewer.sidebar_this": "This material",
     "viewer.shortcut_bookmark": "bookmark",
     "viewer.shortcut_scroll": "scroll",
     "viewer.shortcut_page": "page",
     "viewer.current": "current",
+    "viewer.tab_material": "Material",
+    "viewer.tab_assets": "Assets",
+    "viewer.gallery_prev": "Previous",
+    "viewer.gallery_next": "Next",
+
+    // Assets
+    "asset.count": "{n} asset",
+    "asset.count_plural": "{n} assets",
+    "asset.loading": "Loading...",
 
     "materialType.subject": "Subject",
     "materialType.material": "Material",

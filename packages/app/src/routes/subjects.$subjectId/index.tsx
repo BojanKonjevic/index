@@ -1,14 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import {
-  Search,
   Star,
-  BookOpen,
-  Pencil,
   FileText,
   FileVideo,
   FileImage,
-  Folder,
+  BookOpen,
+  Pencil,
+  Search,
   ChevronDown,
+  Folder,
   SlidersHorizontal,
 } from "lucide-react"
 import { fetchSubject } from "@/lib/api"
@@ -20,6 +20,7 @@ import { useI18n } from "@/hooks/useI18n"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { ErrorFallback } from "@/components/ErrorFallback"
+import ExpandableAssets from "@/components/ExpandableAssets"
 import { CATEGORY_ORDER } from "@index/shared"
 import type { Material } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
@@ -78,82 +79,92 @@ function MaterialRow({ material }: { material: Material }) {
   const vcat = getVirtualCategory(material)
   const bookmarked = isBookmarked(material.id)
   const TypeIcon = typeIconMap[material.fileType] || FileText
+  const assetCount = material.assets?.length ?? material.assetCount ?? 0
 
   return (
-    <Link
-      to="/subjects/$subjectId/materials/$materialId"
-      params={{ subjectId: material.subjectId, materialId: material.id }}
-      className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5 cursor-pointer"
-    >
-      <div
-        className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-[0.438rem] border",
-          typeTagStyles[material.fileType]?.container ||
-            "border-[var(--border-default)] bg-[var(--bg-subtle)]",
-        )}
+    <div>
+      <Link
+        to="/subjects/$subjectId/materials/$materialId"
+        params={{ subjectId: material.subjectId, materialId: material.id }}
+        className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5 cursor-pointer"
       >
-        <TypeIcon
+        <div
           className={cn(
-            "size-4",
-            typeTagStyles[material.fileType]?.icon || "text-[var(--text-hint)]",
+            "flex size-9 shrink-0 items-center justify-center rounded-[0.438rem] border",
+            typeTagStyles[material.fileType]?.container ||
+              "border-[var(--border-default)] bg-[var(--bg-subtle)]",
           )}
-        />
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
-          {material.title}
+        >
+          <TypeIcon
+            className={cn(
+              "size-4",
+              typeTagStyles[material.fileType]?.icon || "text-[var(--text-hint)]",
+            )}
+          />
         </div>
-        <div className="mt-0.5 flex flex-wrap gap-1.5">
-          <span
-            className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[material.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-          >
-            {t(`materialType.${material.fileType}`) || material.fileType}
-          </span>
-          <span
-            className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-          >
-            {vcat === "final" ? t("category.exam") : t(`category.${vcat}`)}
-          </span>
-          {material.examPart && vcat !== material.examPart.toLowerCase() && (
-            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-              {material.examPart}
-            </span>
-          )}
-          {material.solved === true && (
-            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
-              {t("subject.solved_badge")}
-            </span>
-          )}
-          {material.solved === false && (
-            <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--accent-bg)] text-[var(--accent-strong)]">
-              {t("subject.unsolved_badge")}
-            </span>
-          )}
-        </div>
-      </div>
 
-      <button
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          if (bookmarked) {
-            removeBookmark(material.id)
-          } else {
-            addBookmark(material.id)
-          }
-        }}
-        className="shrink-0 cursor-pointer min-w-[2.75rem] min-h-[2.75rem] md:min-w-[2rem] md:min-h-[2rem] flex items-center justify-center transition-transform duration-150 hover:scale-110"
-      >
-        <Star
-          className={`size-4 transition-colors duration-150 ${
-            bookmarked
-              ? "fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop"
-              : "text-[var(--text-hint)] hover:text-[var(--text-secondary)]"
-          }`}
-        />
-      </button>
-    </Link>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
+            {material.title}
+          </div>
+          <div className="mt-0.5 flex flex-wrap gap-1.5">
+            <span
+              className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${typeBadgeStyles[material.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+            >
+              {t(`materialType.${material.fileType}`) || material.fileType}
+            </span>
+            <span
+              className={`inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium ${categoryBadgeStyles[vcat] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+            >
+              {vcat === "final" ? t("category.exam") : t(`category.${vcat}`)}
+            </span>
+            {material.examPart && vcat !== material.examPart.toLowerCase() && (
+              <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
+                {material.examPart}
+              </span>
+            )}
+            {material.solved === true && (
+              <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--status-later-bg)] text-[var(--status-later-text)]">
+                {t("subject.solved_badge")}
+              </span>
+            )}
+            {material.solved === false && (
+              <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--accent-bg)] text-[var(--accent-strong)]">
+                {t("subject.unsolved_badge")}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (bookmarked) {
+              removeBookmark(material.id)
+            } else {
+              addBookmark(material.id)
+            }
+          }}
+          className="shrink-0 cursor-pointer min-w-[2.75rem] min-h-[2.75rem] md:min-w-[2rem] md:min-h-[2rem] flex items-center justify-center transition-transform duration-150 hover:scale-110"
+        >
+          <Star
+            className={`size-4 transition-colors duration-150 ${
+              bookmarked
+                ? "fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop"
+                : "text-[var(--text-hint)] hover:text-[var(--text-secondary)]"
+            }`}
+          />
+        </button>
+      </Link>
+
+      <ExpandableAssets
+        assets={material.assets}
+        subjectId={material.subjectId}
+        materialId={material.id}
+        assetCount={assetCount}
+      />
+    </div>
   )
 }
 
@@ -321,6 +332,7 @@ function SubjectPage() {
                   { key: "all", label: t("subject.filter_all") },
                   { key: "pdf", label: "PDF" },
                   { key: "video", label: "Video" },
+                  { key: "image", label: t("materialType.image") },
                 ].map((opt) => (
                   <button
                     key={opt.key}
@@ -391,6 +403,7 @@ function SubjectPage() {
                         { key: "all", label: t("subject.filter_all") },
                         { key: "pdf", label: "PDF" },
                         { key: "video", label: "Video" },
+                        { key: "image", label: t("materialType.image") },
                       ].map((opt) => (
                         <button
                           key={opt.key}
