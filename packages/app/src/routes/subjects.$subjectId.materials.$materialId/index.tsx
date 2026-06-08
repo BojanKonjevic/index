@@ -22,7 +22,7 @@ import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useI18n } from "@/hooks/useI18n"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import ExpandableAssets from "@/components/ExpandableAssets"
-import type { Material } from "@index/shared"
+import type { Material, MaterialAsset } from "@index/shared"
 import { CATEGORY_ORDER } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -38,6 +38,9 @@ import AssetGallery from "@/components/AssetGallery"
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
 
 export const Route = createFileRoute("/subjects/$subjectId/materials/$materialId/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    ...(typeof search.asset === "string" ? { asset: search.asset } : {}),
+  }),
   loader: ({ params }) => fetchSubject(params.subjectId),
   component: ViewerPage,
   errorComponent: ErrorFallback,
@@ -64,10 +67,8 @@ function ViewerPage() {
   const [fitWidthMode, setFitWidthMode] = useState(true)
   const parentRef = useRef<HTMLDivElement>(null)
 
-  const assetFromUrl =
-    typeof window !== "undefined"
-      ? parseInt(new URLSearchParams(window.location.search).get("asset") || "", 10) || 0
-      : 0
+  const { asset: assetParam } = Route.useSearch()
+  const assetFromUrl = assetParam ? parseInt(assetParam, 10) || 0 : 0
   const viewerTab = assetFromUrl > 0 ? "assets" : "material"
   const assetIndex = assetFromUrl > 0 ? assetFromUrl - 1 : 0
 
@@ -103,12 +104,6 @@ function ViewerPage() {
     setPageNum(1)
     setZoom(1)
   }, [material?.url])
-
-  useEffect(() => {
-    if (material && material.assets.length > 0) {
-      setSidebarMode("this")
-    }
-  }, [material?.id])
 
   useEffect(() => {
     const el = parentRef.current
@@ -457,15 +452,33 @@ function ViewerPage() {
             <div className="flex-1 flex items-center justify-center pt-20 text-sm text-[var(--text-secondary)]">
               {t("viewer.not_found")}
             </div>
-          ) : showAssetGallery ? (
+          ) : showAssetGallery && material ? (
             <AssetGallery
-              assets={material.assets}
-              initialIndex={assetIndex}
-              onIndexChange={(i) =>
-                navigate({ to: ".", search: { asset: String(i + 1) }, replace: true })
+              assets={
+                isContainer
+                  ? [
+                      {
+                        id: material.id,
+                        materialId: material.id,
+                        pageNumber: 0,
+                        name: material.title,
+                        fileType: material.fileType,
+                        url: material.url,
+                      } as MaterialAsset,
+                      ...material.assets,
+                    ]
+                  : material.assets
               }
+              initialIndex={isContainer ? assetFromUrl : assetIndex}
+              onIndexChange={(i) => {
+                if (isContainer) {
+                  navigate({ to: ".", search: i > 0 ? { asset: String(i) } : {}, replace: true })
+                } else {
+                  navigate({ to: ".", search: { asset: String(i + 1) }, replace: true })
+                }
+              }}
             />
-          ) : material.fileType === "image" ? (
+          ) : material!.fileType === "image" ? (
             <ImageViewer url={material.url} />
           ) : material.fileType === "video" ? (
             <VideoViewer url={material.url} />
@@ -605,13 +618,14 @@ function ViewerPage() {
                         {m.assets.map((a, i) => {
                           const AssetIcon = sidebarIconMap[a.fileType] || FileImage
                           const ts = typeTagStyles[a.fileType]
+                          const isCurrentAsset = m.id === materialId && assetFromUrl === i + 1
                           return (
                             <Link
                               key={a.id}
                               to="/subjects/$subjectId/materials/$materialId"
                               params={{ subjectId, materialId }}
                               search={{ asset: String(i + 1) }}
-                              className="flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 transition-colors duration-100 hover:bg-[var(--bg-subtle)]"
+                              className={`flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 transition-colors duration-100 hover:bg-[var(--bg-subtle)] ${isCurrentAsset ? "bg-[var(--nav-active-bg)]" : ""}`}
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div
@@ -621,8 +635,15 @@ function ViewerPage() {
                                   className={`size-3 ${ts?.icon || "text-[var(--text-hint)]"}`}
                                 />
                               </div>
-                              <span className="truncate text-[0.688rem] font-medium leading-snug text-[var(--text-primary)]">
+                              <span
+                                className={`truncate text-[0.688rem] font-medium leading-snug ${isCurrentAsset ? "text-[var(--accent-strong)]" : "text-[var(--text-primary)]"}`}
+                              >
                                 {a.name}
+                              </span>
+                              <span
+                                className={`shrink-0 inline-block px-1.5 py-[0.063rem] rounded-full text-[0.563rem] font-medium leading-snug ${typeBadgeStyles[a.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+                              >
+                                {t(`materialType.${a.fileType}`) || a.fileType}
                               </span>
                             </Link>
                           )
@@ -653,6 +674,7 @@ function ViewerPage() {
                               materialId={m.id}
                               assetCount={m.assets?.length ?? m.assetCount ?? 0}
                               compact
+                              currentAssetIndex={m.id === materialId ? assetFromUrl : undefined}
                             />
                           )}
                         </div>
@@ -679,6 +701,7 @@ function ViewerPage() {
                               materialId={m.id}
                               assetCount={m.assets?.length ?? m.assetCount ?? 0}
                               compact
+                              currentAssetIndex={m.id === materialId ? assetFromUrl : undefined}
                             />
                           )}
                         </div>
@@ -688,12 +711,6 @@ function ViewerPage() {
           </div>
 
           <div className="flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[var(--border-faint)] px-3 py-2.5 text-[0.688rem] text-[var(--text-hint)]">
-            <span>
-              <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
-                ↑ ↓
-              </kbd>{" "}
-              <span className="text-[var(--text-secondary)]">{t("viewer.shortcut_scroll")}</span>
-            </span>
             <span>
               <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
                 b
@@ -825,13 +842,14 @@ function ViewerPage() {
                           {m.assets.map((a, i) => {
                             const AssetIcon = sidebarIconMap[a.fileType] || FileImage
                             const ts = typeTagStyles[a.fileType]
+                            const isCurrentAsset = m.id === materialId && assetFromUrl === i + 1
                             return (
                               <Link
                                 key={a.id}
                                 to="/subjects/$subjectId/materials/$materialId"
                                 params={{ subjectId, materialId }}
                                 search={{ asset: String(i + 1) }}
-                                className="flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 transition-colors duration-100 hover:bg-[var(--bg-subtle)]"
+                                className={`flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 transition-colors duration-100 hover:bg-[var(--bg-subtle)] ${isCurrentAsset ? "bg-[var(--nav-active-bg)]" : ""}`}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   setMaterialsSheetOpen(false)
@@ -844,8 +862,15 @@ function ViewerPage() {
                                     className={`size-3 ${ts?.icon || "text-[var(--text-hint)]"}`}
                                   />
                                 </div>
-                                <span className="truncate text-[0.688rem] font-medium leading-snug text-[var(--text-primary)]">
+                                <span
+                                  className={`truncate text-[0.688rem] font-medium leading-snug ${isCurrentAsset ? "text-[var(--accent-strong)]" : "text-[var(--text-primary)]"}`}
+                                >
                                   {a.name}
+                                </span>
+                                <span
+                                  className={`shrink-0 inline-block px-1.5 py-[0.063rem] rounded-full text-[0.563rem] font-medium leading-snug ${typeBadgeStyles[a.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+                                >
+                                  {t(`materialType.${a.fileType}`) || a.fileType}
                                 </span>
                               </Link>
                             )
@@ -878,6 +903,7 @@ function ViewerPage() {
                                 materialId={m.id}
                                 assetCount={m.assets?.length ?? m.assetCount ?? 0}
                                 compact
+                                currentAssetIndex={m.id === materialId ? assetFromUrl : undefined}
                               />
                             )}
                           </div>
@@ -906,6 +932,7 @@ function ViewerPage() {
                                 materialId={m.id}
                                 assetCount={m.assets?.length ?? m.assetCount ?? 0}
                                 compact
+                                currentAssetIndex={m.id === materialId ? assetFromUrl : undefined}
                               />
                             )}
                           </div>
@@ -935,6 +962,12 @@ const typeTagStyles: Record<string, { container: string; icon: string }> = {
   },
 }
 
+const typeBadgeStyles: Record<string, string> = {
+  pdf: "bg-[var(--type-pdf-bg)] text-[var(--type-pdf-text)]",
+  video: "bg-[var(--type-video-bg)] text-[var(--type-video-text)]",
+  image: "bg-[var(--type-image-bg)] text-[var(--type-image-text)]",
+}
+
 const sidebarIconMap: Record<string, typeof FileText> = {
   pdf: FileText,
   video: FileVideo,
@@ -952,27 +985,34 @@ function SidebarItem({
 }) {
   const { t } = useI18n()
   const Icon = sidebarIconMap[material.fileType] || FileText
+  const ts = typeTagStyles[material.fileType]
+  const badge = typeBadgeStyles[material.fileType]
   return (
     <Link
       to="/subjects/$subjectId/materials/$materialId"
       params={{ subjectId: material.subjectId, materialId: material.id }}
+      search={{}}
       resetScroll={false}
       className={`flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 text-left transition-colors duration-100 ${isActive ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]" : "hover:bg-[var(--bg-subtle)]"}`}
     >
-      <Icon
-        className={`size-5 shrink-0 ${isActive ? "text-[var(--nav-active-text)]" : "text-[var(--text-hint)]"}`}
-      />
+      <div
+        className={`flex size-6 shrink-0 items-center justify-center rounded-[0.313rem] border ${ts?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]"}`}
+      >
+        <Icon className={`size-3 ${ts?.icon || "text-[var(--text-hint)]"}`} />
+      </div>
       <div className="min-w-0 flex-1">
         <div
           className={`truncate text-[0.75rem] font-medium leading-snug ${isActive ? "text-[var(--nav-active-text)]" : "text-[var(--text-primary)]"}`}
         >
           {material.title}
         </div>
-        {isActive && (
-          <div className="text-[0.625rem] text-[var(--text-hint)] leading-snug">
-            {t("viewer.current")}
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span
+            className={`inline-block px-1.5 py-[0.063rem] rounded-full text-[0.563rem] font-medium leading-snug ${badge || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
+          >
+            {t(`materialType.${material.fileType}`) || material.fileType}
+          </span>
+        </div>
       </div>
       <span onClick={(e) => e.preventDefault()} className="shrink-0">
         {bookmarkStar}

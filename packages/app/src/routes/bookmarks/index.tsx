@@ -123,6 +123,7 @@ function BookmarksPage() {
                 <Link
                   to="/subjects/$subjectId/materials/$materialId"
                   params={{ subjectId: material.subjectId, materialId: material.id }}
+                  search={{}}
                   className="flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-2.5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5"
                 >
                   <div

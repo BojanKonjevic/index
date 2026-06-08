@@ -20,6 +20,12 @@ const typeTagStyles: Record<string, { container: string; icon: string }> = {
   },
 }
 
+const typeBadgeStyles: Record<string, string> = {
+  pdf: "bg-[var(--type-pdf-bg)] text-[var(--type-pdf-text)]",
+  video: "bg-[var(--type-video-bg)] text-[var(--type-video-text)]",
+  image: "bg-[var(--type-image-bg)] text-[var(--type-image-text)]",
+}
+
 const typeIconMap: Record<string, typeof FileText> = {
   pdf: FileText,
   video: FileVideo,
@@ -34,6 +40,7 @@ export default function ExpandableAssets({
   onExpand,
   loading = false,
   compact = false,
+  currentAssetIndex,
 }: {
   assets?: MaterialAsset[]
   subjectId: string
@@ -42,6 +49,7 @@ export default function ExpandableAssets({
   onExpand?: () => void
   loading?: boolean
   compact?: boolean
+  currentAssetIndex?: number
 }) {
   const [open, setOpen] = useState(false)
   const { t } = useI18n()
@@ -98,6 +106,7 @@ export default function ExpandableAssets({
               {assets.map((a, i) => {
                 const TypeIcon = typeIconMap[a.fileType] || FileImage
                 const ts = typeTagStyles[a.fileType]
+                const isActive = currentAssetIndex === i + 1
                 return (
                   <Link
                     key={a.id}
@@ -105,7 +114,10 @@ export default function ExpandableAssets({
                     params={{ subjectId, materialId }}
                     search={{ asset: String(i + 1) }}
                     className={cn(
-                      "flex items-center gap-2.5 rounded-[0.438rem] border border-[var(--border-default)] bg-[var(--bg-surface)] transition-all duration-100 hover:border-[var(--border-strong)]",
+                      "flex items-center gap-2.5 rounded-[0.438rem] border transition-all duration-100",
+                      isActive
+                        ? "border-[var(--accent)] bg-[var(--accent-bg)]"
+                        : "border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)]",
                       compact
                         ? "px-2 py-1.5 hover:-translate-y-[0.5px]"
                         : "px-2.5 py-2 hover:-translate-y-0.5",
@@ -128,11 +140,22 @@ export default function ExpandableAssets({
                     </div>
                     <span
                       className={cn(
-                        "truncate font-medium leading-tight text-[var(--text-primary)]",
+                        "truncate font-medium leading-tight",
+                        isActive ? "text-[var(--accent-strong)]" : "text-[var(--text-primary)]",
                         compact ? "text-[0.688rem]" : "text-[0.75rem]",
                       )}
                     >
                       {a.name}
+                    </span>
+                    <span
+                      className={cn(
+                        "shrink-0 inline-block px-1.5 py-[0.063rem] rounded-full font-medium leading-snug",
+                        typeBadgeStyles[a.fileType] ||
+                          "bg-[var(--bg-subtle)] text-[var(--text-secondary)]",
+                        compact ? "text-[0.5rem]" : "text-[0.563rem]",
+                      )}
+                    >
+                      {t(`materialType.${a.fileType}`) || a.fileType}
                     </span>
                   </Link>
                 )

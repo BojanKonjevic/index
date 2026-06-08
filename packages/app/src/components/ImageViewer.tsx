@@ -2,43 +2,21 @@ import { ZoomIn, ZoomOut } from "lucide-react"
 import { useI18n } from "@/hooks/useI18n"
 import { useState, useRef, useCallback } from "react"
 
+function fitZoom(containerW: number, containerH: number, naturalW: number, naturalH: number) {
+  return Math.min((containerW - 64) / naturalW, (containerH - 64) / naturalH, 1)
+}
+
 export default function ImageViewer({ url }: { url: string }) {
   const { t } = useI18n()
   const [zoom, setZoom] = useState(1)
   const imgRef = useRef<HTMLImageElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 })
-  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 })
-  const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  const measure = useCallback(() => {
-    if (containerRef.current) {
-      setContainerSize({
-        w: containerRef.current.clientWidth,
-        h: containerRef.current.clientHeight,
-      })
-    }
+  const refCallback = useCallback((node: HTMLDivElement | null) => {
+    containerRef.current = node
   }, [])
-
-  const refCallback = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (node) {
-        containerRef.current = node
-        measure()
-        const ro = new ResizeObserver(measure)
-        ro.observe(node)
-      }
-    },
-    [measure],
-  )
-
-  const fitScale =
-    naturalSize.w > 0 && containerSize.w > 0
-      ? Math.min((containerSize.w - 64) / naturalSize.w, (containerSize.h - 64) / naturalSize.h, 1)
-      : 1
-
-  const displayZoom = zoom * fitScale
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
@@ -54,7 +32,7 @@ export default function ImageViewer({ url }: { url: string }) {
       onWheel={handleWheel}
       className="flex-1 flex items-center justify-center overflow-hidden bg-[var(--bg-surface)] relative"
     >
-      {!loaded && !error && (
+      {loading && !error && (
         <div className="text-sm text-[var(--text-secondary)]">{t("viewer.loading")}</div>
       )}
       {error && (
@@ -67,16 +45,23 @@ export default function ImageViewer({ url }: { url: string }) {
         src={url}
         alt=""
         onLoad={(e) => {
-          setLoaded(true)
-          setNaturalSize({
-            w: (e.target as HTMLImageElement).naturalWidth,
-            h: (e.target as HTMLImageElement).naturalHeight,
-          })
+          setLoading(false)
+          const img = e.target as HTMLImageElement
+          const container = containerRef.current
+          if (container && img.naturalWidth > 0) {
+            setZoom(
+              fitZoom(
+                container.clientWidth,
+                container.clientHeight,
+                img.naturalWidth,
+                img.naturalHeight,
+              ),
+            )
+          }
         }}
         onError={() => setError(true)}
         style={{
-          transform: `scale(${displayZoom})`,
-          opacity: loaded ? 1 : 0,
+          transform: `scale(${zoom})`,
         }}
         className="max-w-none transition-transform duration-100"
         draggable={false}
