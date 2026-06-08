@@ -16,16 +16,18 @@ function getMimeType(ext: string): string {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-app.get("/file/:path", async (c) => {
-  const path = c.req.param("path")
+app.get("/file/*", async (c) => {
+  const url = c.req.url
+  // R2 keys use percent-encoded paths, keep the encoded form
+  const path = url.replace(/^https?:\/\/[^/]+\/api\/file\//, "")
+
+  const object = await c.env.BUCKET.get(path)
+  if (!object) return c.notFound()
 
   const dotIndex = path.lastIndexOf(".")
   if (dotIndex === -1) return c.notFound()
   const ext = path.slice(dotIndex + 1)
   const contentType = getMimeType(ext)
-
-  const object = await c.env.BUCKET.get(path)
-  if (!object) return c.notFound()
 
   const headers = new Headers()
   headers.set("Content-Type", contentType)
