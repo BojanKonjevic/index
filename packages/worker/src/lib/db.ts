@@ -1,4 +1,4 @@
-import type { Material, MaterialAsset } from "@index/shared"
+import type { Material, MaterialAsset, SubjectListItem, ExamEvent } from "@index/shared"
 
 export function mapMaterial(row: Record<string, unknown>): Material {
   return {
@@ -25,5 +25,29 @@ export function mapAsset(row: Record<string, unknown>): MaterialAsset {
     name: row.name as string,
     fileType: (row.file_type as MaterialAsset["fileType"]) ?? "image",
     url: row.url as string,
+  }
+}
+
+export function mapSubjectListItem(row: Record<string, unknown>): SubjectListItem {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    semester: row.semester as number,
+    espb: row.espb as number,
+    elective: (row.elective as number) === 1,
+    electiveGroup: (row.elective_group as string) ?? null,
+    professors: JSON.parse((row.professors as string) || "[]"),
+    materialCount: row.material_count as number,
+  }
+}
+
+export function mapExamEvent(row: Record<string, unknown>): ExamEvent {
+  return {
+    id: row.id as string,
+    subjectId: row.subject_id as string,
+    title: row.title as string,
+    date: row.date as string,
+    time: row.time as string,
+    location: row.location as string,
   }
 }

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { localeHeaders } from "@/lib/api"
+import { fetchApi } from "@/lib/api"
 
 interface User {
   id: string
@@ -53,26 +53,20 @@ function useAuthLogic(): AuthContextType {
     if (localBookmarks) body.bookmarks = JSON.parse(localBookmarks)
     if (localGroup) body.group = localGroup
 
-    const res = await fetch("/api/auth/register", {
+    const data = await fetchApi<{ user: User }>("/auth/register", {
       method: "POST",
-      headers: localeHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
     })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || "Greška prilikom registracije.")
     setUser(data.user)
     localStorage.removeItem("guest")
     setIsGuest(false)
   }
 
   const login = async (name: string, password: string) => {
-    const res = await fetch("/api/auth/login", {
+    const data = await fetchApi<{ user: User }>("/auth/login", {
       method: "POST",
-      headers: localeHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ name, password }),
     })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || "Greška prilikom prijave.")
     setUser(data.user)
     localStorage.removeItem("guest")
     setIsGuest(false)

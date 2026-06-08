@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react"
 import { useAuth } from "@/hooks/useAuth"
-import { localeHeaders } from "@/lib/api"
+import { fetchApi } from "@/lib/api"
 
 interface BookmarkContextValue {
   bookmarks: string[]
@@ -27,14 +27,11 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user?.id) return
     const thisFetch = ++fetchRef.current
-    fetch("/api/bookmarks", { headers: localeHeaders() })
-      .then((r) => r.json())
+    fetchApi<{ ids: string[] }>("/bookmarks")
       .then((data) => {
         if (thisFetch !== fetchRef.current) return
-        if (data.ids) {
-          setBookmarks(data.ids)
-          localStorage.setItem("bookmarks", JSON.stringify(data.ids))
-        }
+        setBookmarks(data.ids)
+        localStorage.setItem("bookmarks", JSON.stringify(data.ids))
       })
       .catch((fetchError) => {
         if (thisFetch !== fetchRef.current) return
@@ -60,12 +57,10 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
     })
     if (user) {
       try {
-        const res = await fetch("/api/bookmarks/add", {
+        await fetchApi("/bookmarks/add", {
           method: "POST",
-          headers: localeHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ materialId: id }),
         })
-        if (!res.ok) throw new Error("Failed to add bookmark")
       } catch (e) {
         setBookmarks((prev) => {
           const next = prev.filter((b) => b !== id)
@@ -85,12 +80,10 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
     })
     if (user) {
       try {
-        const res = await fetch("/api/bookmarks/remove", {
+        await fetchApi("/bookmarks/remove", {
           method: "POST",
-          headers: localeHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ materialId: id }),
         })
-        if (!res.ok) throw new Error("Failed to remove bookmark")
       } catch (e) {
         setBookmarks((prev) => {
           if (prev.includes(id)) return prev

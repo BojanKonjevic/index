@@ -1,31 +1,7 @@
 import { Hono } from "hono"
 import type { Bindings } from ".."
-import type { DashboardData, SubjectListItem, ExamEvent } from "@index/shared"
-import { mapMaterial } from "../lib/db"
-
-function mapSubjectListItem(row: Record<string, unknown>): SubjectListItem {
-  return {
-    id: row.id as string,
-    name: row.name as string,
-    semester: row.semester as number,
-    espb: row.espb as number,
-    elective: (row.elective as number) === 1,
-    electiveGroup: (row.elective_group as string) ?? null,
-    professors: JSON.parse((row.professors as string) || "[]"),
-    materialCount: row.material_count as number,
-  }
-}
-
-function mapExamEvent(row: Record<string, unknown>): ExamEvent {
-  return {
-    id: row.id as string,
-    subjectId: row.subject_id as string,
-    title: row.title as string,
-    date: row.date as string,
-    time: row.time as string,
-    location: row.location as string,
-  }
-}
+import type { DashboardData } from "@index/shared"
+import { mapMaterial, mapSubjectListItem, mapExamEvent } from "../lib/db"
 
 const app = new Hono<{ Bindings: Bindings }>()
 

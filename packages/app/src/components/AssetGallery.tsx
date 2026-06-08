@@ -1,10 +1,7 @@
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react"
 import type { MaterialAsset } from "@index/shared"
 import { useState, useCallback, useRef, useEffect } from "react"
-
-function fitZoom(containerW: number, containerH: number, naturalW: number, naturalH: number) {
-  return Math.min((containerW - 64) / naturalW, (containerH - 64) / naturalH, 1)
-}
+import { usePanZoom } from "@/hooks/usePanZoom"
 
 export default function AssetGallery({
   assets,
@@ -16,32 +13,27 @@ export default function AssetGallery({
   onIndexChange?: (index: number) => void
 }) {
   const [index, setIndex] = useState(Math.min(initialIndex, Math.max(assets.length - 1, 0)))
-  const [zoom, setZoom] = useState(1)
-  const zoomRef = useRef(zoom)
-  useEffect(() => {
-    zoomRef.current = zoom
-  }, [zoom])
-  const [offset, setOffset] = useState({ x: 0, y: 0 })
-  const [isPanning, setIsPanning] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
-  const containerSize = useRef({ w: 0, h: 0 })
-  const isDragging = useRef(false)
-  const dragStart = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 })
   const naturalSizes = useRef<Map<string, { w: number; h: number }>>(new Map())
+
+  const {
+    zoom,
+    setZoom,
+    setOffset,
+    offset,
+    isPanning,
+    containerSize,
+    resetView,
+    setZoomWithFit,
+    handlers,
+    handleZoomIn,
+    handleZoomOut,
+  } = usePanZoom(containerRef, imgRef)
 
   const current = assets[index]
   const hasPrev = index > 0
   const hasNext = index < assets.length - 1
-
-  useEffect(() => {
-    if (containerRef.current) {
-      containerSize.current = {
-        w: containerRef.current.clientWidth,
-        h: containerRef.current.clientHeight,
-      }
-    }
-  }, [])
 
   useEffect(() => {
     const clamped = Math.min(initialIndex, Math.max(assets.length - 1, 0))
@@ -49,94 +41,24 @@ export default function AssetGallery({
     setOffset({ x: 0, y: 0 })
     const cached = naturalSizes.current.get(assets[clamped]?.url)
     if (cached) {
-      const { w, h } = containerSize.current
-      setZoom(fitZoom(w, h, cached.w, cached.h))
-    } else {
-      setZoom(1)
+      setZoomWithFit(cached.w, cached.h)
     }
-  }, [initialIndex, assets.length])
-
-  const clampOffset = useCallback((x: number, y: number) => {
-    const img = imgRef.current
-    if (!img) return { x, y }
-    const cw = containerSize.current.w
-    const ch = containerSize.current.h
-    const iw = img.clientWidth
-    const ih = img.clientHeight
-    const z = zoomRef.current
-    const maxX = Math.max(0, (iw * z - cw) / 2)
-    const maxY = Math.max(0, (ih * z - ch) / 2)
-    return {
-      x: Math.min(Math.max(x, -maxX), maxX),
-      y: Math.min(Math.max(y, -maxY), maxY),
-    }
-  }, [])
-
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.button !== 0) return
-      isDragging.current = true
-      dragStart.current = {
-        x: e.clientX,
-        y: e.clientY,
-        offsetX: offset.x,
-        offsetY: offset.y,
-      }
-      setIsPanning(true)
-      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-    },
-    [offset],
-  )
-
-  const handlePointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!isDragging.current) return
-      const dx = e.clientX - dragStart.current.x
-      const dy = e.clientY - dragStart.current.y
-      const newOffset = clampOffset(dragStart.current.offsetX + dx, dragStart.current.offsetY + dy)
-      setOffset(newOffset)
-    },
-    [clampOffset],
-  )
-
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    isDragging.current = false
-    setIsPanning(false)
-    ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
-  }, [])
+  }, [initialIndex, assets.length, setOffset, setZoomWithFit])
 
   const goTo = useCallback(
     (i: number) => {
       setIndex(i)
-      setOffset({ x: 0, y: 0 })
-      if (containerRef.current) {
-        containerSize.current = {
-          w: containerRef.current.clientWidth,
-          h: containerRef.current.clientHeight,
-        }
-      }
+      resetView()
       const cached = naturalSizes.current.get(assets[i]?.url)
       if (cached) {
-        const { w, h } = containerSize.current
-        setZoom(fitZoom(w, h, cached.w, cached.h))
+        setZoomWithFit(cached.w, cached.h)
       } else {
         setZoom(1)
       }
       onIndexChange?.(i)
     },
-    [onIndexChange, assets],
+    [onIndexChange, assets, resetView, setZoomWithFit, setZoom, containerSize],
   )
-
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault()
-    setZoom((z) => {
-      const delta = e.deltaY > 0 ? 0.9 : 1.1
-      return Math.min(Math.max(z * delta, 0.1), 5)
-    })
-  }, [])
-
-  const handleZoomIn = () => setZoom((z) => Math.min(z * 1.25, 5))
-  const handleZoomOut = () => setZoom((z) => Math.max(z / 1.25, 0.1))
 
   if (assets.length === 0) return null
 
@@ -144,10 +66,10 @@ export default function AssetGallery({
     <div className="grid grid-rows-[1fr_auto] flex-1 min-h-0">
       <div
         ref={containerRef}
-        onWheel={handleWheel}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
+        onWheel={handlers.onWheel}
+        onPointerDown={handlers.onPointerDown}
+        onPointerMove={handlers.onPointerMove}
+        onPointerUp={handlers.onPointerUp}
         className="flex items-center justify-center overflow-hidden bg-[var(--bg-surface)] relative select-none"
         style={{ touchAction: isPanning ? "none" : "pinch-zoom" }}
       >
@@ -180,10 +102,8 @@ export default function AssetGallery({
           alt=""
           onLoad={(e) => {
             const img = e.target as HTMLImageElement
-            const { w, h } = containerSize.current
-            if (w > 0 && img.naturalWidth > 0) {
-              const fit = fitZoom(w, h, img.naturalWidth, img.naturalHeight)
-              setZoom(fit)
+            if (containerSize.current.w > 0 && img.naturalWidth > 0) {
+              setZoomWithFit(img.naturalWidth, img.naturalHeight)
               naturalSizes.current.set(current.url, { w: img.naturalWidth, h: img.naturalHeight })
             }
           }}

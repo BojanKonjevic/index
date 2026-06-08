@@ -8,14 +8,12 @@ import {
   Star,
   FileText,
   FileImage,
-  Loader2,
   ChevronLeft,
   ChevronRight,
   Layers as LayersIcon,
 } from "lucide-react"
 
 import { fetchSubject } from "@/lib/api"
-import { cn } from "@/lib/utils"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useI18n } from "@/hooks/useI18n"
@@ -24,18 +22,14 @@ import ExpandableAssets from "@/components/ExpandableAssets"
 import type { Material, MaterialAsset } from "@index/shared"
 import { CATEGORY_ORDER } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Document, Page, pdfjs } from "react-pdf"
-import "react-pdf/dist/Page/TextLayer.css"
-import "react-pdf/dist/Page/AnnotationLayer.css"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import ImageViewer from "@/components/ImageViewer"
 import VideoViewer from "@/components/VideoViewer"
 import AssetGallery from "@/components/AssetGallery"
 import { typeIconMap, typeTagStyles, typeBadgeStyles } from "@/lib/styles"
 
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
+const PdfViewer = lazy(() => import("@/components/PdfViewer"))
 
 export const Route = createFileRoute("/subjects/$subjectId/materials/$materialId/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -466,7 +460,18 @@ function ViewerPage() {
               }}
             />
           ) : material!.fileType === "image" ? (
-            <ImageViewer url={material.url} />
+            <AssetGallery
+              assets={[
+                {
+                  id: material.id,
+                  materialId: material.id,
+                  pageNumber: 1,
+                  name: material.title,
+                  fileType: "image",
+                  url: material.url,
+                },
+              ]}
+            />
           ) : material.fileType === "video" ? (
             <VideoViewer url={material.url} />
           ) : !material.url ? (
@@ -474,83 +479,33 @@ function ViewerPage() {
               {t("viewer.no_url")}
             </div>
           ) : (
-            <div
-              ref={parentRef}
-              onScroll={handleScroll}
-              className={cn(
-                "flex-1 overflow-auto md:px-8 px-0 py-6 transition-colors",
-                inverted ? "bg-bg-surface" : "bg-pdf-bg",
-              )}
+            <Suspense
+              fallback={
+                <div className="flex-1 flex items-center justify-center pt-20 text-sm text-[var(--text-secondary)]">
+                  {t("viewer.loading")}
+                </div>
+              }
             >
-              <Document
-                file={material.url}
-                onLoadSuccess={async (pdf) => {
-                  setNumPages(pdf.numPages)
-                  setPdfLoading(false)
-                  const page = await pdf.getPage(1)
-                  const vp = page.getViewport({ scale: 1 })
-                  setNaturalPageWidth(vp.width)
+              <PdfViewer
+                url={material.url}
+                zoom={zoom}
+                inverted={inverted}
+                parentRef={parentRef}
+                virtualizer={virtualizer}
+                onLoadSuccess={(numPages, naturalPageWidth) => {
+                  setNumPages(numPages)
+                  setNaturalPageWidth(naturalPageWidth)
                   if (parentRef.current) {
-                    setZoom((parentRef.current.clientWidth - 64) / vp.width)
+                    setZoom((parentRef.current.clientWidth - 64) / naturalPageWidth)
                   }
                 }}
-                onLoadError={() => {
-                  setPdfError(
-                    t("viewer.load_error_fmt", {
-                      type: t(`materialType.${material?.fileType || "pdf"}`) || "PDF",
-                    }),
-                  )
-                  setPdfLoading(false)
-                }}
-                loading={null}
-              >
-                {pdfLoading && (
-                  <div className="flex items-center gap-2 pt-20 text-sm text-[var(--text-secondary)]">
-                    <Loader2 className="size-5 animate-spin" />
-                    {t("viewer.loading")}
-                  </div>
-                )}
-                {pdfError && (
-                  <div className="flex items-center justify-center pt-20 text-sm text-[var(--text-secondary)]">
-                    {pdfError}
-                  </div>
-                )}
-
-                <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
-                  {virtualizer.getVirtualItems().map((virtualItem) => (
-                    <div
-                      key={virtualItem.key}
-                      data-index={virtualItem.index}
-                      ref={virtualizer.measureElement}
-                      style={{
-                        position: "absolute",
-                        top: virtualItem.start,
-                        left: 0,
-                        right: 0,
-                        display: "flex",
-                        justifyContent: "center",
-                        paddingBottom: "16px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
-                          filter: inverted ? "invert(1)" : "none",
-                        }}
-                      >
-                        <Page
-                          pageNumber={virtualItem.index + 1}
-                          scale={zoom}
-                          renderTextLayer={true}
-                          renderAnnotationLayer={true}
-                          loading={null}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Document>
-            </div>
+                onLoadError={(error) => setPdfError(error)}
+                setPdfLoading={setPdfLoading}
+                handleScroll={handleScroll}
+                pdfLoading={pdfLoading}
+                pdfError={pdfError}
+              />
+            </Suspense>
           )}
         </div>
 

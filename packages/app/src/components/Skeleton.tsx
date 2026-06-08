@@ -10,7 +10,7 @@ export function Skeleton() {
           <div className="mb-2 px-2">
             <div className="h-2.5 w-16 rounded bg-[var(--bg-subtle)] skeleton" />
           </div>
-          {[1, 2, 3].map((i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
               className="flex items-center gap-2 rounded-[0.438rem] px-[0.563rem] py-[0.438rem]"
@@ -22,7 +22,7 @@ export function Skeleton() {
           <div className="mt-6 mb-2 px-2">
             <div className="h-2.5 w-14 rounded bg-[var(--bg-subtle)] skeleton" />
           </div>
-          {[1, 2].map((i) => (
+          {Array.from({ length: 2 }).map((_, i) => (
             <div
               key={i}
               className="flex items-center gap-2 rounded-[0.438rem] px-[0.563rem] py-[0.438rem]"
@@ -42,7 +42,7 @@ export function Skeleton() {
             <div className="h-2.5 w-28 rounded bg-[var(--bg-subtle)] skeleton" />
             <div className="h-px flex-1 bg-[var(--border-faint)]" />
           </div>
-          {[1, 2, 3].map((i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
               className="mb-2 flex items-center gap-3 rounded-[0.563rem] border border-[var(--border-default)] bg-bg-surface px-3.5 py-2.5"
@@ -57,7 +57,7 @@ export function Skeleton() {
         </div>
       </main>
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-14 items-center border-t bg-bg-surface border-[var(--border-default)] pb-safe md:hidden">
-        {[1, 2, 3, 4].map((i) => (
+        {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="flex flex-1 flex-col items-center justify-center gap-0.5">
             <div className="size-[1.125rem] rounded bg-[var(--bg-subtle)] skeleton" />
           </div>

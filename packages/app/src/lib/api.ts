@@ -16,6 +16,19 @@ export function localeHeaders(extra?: Record<string, string>): Record<string, st
   }
 }
 
+export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const headers = localeHeaders(options.headers as Record<string, string>)
+  if (options.body && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json"
+  }
+
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers })
+  const data = await res.json()
+
+  if (!res.ok) throw new Error(data.error || "API Error")
+  return data as T
+}
+
 export async function fetchSubjects(): Promise<SubjectListItem[]> {
   const res = await fetch(`${API_BASE}/subjects`)
   if (!res.ok) throw new Error("Failed to fetch subjects")
