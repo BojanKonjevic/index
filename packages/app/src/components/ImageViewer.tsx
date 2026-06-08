@@ -9,13 +9,69 @@ function fitZoom(containerW: number, containerH: number, naturalW: number, natur
 export default function ImageViewer({ url }: { url: string }) {
   const { t } = useI18n()
   const [zoom, setZoom] = useState(1)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [isPanning, setIsPanning] = useState(false)
   const imgRef = useRef<HTMLImageElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const containerSize = useRef({ w: 0, h: 0 })
+  const isDragging = useRef(false)
+  const dragStart = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 })
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const refCallback = useCallback((node: HTMLDivElement | null) => {
     containerRef.current = node
+  }, [])
+
+  const clampOffset = useCallback(
+    (x: number, y: number) => {
+      const img = imgRef.current
+      if (!img) return { x, y }
+      const cw = containerSize.current.w
+      const ch = containerSize.current.h
+      const iw = img.clientWidth
+      const ih = img.clientHeight
+      const maxX = Math.max(0, (iw * zoom - cw) / 2)
+      const maxY = Math.max(0, (ih * zoom - ch) / 2)
+      return {
+        x: Math.min(Math.max(x, -maxX), maxX),
+        y: Math.min(Math.max(y, -maxY), maxY),
+      }
+    },
+    [zoom],
+  )
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button !== 0) return
+      isDragging.current = true
+      dragStart.current = {
+        x: e.clientX,
+        y: e.clientY,
+        offsetX: offset.x,
+        offsetY: offset.y,
+      }
+      setIsPanning(true)
+      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    },
+    [offset],
+  )
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isDragging.current) return
+      const dx = e.clientX - dragStart.current.x
+      const dy = e.clientY - dragStart.current.y
+      const newOffset = clampOffset(dragStart.current.offsetX + dx, dragStart.current.offsetY + dy)
+      setOffset(newOffset)
+    },
+    [clampOffset],
+  )
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    isDragging.current = false
+    setIsPanning(false)
+    ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
   }, [])
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -30,7 +86,11 @@ export default function ImageViewer({ url }: { url: string }) {
     <div
       ref={refCallback}
       onWheel={handleWheel}
-      className="flex-1 flex items-center justify-center overflow-hidden bg-[var(--bg-surface)] relative"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      className="flex-1 flex items-center justify-center overflow-hidden bg-[var(--bg-surface)] relative select-none"
+      style={{ touchAction: isPanning ? "none" : "pinch-zoom" }}
     >
       {loading && !error && (
         <div className="text-sm text-[var(--text-secondary)]">{t("viewer.loading")}</div>
@@ -49,6 +109,10 @@ export default function ImageViewer({ url }: { url: string }) {
           const img = e.target as HTMLImageElement
           const container = containerRef.current
           if (container && img.naturalWidth > 0) {
+            containerSize.current = {
+              w: container.clientWidth,
+              h: container.clientHeight,
+            }
             setZoom(
               fitZoom(
                 container.clientWidth,
@@ -61,9 +125,9 @@ export default function ImageViewer({ url }: { url: string }) {
         }}
         onError={() => setError(true)}
         style={{
-          transform: `scale(${zoom})`,
+          transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
         }}
-        className="max-w-none transition-transform duration-100"
+        className={`max-w-none ${isPanning ? "cursor-grabbing" : "cursor-grab"} ${isPanning ? "" : "transition-transform duration-100"}`}
         draggable={false}
       />
 
