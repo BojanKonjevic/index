@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useAuth } from "@/hooks/useAuth"
+import { fetchApi } from "@/lib/api"
 
 export interface RecentItem {
   materialId: string
@@ -14,6 +16,7 @@ export interface RecentItem {
 }
 
 export function useRecentlyOpened() {
+  const { user } = useAuth()
   const [recent, setRecent] = useState<RecentItem[]>(() => {
     if (typeof window === "undefined") return []
     try {
@@ -23,6 +26,31 @@ export function useRecentlyOpened() {
       return []
     }
   })
+  const fetchRef = useRef(0)
+
+  useEffect(() => {
+    if (!user?.id) return
+    const thisFetch = ++fetchRef.current
+    fetchApi<{ items: RecentItem[] }>("/history")
+      .then((data) => {
+        if (thisFetch !== fetchRef.current) return
+        setRecent(data.items)
+        localStorage.setItem("recentlyOpened", JSON.stringify(data.items))
+      })
+      .catch((fetchError) => {
+        if (thisFetch !== fetchRef.current) return
+        console.error("Failed to fetch history from API:", fetchError)
+        const stored = localStorage.getItem("recentlyOpened")
+        if (stored) {
+          try {
+            setRecent(JSON.parse(stored))
+          } catch (parseError) {
+            console.error("Failed to parse history from localStorage:", parseError)
+            setRecent([])
+          }
+        }
+      })
+  }, [user?.id])
 
   useEffect(() => {
     const handler = (e: StorageEvent) => {
@@ -45,6 +73,12 @@ export function useRecentlyOpened() {
       localStorage.setItem("recentlyOpened", JSON.stringify(next))
       return next
     })
+    if (user) {
+      fetchApi("/history", {
+        method: "POST",
+        body: JSON.stringify({ materialId: item.materialId }),
+      }).catch((e) => console.error("Failed to sync history:", e))
+    }
   }
 
   return { recent, addRecent }

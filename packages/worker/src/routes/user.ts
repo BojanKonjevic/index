@@ -3,6 +3,7 @@ import { msg } from "../lib/i18n"
 import { getValidatedSessionUser, requireAuth } from "../lib/session"
 import {
   addBookmarkSchema,
+  addHistorySchema,
   removeBookmarkSchema,
   updatePreferencesSchema,
 } from "@index/shared/schemas"
@@ -68,6 +69,59 @@ app.post("/bookmarks/remove", requireAuth, async (c) => {
   const { materialId } = parsed.data
   await c.env.DB.prepare("DELETE FROM bookmarks WHERE user_id = ? AND material_id = ?")
     .bind(user.id, materialId)
+    .run()
+
+  return c.json({ ok: true })
+})
+
+app.get("/history", requireAuth, async (c) => {
+  const user = c.get("user")
+  const rows = await c.env.DB.prepare(
+    `SELECT vh.visited_at, m.*, s.name as subject_name,
+            (SELECT COUNT(*) FROM material_assets WHERE material_id = m.id) as asset_count
+     FROM visit_history vh
+     JOIN materials m ON m.id = vh.material_id
+     JOIN subjects s ON s.id = m.subject_id
+     WHERE vh.user_id = ?
+     ORDER BY vh.visited_at DESC
+     LIMIT 50`,
+  )
+    .bind(user.id)
+    .all<Record<string, unknown>>()
+
+  const items = rows.results.map((r) => {
+    const m = mapMaterial(r)
+    return {
+      materialId: m.id,
+      subjectId: m.subjectId,
+      title: m.title,
+      subjectName: r.subject_name as string,
+      fileType: m.fileType,
+      category: m.category,
+      examPart: m.examPart,
+      solved: m.solved,
+      assetCount: m.assetCount ?? 0,
+      timestamp: new Date(r.visited_at as string).getTime(),
+    }
+  })
+
+  return c.json({ items })
+})
+
+app.post("/history", requireAuth, async (c) => {
+  const user = c.get("user")
+  const raw = await c.req.json()
+  const parsed = addHistorySchema.safeParse(raw)
+  if (!parsed.success) return c.json({ error: msg(c, "auth.material_id_required") }, 400)
+  const { materialId } = parsed.data
+
+  const id = crypto.randomUUID()
+  await c.env.DB.prepare(
+    `INSERT INTO visit_history (id, user_id, material_id, visited_at)
+     VALUES (?, ?, ?, datetime('now'))
+     ON CONFLICT(user_id, material_id) DO UPDATE SET visited_at = datetime('now')`,
+  )
+    .bind(id, user.id, materialId)
     .run()
 
   return c.json({ ok: true })

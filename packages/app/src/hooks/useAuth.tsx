@@ -49,9 +49,14 @@ function useAuthLogic(): AuthContextType {
   const register = async (name: string, password: string) => {
     const localBookmarks = localStorage.getItem("bookmarks")
     const localGroup = localStorage.getItem("group")
+    const localHistory = localStorage.getItem("recentlyOpened")
     const body: Record<string, unknown> = { name, password }
     if (localBookmarks) body.bookmarks = JSON.parse(localBookmarks)
     if (localGroup) body.group = localGroup
+    if (localHistory) {
+      const items: { materialId: string }[] = JSON.parse(localHistory)
+      body.history = items.map((i) => i.materialId)
+    }
 
     const data = await fetchApi<{ user: User }>("/auth/register", {
       method: "POST",

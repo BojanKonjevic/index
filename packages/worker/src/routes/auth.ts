@@ -100,7 +100,7 @@ app.post("/auth/register", async (c) => {
     if (issue.path[0] === "name") return c.json({ error: msg(c, "auth.name_length") }, 400)
     return c.json({ error: msg(c, "auth.password_length") }, 400)
   }
-  const { name, password, bookmarks, group } = parsed.data
+  const { name, password, bookmarks, group, history } = parsed.data
 
   const existing = await c.env.DB.prepare("SELECT id FROM users WHERE name = ?").bind(name).first()
   if (existing) return c.json({ error: msg(c, "auth.username_taken") }, 409)
@@ -131,6 +131,17 @@ app.post("/auth/register", async (c) => {
          ON CONFLICT(user_id) DO UPDATE SET group_number = ?, updated_at = datetime('now')`,
       ).bind(userId, group, group),
     )
+  }
+
+  if (Array.isArray(history) && history.length > 0) {
+    for (const materialId of history) {
+      stmts.push(
+        c.env.DB.prepare(
+          `INSERT OR IGNORE INTO visit_history (id, user_id, material_id, visited_at)
+           VALUES (?, ?, ?, datetime('now'))`,
+        ).bind(crypto.randomUUID(), userId, materialId),
+      )
+    }
   }
 
   if (stmts.length > 0) {

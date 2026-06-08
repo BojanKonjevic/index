@@ -5,6 +5,7 @@ export const registerSchema = z.object({
   password: z.string().min(4).max(128),
   bookmarks: z.array(z.string()).optional(),
   group: z.string().optional(),
+  history: z.array(z.string()).optional(),
 })
 
 export const loginSchema = z.object({
@@ -24,8 +25,13 @@ export const updatePreferencesSchema = z.object({
   group: z.string().optional(),
 })
 
+export const addHistorySchema = z.object({
+  materialId: z.string().min(1),
+})
+
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type AddBookmarkInput = z.infer<typeof addBookmarkSchema>
 export type RemoveBookmarkInput = z.infer<typeof removeBookmarkSchema>
+export type AddHistoryInput = z.infer<typeof addHistorySchema>
 export type UpdatePreferencesInput = z.infer<typeof updatePreferencesSchema>
