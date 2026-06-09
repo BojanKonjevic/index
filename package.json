@@ -9,6 +9,9 @@
     "format:fix": "prettier --write --ignore-unknown .",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:worker": "pnpm -F worker test",
+    "test:app": "pnpm -F app test",
     "check": "pnpm format && pnpm lint && pnpm typecheck",
     "db:migrate": "pnpm -F worker db:migrate",
     "db:migrate:local": "pnpm -F worker db:migrate:local",
@@ -17,7 +20,7 @@
   },
   "lint-staged": {
     "*": "prettier --write --ignore-unknown",
-    "*.{ts,tsx}": "pnpm -F app exec eslint --fix"
+    "packages/app/**/*.{ts,tsx}": "pnpm -F app exec eslint --fix"
   },
   "devDependencies": {
     "husky": "^9.1.7",
