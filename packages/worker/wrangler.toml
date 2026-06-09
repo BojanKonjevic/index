@@ -5,7 +5,7 @@ compatibility_date = "2026-06-05"
 [[d1_databases]]
 binding = "DB"
 database_name = "index-db"
-database_id = "dc88caa9-8d1a-4b10-b43a-6189a7aaf87a"
+database_id = "2d8c407f-f022-483d-9438-b4c64b5ab313"
 migrations_dir = "migrations"
 
 [[r2_buckets]]

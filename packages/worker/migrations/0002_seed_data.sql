@@ -1,6 +1,3 @@
--- Migration number: 0016
--- Seeds real data for matematicka-analiza-2
-
 INSERT OR IGNORE INTO subjects (id, name, semester, espb, elective, elective_group, description, professors, assistants)
 VALUES ('matematicka-analiza-2', 'Matematička analiza 2', 4, 8, 0, NULL, 'Funkcije više promenljivih, višestruki integrali, linijski i površinski integrali, redovi, obične diferencijalne jednačine.', '[]', '[]');
 
