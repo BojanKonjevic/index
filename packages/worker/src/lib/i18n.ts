@@ -37,6 +37,10 @@ const messages: Record<string, Record<Locale, string>> = {
     sr: "Nije pronađeno.",
     en: "Not found.",
   },
+  "error.rate_limited": {
+    sr: "Previše zahteva. Pokušajte ponovo kasnije.",
+    en: "Too many requests. Please try again later.",
+  },
   "error.internal": {
     sr: "Interna greška servera.",
     en: "Internal server error.",

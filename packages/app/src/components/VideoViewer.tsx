@@ -28,6 +28,7 @@ export default function VideoViewer({ url }: { url: string }) {
             className="w-full h-full rounded"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            sandbox="allow-scripts allow-same-origin allow-presentation"
           />
         </div>
       </div>

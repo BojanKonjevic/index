@@ -34,7 +34,16 @@ function parseRangeHeader(header: string): R2Range | undefined {
 const app = new Hono<{ Bindings: Bindings }>()
 
 app.get("/file/*", async (c) => {
-  const path = c.req.path.replace(/^\/api\/file\//, "")
+  const rawPath = c.req.path.replace(/^\/api\/file\//, "")
+
+  const path = rawPath
+    .split("/")
+    .reduce<string[]>((acc, segment) => {
+      if (segment === "..") acc.pop()
+      else if (segment !== "." && segment !== "") acc.push(segment)
+      return acc
+    }, [])
+    .join("/")
 
   const rangeHeader = c.req.header("Range")
   const range = rangeHeader ? parseRangeHeader(rangeHeader) : undefined
@@ -50,7 +59,13 @@ app.get("/file/*", async (c) => {
   const headers = new Headers()
   headers.set("Content-Type", contentType)
   headers.set("Cache-Control", "public, max-age=86400")
-  headers.set("Access-Control-Allow-Origin", "*")
+  const origin = c.req.header("Origin")
+  if (origin) {
+    headers.set("Access-Control-Allow-Origin", origin)
+    headers.set("Vary", "Origin")
+  } else {
+    headers.set("Access-Control-Allow-Origin", "*")
+  }
   headers.set("ETag", object.httpEtag)
   headers.set("Accept-Ranges", "bytes")
   if (object.uploaded) {

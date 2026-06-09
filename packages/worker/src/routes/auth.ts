@@ -1,5 +1,7 @@
 import { Hono } from "hono"
+import { bodyLimit } from "hono/body-limit"
 import { msg } from "../lib/i18n"
+import { rateLimit } from "../lib/rate-limit"
 import {
   createSessionCookie,
   clearSessionCookie,
@@ -91,7 +93,9 @@ async function verifyPassword(password: string, stored: string): Promise<VerifyR
 
 const app = new Hono<{ Bindings: { DB: D1Database; SESSION_SECRET: string } }>()
 
-app.post("/auth/register", async (c) => {
+const authLimiter = rateLimit({ maxRequests: 10, windowMs: 60_000 })
+
+app.post("/auth/register", authLimiter, bodyLimit({ maxSize: 1024 * 10 }), async (c) => {
   const raw = await c.req.json()
   const parsed = registerSchema.safeParse(raw)
   if (!parsed.success) {
@@ -147,6 +151,8 @@ app.post("/auth/register", async (c) => {
     await c.env.DB.batch(stmts)
   }
 
+  await c.env.DB.prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run()
+
   const sessionId = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS).toISOString()
   await c.env.DB.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)")
@@ -158,7 +164,7 @@ app.post("/auth/register", async (c) => {
   return c.json({ user: { id: userId, name: name } }, 201)
 })
 
-app.post("/auth/login", async (c) => {
+app.post("/auth/login", authLimiter, bodyLimit({ maxSize: 1024 * 10 }), async (c) => {
   const raw = await c.req.json()
   const parsed = loginSchema.safeParse(raw)
   if (!parsed.success) return c.json({ error: msg(c, "auth.required") }, 400)
@@ -177,6 +183,8 @@ app.post("/auth/login", async (c) => {
       .bind(result.newHash, user.id)
       .run()
   }
+
+  await c.env.DB.prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run()
 
   const sessionId = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS).toISOString()

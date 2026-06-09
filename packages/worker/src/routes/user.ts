@@ -1,4 +1,5 @@
 import { Hono } from "hono"
+import { bodyLimit } from "hono/body-limit"
 import { msg } from "../lib/i18n"
 import { getValidatedSessionUser, requireAuth } from "../lib/session"
 import {
@@ -44,7 +45,7 @@ app.get("/bookmarks", requireAuth, async (c) => {
   return c.json({ ids: rows.results.map((r) => r.material_id) })
 })
 
-app.post("/bookmarks/add", requireAuth, async (c) => {
+app.post("/bookmarks/add", bodyLimit({ maxSize: 1024 * 10 }), requireAuth, async (c) => {
   const user = c.get("user")
   const raw = await c.req.json()
   const parsed = addBookmarkSchema.safeParse(raw)
@@ -61,7 +62,7 @@ app.post("/bookmarks/add", requireAuth, async (c) => {
   return c.json({ ok: true })
 })
 
-app.post("/bookmarks/remove", requireAuth, async (c) => {
+app.post("/bookmarks/remove", bodyLimit({ maxSize: 1024 * 10 }), requireAuth, async (c) => {
   const user = c.get("user")
   const raw = await c.req.json()
   const parsed = removeBookmarkSchema.safeParse(raw)
@@ -108,7 +109,7 @@ app.get("/history", requireAuth, async (c) => {
   return c.json({ items })
 })
 
-app.post("/history", requireAuth, async (c) => {
+app.post("/history", bodyLimit({ maxSize: 1024 * 10 }), requireAuth, async (c) => {
   const user = c.get("user")
   const raw = await c.req.json()
   const parsed = addHistorySchema.safeParse(raw)
@@ -136,7 +137,7 @@ app.get("/preferences", requireAuth, async (c) => {
   return c.json({ group: row?.group_number ?? null })
 })
 
-app.put("/preferences", requireAuth, async (c) => {
+app.put("/preferences", bodyLimit({ maxSize: 1024 * 10 }), requireAuth, async (c) => {
   const user = c.get("user")
   const raw = await c.req.json()
   const parsed = updatePreferencesSchema.safeParse(raw)
