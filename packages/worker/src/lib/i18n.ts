@@ -29,6 +29,10 @@ const messages: Record<string, Record<Locale, string>> = {
     sr: "ID materijala je obavezan.",
     en: "Material ID is required.",
   },
+  "preferences.invalid": {
+    sr: "Neispravni podaci za podešavanja.",
+    en: "Invalid preferences data.",
+  },
   "error.notFound": {
     sr: "Nije pronađeno.",
     en: "Not found.",

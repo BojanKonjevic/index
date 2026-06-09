@@ -60,6 +60,8 @@ async function verify(token: string, secret: string): Promise<SessionPayload | n
   }
 }
 
+const SESSION_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000
+
 export async function createSessionCookie(
   c: Context,
   sessionId: string,
@@ -67,7 +69,7 @@ export async function createSessionCookie(
   name: string,
   secret: string,
 ) {
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS).toISOString()
   const payload: SessionPayload = { sessionId, userId, name, expiresAt }
   const token = await sign(payload, secret)
   setCookie(c, "session", token, {

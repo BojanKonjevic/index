@@ -8,6 +8,7 @@ import { toggleTheme, getInitialTheme } from "@/lib/theme"
 export function WelcomeScreen() {
   const { continueAsGuest } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
+  const [authMode, setAuthMode] = useState<"login" | "register">("login")
   const { t, toggleLocale, locale } = useI18n()
   const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme)
 
@@ -34,7 +35,10 @@ export function WelcomeScreen() {
 
         <div className="mt-9 flex w-full flex-col gap-2.5">
           <button
-            onClick={() => setAuthOpen(true)}
+            onClick={() => {
+              setAuthMode("login")
+              setAuthOpen(true)
+            }}
             className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-sm font-medium text-white transition-all duration-100 hover:opacity-85 active:scale-[0.98]"
           >
             <LogIn className="size-4" />
@@ -42,7 +46,10 @@ export function WelcomeScreen() {
           </button>
 
           <button
-            onClick={() => setAuthOpen(true)}
+            onClick={() => {
+              setAuthMode("register")
+              setAuthOpen(true)
+            }}
             className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[var(--border-default)] text-sm font-medium text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] active:scale-[0.98]"
             style={{ background: "var(--bg-surface)" }}
           >
@@ -97,7 +104,12 @@ export function WelcomeScreen() {
         </div>
       </div>
 
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <AuthModal
+        key={authMode}
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        initialMode={authMode}
+      />
     </div>
   )
 }

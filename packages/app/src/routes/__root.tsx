@@ -28,6 +28,7 @@ import { useI18n } from "@/hooks/useI18n"
 import { Skeleton } from "@/components/Skeleton"
 
 const GROUP_NUMBERS = Array.from({ length: 14 }, (_, i) => i + 1)
+const SETTINGS_CLOSE_DELAY_MS = 200
 
 function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof Home; label: string }) {
   const location = useLocation()
@@ -86,7 +87,7 @@ function BottomTabBar({
         {tabs.map((tab) => {
           if (tab.isSettings) {
             return (
-              <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
+              <Sheet key="settings" open={settingsOpen} onOpenChange={setSettingsOpen}>
                 <SheetTrigger className="flex flex-1 flex-col items-center justify-center h-full gap-0.5 text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors duration-100">
                   <SlidersHorizontal className="size-[1.125rem]" />
                 </SheetTrigger>
@@ -139,7 +140,7 @@ function BottomTabBar({
                         <button
                           onClick={() => {
                             setSettingsOpen(false)
-                            setTimeout(() => setAuthOpen(true), 200)
+                            setTimeout(() => setAuthOpen(true), SETTINGS_CLOSE_DELAY_MS)
                           }}
                           className="flex w-full cursor-pointer items-center gap-2 rounded-[0.438rem] px-3 py-2.5 text-[0.813rem] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-subtle)]"
                         >

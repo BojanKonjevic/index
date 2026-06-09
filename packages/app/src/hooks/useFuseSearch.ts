@@ -12,14 +12,7 @@ export function useFuseSearch<T>(
     () =>
       new Fuse(items, {
         ...options,
-        getFn: (obj: unknown, path: string | string[]) => {
-          const keys = Array.isArray(path) ? path : [path]
-          let value: unknown = obj
-          for (const key of keys) {
-            value = (value as Record<string, unknown>)?.[key]
-          }
-          return normalizeSr(String(value ?? ""))
-        },
+        ignoreDiacritics: true,
       }),
     [items, options],
   )

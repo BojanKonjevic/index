@@ -13,11 +13,11 @@ export const Route = createFileRoute("/bookmarks/")({
   loader: async () => {
     const isGuest = typeof window !== "undefined" && localStorage.getItem("guest") === "true"
     if (isGuest) {
-      const [dashboard, stored] = await Promise.all([
-        fetchDashboard(),
-        Promise.resolve(localStorage.getItem("bookmarks")),
-      ])
-      const bookmarkIds: string[] = stored ? JSON.parse(stored) : []
+      const stored = localStorage.getItem("bookmarks")
+      if (!stored) return { materials: [], subjectNameMap: {} }
+      const bookmarkIds: string[] = JSON.parse(stored)
+      if (bookmarkIds.length === 0) return { materials: [], subjectNameMap: {} }
+      const dashboard = await fetchDashboard()
       const materials = dashboard.materials.filter((m) => bookmarkIds.includes(m.id))
       return { materials, subjectNameMap: dashboard.subjectNameMap }
     }

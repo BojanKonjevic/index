@@ -15,6 +15,10 @@ export interface RecentItem {
   timestamp: number
 }
 
+function persistRecent(items: RecentItem[]) {
+  localStorage.setItem("recentlyOpened", JSON.stringify(items))
+}
+
 export function useRecentlyOpened() {
   const { user } = useAuth()
   const [recent, setRecent] = useState<RecentItem[]>(() => {
@@ -26,6 +30,10 @@ export function useRecentlyOpened() {
       return []
     }
   })
+  const recentRef = useRef(recent)
+  useEffect(() => {
+    recentRef.current = recent
+  }, [recent])
   const fetchRef = useRef(0)
 
   useEffect(() => {
@@ -35,7 +43,7 @@ export function useRecentlyOpened() {
       .then((data) => {
         if (thisFetch !== fetchRef.current) return
         setRecent(data.items)
-        localStorage.setItem("recentlyOpened", JSON.stringify(data.items))
+        persistRecent(data.items)
       })
       .catch((fetchError) => {
         if (thisFetch !== fetchRef.current) return
@@ -68,12 +76,10 @@ export function useRecentlyOpened() {
 
   const addRecent = useCallback(
     (item: RecentItem) => {
-      setRecent((prev) => {
-        const filtered = prev.filter((r) => r.materialId !== item.materialId)
-        const next = [item, ...filtered].slice(0, 20)
-        localStorage.setItem("recentlyOpened", JSON.stringify(next))
-        return next
-      })
+      const filtered = recentRef.current.filter((r) => r.materialId !== item.materialId)
+      const next = [item, ...filtered].slice(0, 20)
+      setRecent(next)
+      persistRecent(next)
       if (user) {
         fetchApi("/history", {
           method: "POST",

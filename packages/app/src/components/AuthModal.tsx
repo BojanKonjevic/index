@@ -6,13 +6,14 @@ import { useI18n } from "@/hooks/useI18n"
 interface AuthModalProps {
   open: boolean
   onClose: () => void
+  initialMode?: "login" | "register"
 }
 
 type Mode = "login" | "register"
 
-export function AuthModal({ open, onClose }: AuthModalProps) {
+export function AuthModal({ open, onClose, initialMode = "login" }: AuthModalProps) {
   const { login, register } = useAuth()
-  const [mode, setMode] = useState<Mode>("login")
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [name, setName] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")

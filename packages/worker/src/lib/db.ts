@@ -1,5 +1,14 @@
 import type { Material, MaterialAsset, SubjectListItem, ExamEvent } from "@index/shared"
 
+function safeJsonParse<T>(raw: unknown, fallback: T): T {
+  if (typeof raw !== "string") return fallback
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return fallback
+  }
+}
+
 export function mapMaterial(row: Record<string, unknown>): Material {
   return {
     id: row.id as string,
@@ -10,7 +19,7 @@ export function mapMaterial(row: Record<string, unknown>): Material {
     solved: row.solved === null ? null : (row.solved as number) === 1,
     fileType: row.file_type as Material["fileType"],
     url: row.url as string,
-    tags: JSON.parse((row.tags as string) || "[]"),
+    tags: safeJsonParse<string[]>(row.tags, []),
     pageCount: row.page_count as number | undefined,
     assets: [],
     assetCount: (row.asset_count as number) ?? 0,
@@ -36,7 +45,7 @@ export function mapSubjectListItem(row: Record<string, unknown>): SubjectListIte
     espb: row.espb as number,
     elective: (row.elective as number) === 1,
     electiveGroup: (row.elective_group as string) ?? null,
-    professors: JSON.parse((row.professors as string) || "[]"),
+    professors: safeJsonParse<string[]>(row.professors, []),
     materialCount: row.material_count as number,
   }
 }

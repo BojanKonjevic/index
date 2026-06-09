@@ -9,6 +9,18 @@ import {
 import { registerSchema, loginSchema } from "@index/shared/schemas"
 
 const PBKDF2_ITERATIONS = 100_000
+const SESSION_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder()
+  const aBuf = enc.encode(a)
+  const bBuf = enc.encode(b)
+  if (aBuf.byteLength !== bBuf.byteLength) return false
+  return (crypto.subtle as any).timingSafeEqual(
+    aBuf.buffer as ArrayBuffer,
+    bBuf.buffer as ArrayBuffer,
+  )
+}
 
 function bytesToHex(bytes: Uint8Array): string {
   return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("")
@@ -70,21 +82,8 @@ async function verifyPassword(password: string, stored: string): Promise<VerifyR
       256,
     )
     const computedHex = bytesToHex(new Uint8Array(key))
-    const valid = computedHex === storedHash
+    const valid = timingSafeEqual(computedHex, storedHash)
     return { valid, needsRehash: valid && iterations < PBKDF2_ITERATIONS }
-  }
-
-  if (parts.length === 2 && parts[0].length === 32 && parts[1].length === 64) {
-    const [saltHex, hashHex] = parts
-    const data = new TextEncoder().encode(saltHex + password)
-    const hash = await crypto.subtle.digest("SHA-256", data)
-    const computedHex = bytesToHex(new Uint8Array(hash))
-    const valid = computedHex === hashHex
-    return {
-      valid,
-      needsRehash: valid,
-      newHash: valid ? await hashPassword(password) : undefined,
-    }
   }
 
   return { valid: false, needsRehash: false }
@@ -149,7 +148,7 @@ app.post("/auth/register", async (c) => {
   }
 
   const sessionId = crypto.randomUUID()
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS).toISOString()
   await c.env.DB.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)")
     .bind(sessionId, userId, expiresAt)
     .run()
@@ -180,7 +179,7 @@ app.post("/auth/login", async (c) => {
   }
 
   const sessionId = crypto.randomUUID()
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS).toISOString()
   await c.env.DB.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)")
     .bind(sessionId, user.id, expiresAt)
     .run()

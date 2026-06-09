@@ -140,7 +140,7 @@ app.put("/preferences", requireAuth, async (c) => {
   const user = c.get("user")
   const raw = await c.req.json()
   const parsed = updatePreferencesSchema.safeParse(raw)
-  if (!parsed.success) return c.json({ error: msg(c, "auth.material_id_required") }, 400)
+  if (!parsed.success) return c.json({ error: msg(c, "preferences.invalid") }, 400)
   const { group } = parsed.data
 
   await c.env.DB.prepare(

@@ -30,34 +30,24 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
 }
 
 export async function fetchSubjects(): Promise<SubjectListItem[]> {
-  const res = await fetch(`${API_BASE}/subjects`)
-  if (!res.ok) throw new Error("Failed to fetch subjects")
-  return res.json()
+  return fetchApi("/subjects")
 }
 
 export async function fetchSubject(id: string): Promise<SubjectDetail> {
-  const res = await fetch(`${API_BASE}/subject/${id}`)
-  if (!res.ok) throw new Error("Subject not found")
-  return res.json()
+  return fetchApi(`/subject/${id}`)
 }
 
 export async function fetchDashboard(): Promise<DashboardData> {
-  const res = await fetch(`${API_BASE}/dashboard`)
-  if (!res.ok) throw new Error("Failed to fetch dashboard")
-  return res.json()
+  return fetchApi("/dashboard")
 }
 
 export async function fetchBookmarkedMaterials(): Promise<{
   materials: Material[]
   subjectNameMap: Record<string, string>
 }> {
-  const res = await fetch(`${API_BASE}/bookmarks/materials`, { headers: localeHeaders() })
-  if (!res.ok) throw new Error("Failed to fetch bookmarked materials")
-  return res.json()
+  return fetchApi("/bookmarks/materials")
 }
 
 export async function fetchMaterialAssets(id: string): Promise<MaterialAsset[]> {
-  const res = await fetch(`${API_BASE}/material/${id}/assets`)
-  if (!res.ok) throw new Error("Failed to fetch material assets")
-  return res.json()
+  return fetchApi(`/material/${id}/assets`)
 }

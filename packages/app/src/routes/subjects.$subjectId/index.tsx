@@ -12,7 +12,7 @@ import {
 import { fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 
-import { daysUntil } from "@/lib/utils"
+import { daysUntil, parseISODate } from "@/lib/utils"
 import { formatDate } from "@/lib/i18n"
 import { useI18n } from "@/hooks/useI18n"
 import { useDebounce } from "@/hooks/useDebounce"
@@ -20,10 +20,11 @@ import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import { MaterialBadges } from "@/components/MaterialBadges"
 import ExpandableAssets from "@/components/ExpandableAssets"
+import { MaterialFilters } from "@/components/MaterialFilters"
 import { CATEGORY_ORDER } from "@index/shared"
 import type { Material } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { typeIconMap, typeTagStyles } from "@/lib/styles"
@@ -159,8 +160,8 @@ function SubjectPage() {
   now.setHours(0, 0, 0, 0)
   const nearestExam =
     exams
-      .filter((e) => new Date(e.date + "T00:00:00") >= now)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null
+      .filter((e) => parseISODate(e.date) >= now)
+      .sort((a, b) => parseISODate(a.date).getTime() - parseISODate(b.date).getTime())[0] || null
 
   const examUrgency = nearestExam ? daysUntil(nearestExam.date) : null
   const examColor =
@@ -172,14 +173,18 @@ function SubjectPage() {
           : "bg-[var(--status-later-bg)] border-[var(--status-later-text)]/20 text-[var(--status-later-text)]"
       : ""
 
-  const categoryConfig: Record<string, { label: string; icon: typeof BookOpen }> = {
-    theory: { label: t("category.theory"), icon: BookOpen },
-    problems: { label: t("category.problems"), icon: Pencil },
-    k1: { label: t("category.k1"), icon: FileText },
-    k2: { label: t("category.k2"), icon: FileText },
-    final: { label: t("category.exam"), icon: FileText },
-    misc: { label: t("category.misc"), icon: Folder },
-  }
+  const categoryConfig = useMemo(
+    () =>
+      ({
+        theory: { label: t("category.theory"), icon: BookOpen },
+        problems: { label: t("category.problems"), icon: Pencil },
+        k1: { label: t("category.k1"), icon: FileText },
+        k2: { label: t("category.k2"), icon: FileText },
+        final: { label: t("category.exam"), icon: FileText },
+        misc: { label: t("category.misc"), icon: Folder },
+      }) as Record<string, { label: string; icon: typeof BookOpen }>,
+    [t],
+  )
 
   const toggleCollapse = (cat: string) => {
     setCollapsed((prev) => {
@@ -260,57 +265,13 @@ function SubjectPage() {
             />
           </div>
 
-          <div className="hidden md:flex flex-wrap items-start gap-6">
-            <div className="flex flex-col gap-1.5">
-              <div className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                {t("subject.filter_file_type")}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { key: "all", label: t("subject.filter_all") },
-                  { key: "pdf", label: "PDF" },
-                  { key: "video", label: "Video" },
-                  { key: "image", label: t("materialType.image") },
-                ].map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => setFileTypeFilter(opt.key)}
-                    className={`rounded-full border px-2.5 py-1 text-[0.75rem] transition-all duration-100 ${
-                      fileTypeFilter === opt.key
-                        ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                        : "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <div className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                {t("subject.filter_category")}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { key: "all", label: t("subject.filter_all_cat") },
-                  ...categoryOrder.map((c) => ({ key: c, label: categoryConfig[c].label })),
-                ].map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => setCategoryFilter(opt.key)}
-                    className={`rounded-full border px-2.5 py-1 text-[0.75rem] transition-all duration-100 ${
-                      categoryFilter === opt.key
-                        ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                        : "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          <MaterialFilters
+            fileTypeFilter={fileTypeFilter}
+            setFileTypeFilter={setFileTypeFilter}
+            categoryFilter={categoryFilter}
+            setCategoryFilter={setCategoryFilter}
+            categoryConfig={categoryConfig}
+          />
 
           <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
             <SheetTrigger className="md:hidden flex items-center gap-2 rounded-[0.5rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-[0.813rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]">
@@ -331,63 +292,15 @@ function SubjectPage() {
                 <SheetTitle className="text-left">{t("subject.filter_file_type")}</SheetTitle>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto px-4 pb-6">
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                      {t("subject.filter_file_type")}
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { key: "all", label: t("subject.filter_all") },
-                        { key: "pdf", label: "PDF" },
-                        { key: "video", label: "Video" },
-                        { key: "image", label: t("materialType.image") },
-                      ].map((opt) => (
-                        <button
-                          key={opt.key}
-                          onClick={() => {
-                            setFileTypeFilter(opt.key)
-                            setFilterSheetOpen(false)
-                          }}
-                          className={`rounded-full border px-3 py-1.5 text-[0.75rem] transition-all duration-100 ${
-                            fileTypeFilter === opt.key
-                              ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                              : "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                      {t("subject.filter_category")}
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { key: "all", label: t("subject.filter_all_cat") },
-                        ...categoryOrder.map((c) => ({ key: c, label: categoryConfig[c].label })),
-                      ].map((opt) => (
-                        <button
-                          key={opt.key}
-                          onClick={() => {
-                            setCategoryFilter(opt.key)
-                            setFilterSheetOpen(false)
-                          }}
-                          className={`rounded-full border px-3 py-1.5 text-[0.75rem] transition-all duration-100 ${
-                            categoryFilter === opt.key
-                              ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                              : "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                <MaterialFilters
+                  fileTypeFilter={fileTypeFilter}
+                  setFileTypeFilter={setFileTypeFilter}
+                  categoryFilter={categoryFilter}
+                  setCategoryFilter={setCategoryFilter}
+                  categoryConfig={categoryConfig}
+                  variant="mobile"
+                  onFilter={() => setFilterSheetOpen(false)}
+                />
               </div>
             </SheetContent>
           </Sheet>

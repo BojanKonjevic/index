@@ -351,8 +351,9 @@ export function getMonthName(locale: Locale, monthIndex: number): string {
 }
 
 export function formatDate(locale: Locale, iso: string): string {
-  const d = new Date(iso + "T00:00:00")
-  return `${d.getDate()}. ${getMonthName(locale, d.getMonth())}`
+  const [y, m, d] = iso.split("-").map(Number)
+  const date = new Date(y, m - 1, d)
+  return `${date.getDate()}. ${getMonthName(locale, date.getMonth())}`
 }
 
 export function getRelativeTime(locale: Locale, timestamp: number): string {

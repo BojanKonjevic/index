@@ -1,24 +1,17 @@
+const ZOOM_STEP = 1.25
+const SCROLL_AMOUNT_PX = 300
+
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import {
-  ArrowLeft,
-  ZoomIn,
-  ZoomOut,
-  Maximize,
-  SunMoon,
-  Star,
-  FileText,
-  FileImage,
-  ChevronLeft,
-  ChevronRight,
-  Layers as LayersIcon,
-} from "lucide-react"
+import { ArrowLeft, SunMoon, Layers as LayersIcon } from "lucide-react"
 
 import { fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useI18n } from "@/hooks/useI18n"
 import { ErrorFallback } from "@/components/ErrorFallback"
-import ExpandableAssets from "@/components/ExpandableAssets"
+import { PdfControls } from "@/components/PdfControls"
+import { SidebarContent } from "@/components/SidebarContent"
+import { BookmarkButton } from "@/components/BookmarkButton"
 import type { Material, MaterialAsset } from "@index/shared"
 import { CATEGORY_ORDER } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
@@ -27,7 +20,6 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/co
 import { useVirtualizer } from "@tanstack/react-virtual"
 import VideoViewer from "@/components/VideoViewer"
 import AssetGallery from "@/components/AssetGallery"
-import { typeIconMap, typeTagStyles, typeBadgeStyles } from "@/lib/styles"
 
 const PdfViewer = lazy(() => import("@/components/PdfViewer"))
 
@@ -69,7 +61,7 @@ function ViewerPage() {
   const assetIndex = assetFromUrl > 0 ? assetFromUrl - 1 : 0
 
   const material = materials.find((m) => m.id === materialId)
-  const hasAssets = material && material.assets.length > 0
+  const hasAssets = !!(material && material.assets.length > 0)
   const isContainer = material?.fileType === "image" && hasAssets
   const showAssetGallery = isContainer || viewerTab === "assets"
 
@@ -134,15 +126,15 @@ function ViewerPage() {
     naturalPageWidth && containerWidth > 0 ? (containerWidth - 64) / naturalPageWidth : null
   const MAX_ZOOM = fitWidthZoom ? Math.max(fitWidthZoom * 3, 3) : 5
   const MIN_ZOOM = 0.1
-  const atMaxZoom = zoom * 1.25 >= MAX_ZOOM
-  const atMinZoom = zoom / 1.25 <= MIN_ZOOM
+  const atMaxZoom = zoom * ZOOM_STEP >= MAX_ZOOM
+  const atMinZoom = zoom / ZOOM_STEP <= MIN_ZOOM
   const zoomIn = () => {
     setFitWidthMode(false)
-    setZoom((z) => (z * 1.25 >= MAX_ZOOM ? z : Math.min(z * 1.25, MAX_ZOOM)))
+    setZoom((z) => (z * ZOOM_STEP >= MAX_ZOOM ? z : Math.min(z * ZOOM_STEP, MAX_ZOOM)))
   }
   const zoomOut = () => {
     setFitWidthMode(false)
-    setZoom((z) => (z / 1.25 <= MIN_ZOOM ? z : Math.max(z / 1.25, MIN_ZOOM)))
+    setZoom((z) => (z / ZOOM_STEP <= MIN_ZOOM ? z : Math.max(z / ZOOM_STEP, MIN_ZOOM)))
   }
 
   const fitWidth = () => {
@@ -208,10 +200,10 @@ function ViewerPage() {
     if (!isPdf) return
     if (e.key === "ArrowUp") {
       e.preventDefault()
-      parentRef.current?.scrollBy({ top: -300, behavior: "smooth" })
+      parentRef.current?.scrollBy({ top: -SCROLL_AMOUNT_PX, behavior: "smooth" })
     } else if (e.key === "ArrowDown") {
       e.preventDefault()
-      parentRef.current?.scrollBy({ top: 300, behavior: "smooth" })
+      parentRef.current?.scrollBy({ top: SCROLL_AMOUNT_PX, behavior: "smooth" })
     } else if (e.key === "PageUp") {
       e.preventDefault()
       goToPage(pageNum - 1)
@@ -322,49 +314,21 @@ function ViewerPage() {
         <div className="flex items-center gap-1 shrink-0">
           {material?.fileType === "pdf" && !showAssetGallery && (
             <>
-              <span className="flex items-center gap-1 whitespace-nowrap px-1.5 text-[0.813rem] text-[var(--text-secondary)]">
-                <input
-                  type="text"
-                  value={pageInput}
-                  onChange={handlePageInputChange}
-                  onBlur={handlePageInputCommit}
-                  onKeyDown={handlePageInputKeyDown}
-                  className="w-14 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
-                />
-                <span className="text-[var(--text-hint)]">/</span>
-                <span>{numPages || "?"}</span>
-              </span>
-
-              <span className="mx-1 h-5 w-px bg-[var(--border-faint)]" />
-
-              <button
-                onClick={zoomOut}
-                disabled={atMinZoom}
-                title={t("viewer.zoom_out")}
-                className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <ZoomOut className="size-4" />
-              </button>
-              <span className="w-8 text-center text-[0.688rem] font-medium text-[var(--text-secondary)] tabular-nums">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                onClick={zoomIn}
-                disabled={atMaxZoom}
-                title={t("viewer.zoom_in")}
-                className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <ZoomIn className="size-4" />
-              </button>
-              <button
-                onClick={fitWidth}
-                title={t("viewer.fit_width")}
-                className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
-              >
-                <Maximize className="size-4" />
-              </button>
-
-              <span className="mx-1 h-5 w-px bg-[var(--border-faint)]" />
+              <PdfControls
+                pageNum={pageNum}
+                numPages={numPages}
+                pageInput={pageInput}
+                zoom={zoom}
+                onPageInputChange={handlePageInputChange}
+                onPageInputCommit={handlePageInputCommit}
+                onPageInputKeyDown={handlePageInputKeyDown}
+                onZoomIn={zoomIn}
+                onZoomOut={zoomOut}
+                onFitWidth={fitWidth}
+                onGoToPage={goToPage}
+                atMaxZoom={atMaxZoom}
+                atMinZoom={atMinZoom}
+              />
 
               <button
                 onClick={() => setInverted((v) => !v)}
@@ -511,134 +475,18 @@ function ViewerPage() {
 
         {/* ── Right sidebar (desktop) ── */}
         <div className="hidden sm:flex w-[17.5rem] shrink-0 flex-col overflow-hidden border-l bg-[var(--bg-surface)] border-[var(--border-default)]">
-          <div className="flex items-center gap-1.5 border-b border-[var(--border-faint)] px-3 py-2.5">
-            {hasAssets && (
-              <button
-                onClick={() => setSidebarMode("this")}
-                className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
-                  sidebarMode === "this"
-                    ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                    : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
-                }`}
-              >
-                {t("viewer.sidebar_this")}
-              </button>
-            )}
-            <button
-              onClick={() => setSidebarMode("category")}
-              className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
-                sidebarMode === "category"
-                  ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                  : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
-              }`}
-            >
-              {categoryName}
-            </button>
-            <button
-              onClick={() => setSidebarMode("all")}
-              className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
-                sidebarMode === "all"
-                  ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                  : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
-              }`}
-            >
-              {t("viewer.sidebar_all")}
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2">
-            {sidebarMode === "this"
-              ? sidebarMaterials.map((m) => (
-                  <div key={m.id}>
-                    <SidebarItem material={m} isActive={m.id === materialId} />
-                    {m.assets.length > 0 && (
-                      <div className="flex flex-col gap-0.5 pb-1">
-                        {m.assets.map((a, i) => {
-                          const AssetIcon = typeIconMap[a.fileType] || FileImage
-                          const ts = typeTagStyles[a.fileType]
-                          const isCurrentAsset = m.id === materialId && assetFromUrl === i + 1
-                          return (
-                            <Link
-                              key={a.id}
-                              to="/subjects/$subjectId/materials/$materialId"
-                              params={{ subjectId, materialId }}
-                              search={{ asset: String(i + 1) }}
-                              className={`flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 transition-colors duration-100 hover:bg-[var(--bg-subtle)] ${isCurrentAsset ? "bg-[var(--nav-active-bg)]" : ""}`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div
-                                className={`flex size-5 shrink-0 items-center justify-center rounded-[0.25rem] ${ts?.container || "text-[var(--text-hint)]"}`}
-                              >
-                                <AssetIcon
-                                  className={`size-3 ${ts?.icon || "text-[var(--text-hint)]"}`}
-                                />
-                              </div>
-                              <span
-                                className={`truncate text-[0.688rem] font-medium leading-snug ${isCurrentAsset ? "text-[var(--accent-strong)]" : "text-[var(--text-primary)]"}`}
-                              >
-                                {a.name}
-                              </span>
-                              <span
-                                className={`shrink-0 inline-block px-1.5 py-[0.063rem] rounded-full text-[0.563rem] font-medium leading-snug ${typeBadgeStyles[a.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-                              >
-                                {t(`materialType.${a.fileType}`) || a.fileType}
-                              </span>
-                            </Link>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ))
-              : sidebarMode === "category"
-                ? groupedByExamPart.map((section) => (
-                    <div key={section.label || "__default"}>
-                      {section.label && (
-                        <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                          {section.label}
-                        </div>
-                      )}
-                      {section.items.map((m) => (
-                        <div key={m.id}>
-                          <SidebarItem material={m} isActive={m.id === materialId} />
-                          {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
-                            <ExpandableAssets
-                              assets={m.assets}
-                              subjectId={m.subjectId}
-                              materialId={m.id}
-                              assetCount={m.assets?.length ?? m.assetCount ?? 0}
-                              compact
-                              currentAssetIndex={m.id === materialId ? assetFromUrl : undefined}
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ))
-                : groupedByCategory &&
-                  CATEGORY_ORDER.filter((cat) => groupedByCategory[cat]).map((cat) => (
-                    <div key={cat}>
-                      <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                        {cat === "final" ? t("category.exam") : t(`category.${cat}`)}
-                      </div>
-                      {groupedByCategory[cat].map((m) => (
-                        <div key={m.id}>
-                          <SidebarItem material={m} isActive={m.id === materialId} />
-                          {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
-                            <ExpandableAssets
-                              assets={m.assets}
-                              subjectId={m.subjectId}
-                              materialId={m.id}
-                              assetCount={m.assets?.length ?? m.assetCount ?? 0}
-                              compact
-                              currentAssetIndex={m.id === materialId ? assetFromUrl : undefined}
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-          </div>
+          <SidebarContent
+            sidebarMode={sidebarMode}
+            setSidebarMode={setSidebarMode}
+            sidebarMaterials={sidebarMaterials}
+            groupedByExamPart={groupedByExamPart}
+            groupedByCategory={groupedByCategory}
+            categoryName={categoryName}
+            hasAssets={hasAssets}
+            subjectId={subjectId}
+            materialId={materialId}
+            assetFromUrl={assetFromUrl}
+          />
 
           <div className="flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[var(--border-faint)] px-3 py-2.5 text-[0.688rem] text-[var(--text-hint)]">
             <span>
@@ -654,56 +502,22 @@ function ViewerPage() {
       {/* ── Bottom toolbar (mobile) ── */}
       <div className="sm:hidden flex h-14 shrink-0 items-center border-t bg-[var(--bg-surface)] border-[var(--border-default)] px-2 gap-2 pb-safe">
         {material?.fileType === "pdf" && !showAssetGallery ? (
-          <>
-            <button
-              onClick={() => goToPage(pageNum - 1)}
-              disabled={pageNum <= 1}
-              className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ChevronLeft className="size-5" />
-            </button>
-
-            <span className="flex items-center gap-1 px-2 text-[0.813rem] text-[var(--text-secondary)]">
-              <input
-                type="text"
-                value={pageInput}
-                onChange={handlePageInputChange}
-                onBlur={handlePageInputCommit}
-                onKeyDown={handlePageInputKeyDown}
-                className="w-10 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
-              />
-              <span className="text-[var(--text-hint)]">/</span>
-              <span>{numPages || "?"}</span>
-            </span>
-
-            <button
-              onClick={() => goToPage(pageNum + 1)}
-              disabled={pageNum >= numPages}
-              className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ChevronRight className="size-5" />
-            </button>
-
-            <span className="h-6 w-px bg-[var(--border-faint)]" />
-
-            <button
-              onClick={zoomOut}
-              disabled={atMinZoom}
-              className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ZoomOut className="size-5" />
-            </button>
-            <span className="text-[0.625rem] font-medium text-[var(--text-secondary)] tabular-nums">
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              onClick={zoomIn}
-              disabled={atMaxZoom}
-              className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ZoomIn className="size-5" />
-            </button>
-          </>
+          <PdfControls
+            pageNum={pageNum}
+            numPages={numPages}
+            pageInput={pageInput}
+            zoom={zoom}
+            onPageInputChange={handlePageInputChange}
+            onPageInputCommit={handlePageInputCommit}
+            onPageInputKeyDown={handlePageInputKeyDown}
+            onZoomIn={zoomIn}
+            onZoomOut={zoomOut}
+            onFitWidth={fitWidth}
+            onGoToPage={goToPage}
+            atMaxZoom={atMaxZoom}
+            atMinZoom={atMinZoom}
+            variant="mobile"
+          />
         ) : null}
 
         <div className="flex-1" />
@@ -722,204 +536,22 @@ function ViewerPage() {
                     : t("viewer.sidebar_all")}
               </SheetTitle>
             </SheetHeader>
-            <div className="flex items-center gap-1.5 px-4 pb-2">
-              {hasAssets && (
-                <button
-                  onClick={() => setSidebarMode("this")}
-                  className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
-                    sidebarMode === "this"
-                      ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                      : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
-                  }`}
-                >
-                  {t("viewer.sidebar_this")}
-                </button>
-              )}
-              <button
-                onClick={() => setSidebarMode("category")}
-                className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
-                  sidebarMode === "category"
-                    ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                    : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
-                }`}
-              >
-                {categoryName}
-              </button>
-              <button
-                onClick={() => setSidebarMode("all")}
-                className={`rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
-                  sidebarMode === "all"
-                    ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                    : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
-                }`}
-              >
-                {t("viewer.sidebar_all")}
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-2 pb-6">
-              {sidebarMode === "this"
-                ? sidebarMaterials.map((m) => (
-                    <div key={m.id}>
-                      <div onClick={() => setMaterialsSheetOpen(false)}>
-                        <SidebarItem material={m} isActive={m.id === materialId} />
-                      </div>
-                      {m.assets.length > 0 && (
-                        <div className="flex flex-col gap-0.5 pb-1">
-                          {m.assets.map((a, i) => {
-                            const AssetIcon = typeIconMap[a.fileType] || FileImage
-                            const ts = typeTagStyles[a.fileType]
-                            const isCurrentAsset = m.id === materialId && assetFromUrl === i + 1
-                            return (
-                              <Link
-                                key={a.id}
-                                to="/subjects/$subjectId/materials/$materialId"
-                                params={{ subjectId, materialId }}
-                                search={{ asset: String(i + 1) }}
-                                className={`flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 transition-colors duration-100 hover:bg-[var(--bg-subtle)] ${isCurrentAsset ? "bg-[var(--nav-active-bg)]" : ""}`}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setMaterialsSheetOpen(false)
-                                }}
-                              >
-                                <div
-                                  className={`flex size-5 shrink-0 items-center justify-center rounded-[0.25rem] ${ts?.container || "text-[var(--text-hint)]"}`}
-                                >
-                                  <AssetIcon
-                                    className={`size-3 ${ts?.icon || "text-[var(--text-hint)]"}`}
-                                  />
-                                </div>
-                                <span
-                                  className={`truncate text-[0.688rem] font-medium leading-snug ${isCurrentAsset ? "text-[var(--accent-strong)]" : "text-[var(--text-primary)]"}`}
-                                >
-                                  {a.name}
-                                </span>
-                                <span
-                                  className={`shrink-0 inline-block px-1.5 py-[0.063rem] rounded-full text-[0.563rem] font-medium leading-snug ${typeBadgeStyles[a.fileType] || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-                                >
-                                  {t(`materialType.${a.fileType}`) || a.fileType}
-                                </span>
-                              </Link>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                : sidebarMode === "category"
-                  ? groupedByExamPart.map((section) => (
-                      <div key={section.label || "__default"}>
-                        {section.label && (
-                          <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                            {section.label}
-                          </div>
-                        )}
-                        {section.items.map((m) => (
-                          <div key={m.id}>
-                            <div onClick={() => setMaterialsSheetOpen(false)}>
-                              <SidebarItem material={m} isActive={m.id === materialId} />
-                            </div>
-                            {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
-                              <ExpandableAssets
-                                assets={m.assets}
-                                subjectId={m.subjectId}
-                                materialId={m.id}
-                                assetCount={m.assets?.length ?? m.assetCount ?? 0}
-                                compact
-                                currentAssetIndex={m.id === materialId ? assetFromUrl : undefined}
-                              />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ))
-                  : groupedByCategory &&
-                    CATEGORY_ORDER.filter((cat) => groupedByCategory[cat]).map((cat) => (
-                      <div key={cat}>
-                        <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                          {cat === "final" ? t("category.exam") : t(`category.${cat}`)}
-                        </div>
-                        {groupedByCategory[cat].map((m) => (
-                          <div key={m.id}>
-                            <div onClick={() => setMaterialsSheetOpen(false)}>
-                              <SidebarItem material={m} isActive={m.id === materialId} />
-                            </div>
-                            {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
-                              <ExpandableAssets
-                                assets={m.assets}
-                                subjectId={m.subjectId}
-                                materialId={m.id}
-                                assetCount={m.assets?.length ?? m.assetCount ?? 0}
-                                compact
-                                currentAssetIndex={m.id === materialId ? assetFromUrl : undefined}
-                              />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-            </div>
+            <SidebarContent
+              sidebarMode={sidebarMode}
+              setSidebarMode={setSidebarMode}
+              sidebarMaterials={sidebarMaterials}
+              groupedByExamPart={groupedByExamPart}
+              groupedByCategory={groupedByCategory}
+              categoryName={categoryName}
+              hasAssets={hasAssets}
+              subjectId={subjectId}
+              materialId={materialId}
+              assetFromUrl={assetFromUrl}
+              onItemClick={() => setMaterialsSheetOpen(false)}
+            />
           </SheetContent>
         </Sheet>
       </div>
     </div>
-  )
-}
-
-function BookmarkButton({ id, size = "size-6" }: { id: string; size?: string }) {
-  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
-  const bookmarked = isBookmarked(id)
-  return (
-    <button
-      onClick={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        if (bookmarked) removeBookmark(id)
-        else addBookmark(id)
-      }}
-      className="cursor-pointer min-w-[2.75rem] min-h-[2.75rem] flex items-center justify-center"
-    >
-      <Star
-        className={`${size} transition-colors duration-150 ${bookmarked ? "fill-[var(--bookmark)] text-[var(--bookmark)] animate-bookmark-pop" : "text-[var(--text-hint)] hover:text-[var(--text-secondary)]"}`}
-      />
-    </button>
-  )
-}
-
-function SidebarItem({ material, isActive }: { material: Material; isActive: boolean }) {
-  const { t } = useI18n()
-  const Icon = typeIconMap[material.fileType] || FileText
-  const ts = typeTagStyles[material.fileType]
-  const badge = typeBadgeStyles[material.fileType]
-  return (
-    <Link
-      to="/subjects/$subjectId/materials/$materialId"
-      params={{ subjectId: material.subjectId, materialId: material.id }}
-      search={{}}
-      resetScroll={false}
-      className={`flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 text-left transition-colors duration-100 ${isActive ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]" : "hover:bg-[var(--bg-subtle)]"}`}
-    >
-      <div
-        className={`flex size-6 shrink-0 items-center justify-center rounded-[0.313rem] border ${ts?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]"}`}
-      >
-        <Icon className={`size-3 ${ts?.icon || "text-[var(--text-hint)]"}`} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div
-          className={`truncate text-[0.75rem] font-medium leading-snug ${isActive ? "text-[var(--nav-active-text)]" : "text-[var(--text-primary)]"}`}
-        >
-          {material.title}
-        </div>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <span
-            className={`inline-block px-1.5 py-[0.063rem] rounded-full text-[0.563rem] font-medium leading-snug ${badge || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-          >
-            {t(`materialType.${material.fileType}`) || material.fileType}
-          </span>
-        </div>
-      </div>
-      <span onClick={(e) => e.preventDefault()} className="shrink-0">
-        <BookmarkButton id={material.id} size="size-5" />
-      </span>
-    </Link>
   )
 }
