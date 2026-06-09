@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { fetchApi } from "@/lib/api"
 
@@ -66,20 +66,23 @@ export function useRecentlyOpened() {
     return () => window.removeEventListener("storage", handler)
   }, [])
 
-  const addRecent = (item: RecentItem) => {
-    setRecent((prev) => {
-      const filtered = prev.filter((r) => r.materialId !== item.materialId)
-      const next = [item, ...filtered].slice(0, 20)
-      localStorage.setItem("recentlyOpened", JSON.stringify(next))
-      return next
-    })
-    if (user) {
-      fetchApi("/history", {
-        method: "POST",
-        body: JSON.stringify({ materialId: item.materialId }),
-      }).catch((e) => console.error("Failed to sync history:", e))
-    }
-  }
+  const addRecent = useCallback(
+    (item: RecentItem) => {
+      setRecent((prev) => {
+        const filtered = prev.filter((r) => r.materialId !== item.materialId)
+        const next = [item, ...filtered].slice(0, 20)
+        localStorage.setItem("recentlyOpened", JSON.stringify(next))
+        return next
+      })
+      if (user) {
+        fetchApi("/history", {
+          method: "POST",
+          body: JSON.stringify({ materialId: item.materialId }),
+        }).catch((e) => console.error("Failed to sync history:", e))
+      }
+    },
+    [user],
+  )
 
   return { recent, addRecent }
 }
