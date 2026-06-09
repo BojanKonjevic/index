@@ -4,7 +4,7 @@ import "react-pdf/dist/Page/AnnotationLayer.css"
 import { useI18n } from "@/hooks/useI18n"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useEffect, type RefObject } from "react"
+import type { RefObject } from "react"
 import type { Virtualizer } from "@tanstack/react-virtual"
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
@@ -37,10 +37,6 @@ export default function PdfViewer({
   pdfError,
 }: PdfViewerProps) {
   const { t } = useI18n()
-
-  useEffect(() => {
-    virtualizer.measure()
-  }, [zoom, virtualizer])
 
   return (
     <div

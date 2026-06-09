@@ -10,7 +10,7 @@ app.get("/subjects", async (c) => {
   const db = c.env.DB
   const rows = await db
     .prepare(
-      "SELECT id, name, semester, espb, elective, elective_group, professors, (SELECT COUNT(*) FROM materials WHERE subject_id = subjects.id) as material_count FROM subjects ORDER BY semester, name",
+      "SELECT s.id, s.name, s.semester, s.espb, s.elective, s.elective_group, s.professors, COALESCE(m.cnt, 0) as material_count FROM subjects s LEFT JOIN (SELECT subject_id, COUNT(*) as cnt FROM materials GROUP BY subject_id) m ON m.subject_id = s.id ORDER BY s.semester, s.name",
     )
     .all()
   const subjects: SubjectListItem[] = rows.results.map(mapSubjectListItem)
@@ -34,7 +34,7 @@ app.get("/subject/:id", async (c) => {
     db.prepare("SELECT * FROM exams WHERE subject_id = ? ORDER BY date").bind(id).all(),
     db
       .prepare(
-        "SELECT * FROM material_assets WHERE material_id IN (SELECT id FROM materials WHERE subject_id = ?) ORDER BY material_id, page_number",
+        "SELECT ma.* FROM material_assets ma JOIN materials m ON m.id = ma.material_id WHERE m.subject_id = ? ORDER BY ma.material_id, ma.page_number",
       )
       .bind(id)
       .all(),
