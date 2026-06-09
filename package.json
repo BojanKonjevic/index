@@ -1,6 +1,7 @@
 {
   "name": "index",
   "private": true,
+  "packageManager": "pnpm@11.4.0",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
