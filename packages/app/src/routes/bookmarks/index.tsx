@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Star, FileText, Bookmark } from "lucide-react"
 import { fetchBookmarkedMaterials, fetchDashboard } from "@/lib/api"
@@ -42,7 +43,7 @@ function BookmarksPage() {
 
   const items = materials
     .filter((m) => bookmarks.includes(m.id))
-    .sort((a, b) => a.title.localeCompare(b.title))
+    .sort((a, b) => a.title.localeCompare(b.title, "sr"))
 
   return (
     <div className="mx-auto max-w-[45rem] md:p-8 p-4 md:pt-8 pt-5">

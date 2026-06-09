@@ -16,6 +16,7 @@ export function AuthModal({ open, onClose, initialMode = "login" }: AuthModalPro
   const [mode, setMode] = useState<Mode>(initialMode)
   const [name, setName] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const { t } = useI18n()
@@ -27,6 +28,10 @@ export function AuthModal({ open, onClose, initialMode = "login" }: AuthModalPro
     setError("")
     if (!name.trim() || !password) {
       setError(t("auth.fill_fields"))
+      return
+    }
+    if (mode === "register" && password !== confirmPassword) {
+      setError(t("auth.passwords_mismatch"))
       return
     }
     setSubmitting(true)
@@ -47,10 +52,16 @@ export function AuthModal({ open, onClose, initialMode = "login" }: AuthModalPro
   const switchMode = () => {
     setMode(mode === "login" ? "register" : "login")
     setError("")
+    setConfirmPassword("")
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/40">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/40"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
       <div
         className="w-full max-w-sm rounded-xl border border-[var(--border-default)] p-6 shadow-lg max-h-[90vh] overflow-y-auto"
         style={{ background: "var(--bg-surface)" }}
@@ -119,6 +130,21 @@ export function AuthModal({ open, onClose, initialMode = "login" }: AuthModalPro
               style={{ background: "var(--bg-surface)" }}
             />
           </div>
+
+          {mode === "register" && (
+            <div>
+              <label className="mb-1 block text-[0.813rem] font-medium text-[var(--text-secondary)]">
+                {t("auth.confirm_password")}
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="h-9 w-full rounded-md border border-[var(--border-default)] px-3 text-[0.813rem] text-[var(--text-primary)] outline-none transition-colors duration-100 focus:border-[var(--accent)]"
+                style={{ background: "var(--bg-surface)" }}
+              />
+            </div>
+          )}
 
           {error && <p className="text-[0.813rem] text-[var(--status-soon-text)]">{error}</p>}
 

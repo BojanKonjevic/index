@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createRootRoute, Outlet, Link, useLocation } from "@tanstack/react-router"
 import {
   Home,
@@ -88,7 +89,10 @@ function BottomTabBar({
           if (tab.isSettings) {
             return (
               <Sheet key="settings" open={settingsOpen} onOpenChange={setSettingsOpen}>
-                <SheetTrigger className="flex flex-1 flex-col items-center justify-center h-full gap-0.5 text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors duration-100">
+                <SheetTrigger
+                  aria-label={t("sidebar.settings")}
+                  className="flex flex-1 flex-col items-center justify-center h-full gap-0.5 text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors duration-100"
+                >
                   <SlidersHorizontal className="size-[1.125rem]" />
                 </SheetTrigger>
                 <SheetContent side="bottom" className="max-h-[85vh] flex flex-col">
@@ -128,6 +132,7 @@ function BottomTabBar({
                           </span>
                           <button
                             onClick={logout}
+                            aria-label={t("nav.logout")}
                             className="shrink-0 cursor-pointer text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
                           >
                             <LogOut className="size-4" />
@@ -299,6 +304,7 @@ function Sidebar({ theme, onToggleTheme }: { theme: "light" | "dark"; onToggleTh
             </span>
             <button
               onClick={logout}
+              aria-label={t("nav.logout")}
               className="shrink-0 cursor-pointer text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors"
               title={t("nav.logout")}
             >
@@ -321,6 +327,7 @@ function Sidebar({ theme, onToggleTheme }: { theme: "light" | "dark"; onToggleTh
         <div className="flex items-center gap-2">
           <button
             onClick={toggleLocale}
+            aria-label={locale === "sr" ? "Switch to English" : "Prebaci na srpski"}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-2 py-1.5 text-[0.688rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
             title={locale === "sr" ? "Switch to English" : "Prebaci na srpski"}
           >

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 const ZOOM_STEP = 1.25
 const SCROLL_AMOUNT_PX = 300
 
@@ -153,8 +154,7 @@ function ViewerPage() {
 
   useEffect(() => {
     virtualizer.measure()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoom, naturalPageWidth])
+  }, [zoom, naturalPageWidth, virtualizer])
 
   const goToPage = useCallback(
     (num: number) => {
@@ -185,7 +185,13 @@ function ViewerPage() {
 
   const handlerRef = useRef<((e: KeyboardEvent) => void) | null>(null)
   handlerRef.current = (e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement ||
+      e.target instanceof HTMLSelectElement ||
+      (e.target instanceof HTMLElement && e.target.isContentEditable)
+    )
+      return
     const m = materials.find((m) => m.id === materialId)
     const isPdf =
       m?.fileType === "pdf" &&
@@ -283,6 +289,7 @@ function ViewerPage() {
       <div className="hidden sm:flex h-11 items-center gap-3 shrink-0 border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-3">
         <button
           onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
+          aria-label={t("viewer.back")}
           className="flex shrink-0 cursor-pointer items-center justify-center size-9 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
         >
           <ArrowLeft className="size-4" />
@@ -332,12 +339,13 @@ function ViewerPage() {
 
               <button
                 onClick={() => setInverted((v) => !v)}
-                title={t("viewer.invert")}
+                aria-label={t("viewer.invert")}
                 className={`flex size-9 items-center justify-center rounded-[0.438rem] transition-all duration-100 ${
                   inverted
                     ? "bg-[var(--accent-bg)] text-[var(--accent)]"
                     : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
                 }`}
+                title={t("viewer.invert")}
               >
                 <SunMoon className="size-4" />
               </button>
@@ -354,6 +362,7 @@ function ViewerPage() {
       <div className="sm:hidden flex h-[3.75rem] shrink-0 items-center border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-3 gap-3">
         <button
           onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
+          aria-label={t("viewer.back")}
           className="flex shrink-0 cursor-pointer items-center justify-center size-10 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
         >
           <ArrowLeft className="size-5" />
@@ -522,7 +531,10 @@ function ViewerPage() {
 
         <div className="flex-1" />
         <Sheet open={materialsSheetOpen} onOpenChange={setMaterialsSheetOpen}>
-          <SheetTrigger className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]">
+          <SheetTrigger
+            aria-label={t("viewer.sidebar_all")}
+            className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+          >
             <LayersIcon className="size-5" />
           </SheetTrigger>
           <SheetContent side="bottom" className="max-h-[70vh] flex flex-col">

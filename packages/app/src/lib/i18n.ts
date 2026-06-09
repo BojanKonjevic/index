@@ -43,6 +43,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "auth.has_account": "Već imaš nalog?",
     "auth.login_link": "Prijavi se",
     "auth.fill_fields": "Popuni sva polja.",
+    "auth.confirm_password": "Potvrdi lozinku",
+    "auth.passwords_mismatch": "Lozinke se ne poklapaju.",
     "auth.error": "Greška.",
 
     // Home
@@ -131,6 +133,9 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.tab_assets": "Prilozi",
     "viewer.gallery_prev": "Prethodno",
     "viewer.gallery_next": "Sledeće",
+    "viewer.gallery_thumbnail_fmt": "Slika {n} od {total}",
+    "viewer.bookmark_add": "Obeleži",
+    "viewer.bookmark_remove": "Ukloni obeleživač",
 
     // Assets
     "asset.count": "{n} prilog",
@@ -217,6 +222,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "auth.has_account": "Already have an account?",
     "auth.login_link": "Log in",
     "auth.fill_fields": "Fill all fields.",
+    "auth.confirm_password": "Confirm password",
+    "auth.passwords_mismatch": "Passwords do not match.",
     "auth.error": "Error.",
 
     "home.greeting": "Good day.",
@@ -300,6 +307,9 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.tab_assets": "Assets",
     "viewer.gallery_prev": "Previous",
     "viewer.gallery_next": "Next",
+    "viewer.gallery_thumbnail_fmt": "Image {n} of {total}",
+    "viewer.bookmark_add": "Bookmark",
+    "viewer.bookmark_remove": "Remove bookmark",
 
     // Assets
     "asset.count": "{n} asset",

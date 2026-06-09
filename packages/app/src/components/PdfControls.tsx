@@ -42,6 +42,7 @@ export function PdfControls({
         <button
           onClick={() => onGoToPage(pageNum - 1)}
           disabled={pageNum <= 1}
+          aria-label={t("viewer.gallery_prev")}
           className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
         >
           <ChevronLeft className="size-5" />
@@ -63,6 +64,7 @@ export function PdfControls({
         <button
           onClick={() => onGoToPage(pageNum + 1)}
           disabled={pageNum >= numPages}
+          aria-label={t("viewer.gallery_next")}
           className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
         >
           <ChevronRight className="size-5" />
@@ -73,6 +75,7 @@ export function PdfControls({
         <button
           onClick={onZoomOut}
           disabled={atMinZoom}
+          aria-label={t("viewer.zoom_out")}
           className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
         >
           <ZoomOut className="size-5" />
@@ -83,6 +86,7 @@ export function PdfControls({
         <button
           onClick={onZoomIn}
           disabled={atMaxZoom}
+          aria-label={t("viewer.zoom_in")}
           className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
         >
           <ZoomIn className="size-5" />
@@ -111,8 +115,9 @@ export function PdfControls({
       <button
         onClick={onZoomOut}
         disabled={atMinZoom}
-        title={t("viewer.zoom_out")}
+        aria-label={t("viewer.zoom_out")}
         className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+        title={t("viewer.zoom_out")}
       >
         <ZoomOut className="size-4" />
       </button>
@@ -122,15 +127,17 @@ export function PdfControls({
       <button
         onClick={onZoomIn}
         disabled={atMaxZoom}
-        title={t("viewer.zoom_in")}
+        aria-label={t("viewer.zoom_in")}
         className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+        title={t("viewer.zoom_in")}
       >
         <ZoomIn className="size-4" />
       </button>
       <button
         onClick={onFitWidth}
-        title={t("viewer.fit_width")}
+        aria-label={t("viewer.fit_width")}
         className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+        title={t("viewer.fit_width")}
       >
         <Maximize className="size-4" />
       </button>

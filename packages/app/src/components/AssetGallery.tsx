@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react"
 import type { MaterialAsset } from "@index/shared"
 import { useState, useCallback, useRef, useEffect } from "react"
 import { usePanZoom } from "@/hooks/usePanZoom"
+import { useI18n } from "@/hooks/useI18n"
 
 export default function AssetGallery({
   assets,
@@ -13,6 +14,7 @@ export default function AssetGallery({
   onIndexChange?: (index: number) => void
 }) {
   const [index, setIndex] = useState(Math.min(initialIndex, Math.max(assets.length - 1, 0)))
+  const { t } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const naturalSizes = useRef<Map<string, { w: number; h: number }>>(new Map())
@@ -37,13 +39,14 @@ export default function AssetGallery({
 
   useEffect(() => {
     const clamped = Math.min(initialIndex, Math.max(assets.length - 1, 0))
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIndex(clamped)
     setOffset({ x: 0, y: 0 })
     const cached = naturalSizes.current.get(assets[clamped]?.url)
     if (cached) {
       setZoomWithFit(cached.w, cached.h)
     }
-  }, [initialIndex, assets.length, setOffset, setZoomWithFit])
+  }, [initialIndex, assets, setOffset, setZoomWithFit])
 
   const goTo = useCallback(
     (i: number) => {
@@ -57,7 +60,7 @@ export default function AssetGallery({
       }
       onIndexChange?.(i)
     },
-    [onIndexChange, assets, resetView, setZoomWithFit, setZoom, containerSize],
+    [onIndexChange, assets, resetView, setZoomWithFit, setZoom],
   )
 
   if (assets.length === 0) return null
@@ -79,6 +82,7 @@ export default function AssetGallery({
               e.stopPropagation()
               goTo(index - 1)
             }}
+            aria-label={t("viewer.gallery_prev")}
             className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex size-10 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors cursor-pointer"
           >
             <ChevronLeft className="size-5" />
@@ -90,6 +94,7 @@ export default function AssetGallery({
               e.stopPropagation()
               goTo(index + 1)
             }}
+            aria-label={t("viewer.gallery_next")}
             className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex size-10 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors cursor-pointer"
           >
             <ChevronRight className="size-5" />
@@ -121,6 +126,7 @@ export default function AssetGallery({
               handleZoomOut()
             }}
             disabled={zoom <= 0.1}
+            aria-label={t("viewer.zoom_out")}
             className="flex size-8 items-center justify-center rounded text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 cursor-pointer"
           >
             <ZoomOut className="size-4" />
@@ -134,6 +140,7 @@ export default function AssetGallery({
               handleZoomIn()
             }}
             disabled={zoom >= 5}
+            aria-label={t("viewer.zoom_in")}
             className="flex size-8 items-center justify-center rounded text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 cursor-pointer"
           >
             <ZoomIn className="size-4" />
@@ -150,6 +157,7 @@ export default function AssetGallery({
             <button
               key={a.id}
               onClick={() => goTo(i)}
+              aria-label={t("viewer.gallery_thumbnail_fmt", { n: i + 1, total: assets.length })}
               className={`shrink-0 size-14 rounded border-2 overflow-hidden transition-all duration-100 cursor-pointer bg-cover bg-center bg-[var(--bg-subtle)] ${
                 i === index
                   ? "border-[var(--accent)] opacity-100"
