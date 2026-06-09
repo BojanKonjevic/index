@@ -10,6 +10,8 @@ import { ErrorFallback } from "@/components/ErrorFallback"
 import { typeIconMap, typeTagStyles } from "@/lib/styles"
 
 export const Route = createFileRoute("/bookmarks/")({
+  staleTime: 0,
+  gcTime: 0,
   loader: async () => {
     const isGuest = typeof window !== "undefined" && localStorage.getItem("guest") === "true"
     if (isGuest) {
@@ -17,9 +19,14 @@ export const Route = createFileRoute("/bookmarks/")({
       if (!stored) return { materials: [], subjectNameMap: {} }
       const bookmarkIds: string[] = JSON.parse(stored)
       if (bookmarkIds.length === 0) return { materials: [], subjectNameMap: {} }
-      const dashboard = await fetchDashboard()
-      const materials = dashboard.materials.filter((m) => bookmarkIds.includes(m.id))
-      return { materials, subjectNameMap: dashboard.subjectNameMap }
+      try {
+        const dashboard = await fetchDashboard()
+        const materials = dashboard.materials.filter((m) => bookmarkIds.includes(m.id))
+        return { materials, subjectNameMap: dashboard.subjectNameMap }
+      } catch (e) {
+        console.error("Failed to fetch dashboard for guest bookmarks:", e)
+        return { materials: [], subjectNameMap: {} }
+      }
     }
     return fetchBookmarkedMaterials()
   },

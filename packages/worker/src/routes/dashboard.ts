@@ -8,8 +8,8 @@ const app = new Hono<{ Bindings: Bindings }>()
 app.get("/dashboard", async (c) => {
   const db = c.env.DB
 
-  const materialLimit = Math.min(Math.max(Number(c.req.query("materialLimit")) ?? 9999, 1), 9999)
-  const examLimit = Math.min(Math.max(Number(c.req.query("examLimit")) ?? 9999, 1), 9999)
+  const materialLimit = Math.min(Math.max(Number(c.req.query("materialLimit")) || 9999, 1), 9999)
+  const examLimit = Math.min(Math.max(Number(c.req.query("examLimit")) || 9999, 1), 9999)
 
   const [subjectRows, materialRows, examRows] = await Promise.all([
     db

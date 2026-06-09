@@ -68,6 +68,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       if (bookmarksRef.current.includes(id)) return
       const next = [...bookmarksRef.current, id]
+      bookmarksRef.current = next
       setBookmarks(next)
       persistBookmarks(next)
       if (user) {
@@ -78,6 +79,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
           })
         } catch (e) {
           const rollback = bookmarksRef.current.filter((b) => b !== id)
+          bookmarksRef.current = rollback
           setBookmarks(rollback)
           persistBookmarks(rollback)
           console.error("Failed to add bookmark:", e)
@@ -90,6 +92,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
   const removeBookmark = useCallback(
     async (id: string) => {
       const next = bookmarksRef.current.filter((b) => b !== id)
+      bookmarksRef.current = next
       setBookmarks(next)
       persistBookmarks(next)
       if (user) {
@@ -100,6 +103,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
           })
         } catch (e) {
           const rollback = [...bookmarksRef.current, id]
+          bookmarksRef.current = rollback
           setBookmarks(rollback)
           persistBookmarks(rollback)
           console.error("Failed to remove bookmark:", e)
@@ -109,7 +113,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
     [user],
   )
 
-  const isBookmarked = useCallback((id: string) => bookmarksRef.current.includes(id), [])
+  const isBookmarked = useCallback((id: string) => bookmarks.includes(id), [bookmarks])
 
   return (
     <BookmarkContext.Provider value={{ bookmarks, addBookmark, removeBookmark, isBookmarked }}>
