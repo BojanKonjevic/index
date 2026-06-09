@@ -2,3 +2,11 @@ node_modules/
 dist/
 .wrangler/
 *.tsbuildinfo
+pnpm-lock.yaml
+**/routeTree.gen.ts
+**/worker-configuration.d.ts
+
+# Minified / vendored — huge lines can crash or OOM prettier
+*pdf.worker.min.mjs
+*.min.js
+*.min.css

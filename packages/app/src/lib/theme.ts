@@ -1,10 +1,9 @@
-let timeoutId: ReturnType<typeof setTimeout> | null = null
-
 export function toggleTheme(current: "light" | "dark"): "light" | "dark" {
   const next = current === "dark" ? "light" : "dark"
   const root = document.documentElement
 
-  if (timeoutId) clearTimeout(timeoutId)
+  const timeoutId = root.getAttribute("data-theme-timeout")
+  if (timeoutId) clearTimeout(Number(timeoutId))
 
   const overlay = document.createElement("div")
   overlay.className = "theme-sweep-overlay"
@@ -18,13 +17,23 @@ export function toggleTheme(current: "light" | "dark"): "light" | "dark" {
     overlay.classList.add("theme-sweep-active")
   })
 
-  timeoutId = setTimeout(() => {
+  const id = setTimeout(() => {
     root.classList.remove("theme-transitioning")
     overlay.remove()
-    timeoutId = null
+    root.removeAttribute("data-theme-timeout")
   }, 400)
 
+  root.setAttribute("data-theme-timeout", String(id))
+
   return next
+}
+
+export function clearThemeTimeout(): void {
+  const timeoutId = document.documentElement.getAttribute("data-theme-timeout")
+  if (timeoutId) {
+    clearTimeout(Number(timeoutId))
+    document.documentElement.removeAttribute("data-theme-timeout")
+  }
 }
 
 export function getInitialTheme(): "light" | "dark" {

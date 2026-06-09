@@ -1,0 +1,7 @@
+* text=auto eol=lf
+
+# Lock generated / vendored files
+pnpm-lock.yaml -diff linguist-generated
+packages/app/src/routeTree.gen.ts linguist-generated
+packages/worker/worker-configuration.d.ts linguist-generated
+packages/app/public/pdf.worker.min.mjs linguist-generated

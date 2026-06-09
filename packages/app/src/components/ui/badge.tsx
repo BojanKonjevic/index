@@ -1,6 +1,7 @@
+"use no memo"
+
 import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
-;("use no memo")
 
 import { cva, type VariantProps } from "class-variance-authority"
 

@@ -1,18 +1,42 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
 build/
-.wrangler/
-*.tsbuildinfo
-.tanstack/tmp/
-AGENTS.md
 
-.env
-.env.local
-.env.production
+# Wrangler / Cloudflare local state
+.wrangler/
 .dev.vars
 *worker-configuration.d.ts
+
+# TypeScript build info
+*.tsbuildinfo
+
+# TanStack Router (auto-generated route tree)
+packages/app/src/routeTree.gen.ts
+.tanstack/
+
+# Environment files
+.env
+.env.*
+
+# App-specific generated files
 *pdf.worker.min.mjs
 
+# OpenCode AI instructions (local only)
+AGENTS.md
+
+# Logs
 *.log
+
+# OS files
 .DS_Store
 Thumbs.db
+
+# Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

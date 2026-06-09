@@ -20,6 +20,7 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
+    // TODO(#xxx): review when TS 7.0 ships — this silences 6.0 deprecation warnings
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {

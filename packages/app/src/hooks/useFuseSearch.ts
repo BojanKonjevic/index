@@ -1,6 +1,5 @@
 import { useMemo } from "react"
 import Fuse, { type IFuseOptions } from "fuse.js"
-import { normalizeSr } from "@/lib/normalize"
 
 export function useFuseSearch<T>(
   items: T[],
@@ -18,7 +17,7 @@ export function useFuseSearch<T>(
   )
 
   if (!query.trim()) return items
-  const results = fuse.search(normalizeSr(query))
+  const results = fuse.search(query)
   const mapped = results.map((r) => r.item)
   return limit ? mapped.slice(0, limit) : mapped
 }
