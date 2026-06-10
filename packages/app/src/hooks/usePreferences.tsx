@@ -30,7 +30,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("group", data.group)
         }
       })
-      .catch(() => {})
+      .catch((e) => console.error("Failed to fetch preferences:", e))
   }, [user?.id])
 
   const setGroup = async (value: string) => {

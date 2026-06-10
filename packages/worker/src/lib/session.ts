@@ -1,7 +1,7 @@
 import type { Context } from "hono"
 import { setCookie, getCookie, deleteCookie } from "hono/cookie"
 import { createMiddleware } from "hono/factory"
-import { msg } from "./i18n"
+import { AppError } from "./error"
 
 interface SessionPayload {
   sessionId: string
@@ -129,9 +129,7 @@ export const requireAuth = createMiddleware<{
   Variables: { user: { id: string; name: string } }
 }>(async (c, next) => {
   const user = await getValidatedSessionUser(c, c.env.DB, c.env.SESSION_SECRET)
-  if (!user) {
-    return c.json({ error: msg(c, "auth.not_logged_in") }, 401)
-  }
+  if (!user) throw new AppError(401, "auth.not_logged_in")
   c.set("user", user)
   await next()
 })

@@ -6,6 +6,7 @@ import auth from "./routes/auth"
 import user from "./routes/user"
 import dashboard from "./routes/dashboard"
 import { msg } from "./lib/i18n"
+import { AppError } from "./lib/error"
 
 export type Bindings = {
   ASSETS: Fetcher
@@ -24,6 +25,12 @@ app.use("/api/*", async (c, next) => {
 })
 
 app.onError((err, c) => {
+  if (err instanceof AppError) {
+    return c.json(
+      { error: msg(c, err.message) },
+      err.statusCode as 400 | 401 | 404 | 409 | 429 | 500,
+    )
+  }
   console.error("Unhandled error:", err instanceof Error ? err.message : String(err))
   return c.json({ error: msg(c, "error.internal") }, 500)
 })

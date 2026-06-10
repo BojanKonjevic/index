@@ -5,6 +5,7 @@ import type {
   Material,
   MaterialAsset,
 } from "@index/shared"
+import { ApiError } from "./api-error"
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api"
 
@@ -23,9 +24,9 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
   }
 
   const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers })
-  const data = await res.json()
+  const data = await res.json().catch(() => ({}))
 
-  if (!res.ok) throw new Error(data.error || "API Error")
+  if (!res.ok) throw new ApiError(res.status, data.error || "API Error", data)
   return data as T
 }
 

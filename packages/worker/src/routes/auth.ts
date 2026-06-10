@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
-import { msg } from "../lib/i18n"
 import { rateLimit } from "../lib/rate-limit"
+import { AppError } from "../lib/error"
 import {
   createSessionCookie,
   clearSessionCookie,
@@ -100,13 +100,12 @@ app.post("/auth/register", authLimiter, bodyLimit({ maxSize: 1024 * 10 }), async
   const parsed = registerSchema.safeParse(raw)
   if (!parsed.success) {
     const issue = parsed.error.issues[0]
-    if (issue.path[0] === "name") return c.json({ error: msg(c, "auth.name_length") }, 400)
-    return c.json({ error: msg(c, "auth.password_length") }, 400)
+    throw new AppError(400, issue.path[0] === "name" ? "auth.name_length" : "auth.password_length")
   }
   const { name, password, bookmarks, group, history } = parsed.data
 
   const existing = await c.env.DB.prepare("SELECT id FROM users WHERE name = ?").bind(name).first()
-  if (existing) return c.json({ error: msg(c, "auth.username_taken") }, 409)
+  if (existing) throw new AppError(409, "auth.username_taken")
 
   const userId = crypto.randomUUID()
   const passwordHash = await hashPassword(password)
@@ -167,16 +166,16 @@ app.post("/auth/register", authLimiter, bodyLimit({ maxSize: 1024 * 10 }), async
 app.post("/auth/login", authLimiter, bodyLimit({ maxSize: 1024 * 10 }), async (c) => {
   const raw = await c.req.json()
   const parsed = loginSchema.safeParse(raw)
-  if (!parsed.success) return c.json({ error: msg(c, "auth.required") }, 400)
+  if (!parsed.success) throw new AppError(400, "auth.required")
   const { name, password } = parsed.data
 
   const user = await c.env.DB.prepare("SELECT id, name, password_hash FROM users WHERE name = ?")
     .bind(name)
     .first<{ id: string; name: string; password_hash: string }>()
-  if (!user) return c.json({ error: msg(c, "auth.invalid_credentials") }, 401)
+  if (!user) throw new AppError(401, "auth.invalid_credentials")
 
   const result = await verifyPassword(password, user.password_hash)
-  if (!result.valid) return c.json({ error: msg(c, "auth.invalid_credentials") }, 401)
+  if (!result.valid) throw new AppError(401, "auth.invalid_credentials")
 
   if (result.needsRehash && result.newHash) {
     await c.env.DB.prepare("UPDATE users SET password_hash = ? WHERE id = ?")

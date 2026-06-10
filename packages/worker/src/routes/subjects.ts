@@ -1,5 +1,5 @@
 import { Hono } from "hono"
-import { msg } from "../lib/i18n"
+import { AppError } from "../lib/error"
 import type { Bindings } from ".."
 import type { SubjectListItem, SubjectDetail, MaterialAsset } from "@index/shared"
 import { mapMaterial, mapAsset, mapSubjectListItem, mapExamEvent } from "../lib/db"
@@ -22,7 +22,7 @@ app.get("/subject/:id", async (c) => {
   const id = c.req.param("id")
 
   const subjectRow = await db.prepare("SELECT * FROM subjects WHERE id = ?").bind(id).first()
-  if (!subjectRow) return c.json({ error: msg(c, "error.notFound") }, 404)
+  if (!subjectRow) throw new AppError(404, "error.notFound")
 
   const [materialRows, examRows, assetRows] = await Promise.all([
     db

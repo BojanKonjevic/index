@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
-import { msg } from "../lib/i18n"
 import { getValidatedSessionUser, requireAuth } from "../lib/session"
+import { AppError } from "../lib/error"
 import {
   addBookmarkSchema,
   addHistorySchema,
@@ -49,7 +49,7 @@ app.post("/bookmarks/add", bodyLimit({ maxSize: 1024 * 10 }), requireAuth, async
   const user = c.get("user")
   const raw = await c.req.json()
   const parsed = addBookmarkSchema.safeParse(raw)
-  if (!parsed.success) return c.json({ error: msg(c, "auth.material_id_required") }, 400)
+  if (!parsed.success) throw new AppError(400, "auth.material_id_required")
   const { materialId } = parsed.data
 
   const id = crypto.randomUUID()
@@ -66,7 +66,7 @@ app.post("/bookmarks/remove", bodyLimit({ maxSize: 1024 * 10 }), requireAuth, as
   const user = c.get("user")
   const raw = await c.req.json()
   const parsed = removeBookmarkSchema.safeParse(raw)
-  if (!parsed.success) return c.json({ error: msg(c, "auth.material_id_required") }, 400)
+  if (!parsed.success) throw new AppError(400, "auth.material_id_required")
   const { materialId } = parsed.data
   await c.env.DB.prepare("DELETE FROM bookmarks WHERE user_id = ? AND material_id = ?")
     .bind(user.id, materialId)
@@ -113,7 +113,7 @@ app.post("/history", bodyLimit({ maxSize: 1024 * 10 }), requireAuth, async (c) =
   const user = c.get("user")
   const raw = await c.req.json()
   const parsed = addHistorySchema.safeParse(raw)
-  if (!parsed.success) return c.json({ error: msg(c, "auth.material_id_required") }, 400)
+  if (!parsed.success) throw new AppError(400, "auth.material_id_required")
   const { materialId } = parsed.data
 
   const id = crypto.randomUUID()
@@ -141,7 +141,7 @@ app.put("/preferences", bodyLimit({ maxSize: 1024 * 10 }), requireAuth, async (c
   const user = c.get("user")
   const raw = await c.req.json()
   const parsed = updatePreferencesSchema.safeParse(raw)
-  if (!parsed.success) return c.json({ error: msg(c, "preferences.invalid") }, 400)
+  if (!parsed.success) throw new AppError(400, "preferences.invalid")
   const { group } = parsed.data
 
   await c.env.DB.prepare(

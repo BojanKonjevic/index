@@ -12,6 +12,8 @@ export function useAssetCache() {
     try {
       const assets = await fetchMaterialAssets(materialId)
       setCache((prev) => ({ ...prev, [materialId]: assets }))
+    } catch (e) {
+      console.error("Failed to load assets for material:", materialId, e)
     } finally {
       setLoading((prev) => ({ ...prev, [materialId]: false }))
     }

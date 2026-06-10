@@ -42,7 +42,10 @@ function useAuthLogic(): AuthContextType {
         if (data.user) setUser(data.user)
         setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch((e) => {
+        console.error("Failed to fetch current user:", e)
+        setLoading(false)
+      })
   }, [])
 
   const register = async (name: string, password: string) => {

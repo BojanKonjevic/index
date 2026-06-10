@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory"
-import { msg } from "./i18n"
+import { AppError } from "./error"
 
 interface RateLimitConfig {
   maxRequests: number
@@ -40,7 +40,7 @@ export function rateLimit(config: RateLimitConfig) {
     if (entry.count > config.maxRequests) {
       const retryAfter = Math.ceil((entry.resetAt - now) / 1000)
       c.header("Retry-After", String(retryAfter))
-      return c.json({ error: msg(c, "error.rate_limited") }, 429)
+      throw new AppError(429, "error.rate_limited")
     }
 
     await next()

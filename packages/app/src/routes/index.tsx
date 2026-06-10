@@ -72,7 +72,8 @@ export const Route = createFileRoute("/")({
   loader: async () => {
     try {
       return await fetchDashboard()
-    } catch {
+    } catch (e) {
+      console.error("Failed to load dashboard:", e)
       return null
     }
   },
