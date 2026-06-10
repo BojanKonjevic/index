@@ -4,7 +4,7 @@ import "react-pdf/dist/Page/AnnotationLayer.css"
 import { useI18n } from "@/hooks/useI18n"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { RefObject } from "react"
+import { useEffect, type RefObject } from "react"
 import type { Virtualizer } from "@tanstack/react-virtual"
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
@@ -37,6 +37,35 @@ export default function PdfViewer({
   pdfError,
 }: PdfViewerProps) {
   const { t } = useI18n()
+
+  useEffect(() => {
+    const STYLE_ID = "pdf-text-layer-override"
+    if (document.getElementById(STYLE_ID)) return
+    const el = document.createElement("style")
+    el.id = STYLE_ID
+    el.textContent = `
+      .react-pdf__Page__textContent span {
+        color: transparent !important;
+        -webkit-text-fill-color: transparent !important;
+        text-shadow: none !important;
+      }
+      .react-pdf__Page__textContent span::selection {
+        background-color: rgba(0, 100, 255, 0.25) !important;
+        color: transparent !important;
+        -webkit-text-fill-color: transparent !important;
+      }
+      .react-pdf__Page__textContent span::-moz-selection {
+        background-color: rgba(0, 100, 255, 0.25) !important;
+      }
+      .react-pdf__Page__textContent br {
+        display: none;
+      }
+    `
+    document.head.appendChild(el)
+    return () => {
+      document.getElementById(STYLE_ID)?.remove()
+    }
+  }, [])
 
   return (
     <div

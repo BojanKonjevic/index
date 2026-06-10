@@ -311,3 +311,21 @@ html {
 .mb-safe {
   margin-bottom: env(safe-area-inset-bottom);
 }
+
+.react-pdf__Page__textContent {
+  user-select: text;
+  cursor: text;
+}
+
+.react-pdf__Page__textContent span {
+  color: transparent !important;
+}
+
+.react-pdf__Page__textContent span::selection {
+  background-color: rgb(0 100 255 / 0.25) !important;
+  color: transparent !important;
+}
+
+.react-pdf__Page__textContent br {
+  display: none;
+}
