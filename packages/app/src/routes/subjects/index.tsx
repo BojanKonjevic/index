@@ -15,6 +15,7 @@ export const Route = createFileRoute("/subjects/")({
   errorComponent: ErrorFallback,
 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 function SubjectsPage() {
   const subjects = Route.useLoaderData()
   const [searchQuery, setSearchQuery] = useState("")

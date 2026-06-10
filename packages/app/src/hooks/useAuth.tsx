@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error("useAuth must be used within AuthProvider")
@@ -32,7 +33,7 @@ export function useAuth(): AuthContextType {
 function useAuthLogic(): AuthContextType {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isGuest, setIsGuest] = useState(false)
+  const [isGuest, setIsGuest] = useState(() => localStorage.getItem("guest") === "true")
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -42,8 +43,6 @@ function useAuthLogic(): AuthContextType {
         setLoading(false)
       })
       .catch(() => setLoading(false))
-
-    setIsGuest(localStorage.getItem("guest") === "true")
   }, [])
 
   const register = async (name: string, password: string) => {

@@ -37,6 +37,7 @@ export const Route = createFileRoute("/subjects/$subjectId/")({
   errorComponent: ErrorFallback,
 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 function MaterialRow({ material }: { material: Material }) {
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
   const bookmarked = isBookmarked(material.id)
@@ -107,6 +108,7 @@ function MaterialRow({ material }: { material: Material }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 function SubjectPage() {
   const { subject, materials, exams } = Route.useLoaderData()
   const { t, locale } = useI18n()

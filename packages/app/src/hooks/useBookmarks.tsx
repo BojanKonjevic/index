@@ -122,6 +122,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useBookmarks() {
   const ctx = useContext(BookmarkContext)
   if (!ctx) throw new Error("useBookmarks must be used within a BookmarkProvider")

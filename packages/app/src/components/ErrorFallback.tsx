@@ -1,7 +1,8 @@
 import { AlertTriangle, RefreshCw } from "lucide-react"
 import { useI18n } from "@/hooks/useI18n"
 
-export function ErrorFallback({ error: _error }: { error?: Error }) {
+export function ErrorFallback({ error }: { error?: Error }) {
+  void error
   const { t } = useI18n()
   return (
     <div className="flex h-screen items-center justify-center bg-[var(--bg-page)] p-8">

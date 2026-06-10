@@ -25,6 +25,7 @@ export default function AssetGallery({
     setOffset,
     offset,
     isPanning,
+    isPinching,
     containerSize,
     resetView,
     setZoomWithFit,
@@ -73,8 +74,9 @@ export default function AssetGallery({
         onPointerDown={handlers.onPointerDown}
         onPointerMove={handlers.onPointerMove}
         onPointerUp={handlers.onPointerUp}
+        onPointerCancel={handlers.onPointerCancel}
         className="flex items-center justify-center overflow-hidden bg-[var(--bg-surface)] relative select-none"
-        style={{ touchAction: isPanning ? "none" : "pinch-zoom" }}
+        style={{ touchAction: "none" }}
       >
         {hasPrev && (
           <button
@@ -115,7 +117,7 @@ export default function AssetGallery({
           style={{
             transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
           }}
-          className={`max-w-none ${isPanning ? "cursor-grabbing" : "cursor-grab"} ${isPanning ? "" : "transition-transform duration-100"}`}
+          className={`max-w-none ${isPanning ? "cursor-grabbing" : "cursor-grab"} ${isPanning || isPinching ? "" : "transition-transform duration-100"}`}
           draggable={false}
         />
 

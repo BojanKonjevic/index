@@ -107,6 +107,7 @@ function ViewerPage() {
     return () => observer.disconnect()
   }, [])
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: numPages,
     getScrollElement: () => parentRef.current,

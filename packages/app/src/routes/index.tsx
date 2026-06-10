@@ -26,6 +26,7 @@ function getUrgency(
   return { cls: "later" as const, label: t("home.exam_days", { days }) }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 function ExamCard({ exam, subjectName }: { exam: ExamEvent; subjectName: string }) {
   const { t, locale } = useI18n()
   const days = daysUntil(exam.date)
@@ -79,6 +80,7 @@ export const Route = createFileRoute("/")({
   errorComponent: ErrorFallback,
 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 function HomePage() {
   const data = Route.useLoaderData()
   const { recent } = useRecentlyOpened()
