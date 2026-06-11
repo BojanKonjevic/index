@@ -4,9 +4,7 @@
   "packageManager": "pnpm@11.4.0",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
-    "build": "pnpm -r build",
     "deploy": "pnpm -F app build && pnpm -F worker deploy",
-    "format": "prettier --check . && pnpm -r format",
     "format:fix": "prettier --write --ignore-unknown .",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
