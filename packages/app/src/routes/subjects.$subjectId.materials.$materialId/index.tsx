@@ -52,6 +52,7 @@ function ViewerPage() {
   const [pdfError, setPdfError] = useState<string | null>(null)
   const [pageInput, setPageInput] = useState("1")
   const [naturalPageWidth, setNaturalPageWidth] = useState<number | null>(null)
+  const [naturalPageHeight, setNaturalPageHeight] = useState<number | null>(null)
   const [containerWidth, setContainerWidth] = useState(0)
   const [fitWidthMode, setFitWidthMode] = useState(true)
   const parentRef = useRef<HTMLDivElement>(null)
@@ -89,6 +90,7 @@ function ViewerPage() {
     setPdfLoading(true)
     setPdfError(null)
     setNaturalPageWidth(null)
+    setNaturalPageHeight(null)
     setFitWidthMode(true)
     setPageNum(1)
     setZoom(1)
@@ -111,7 +113,12 @@ function ViewerPage() {
   const virtualizer = useVirtualizer({
     count: numPages,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 842,
+    estimateSize: () => {
+      if (naturalPageHeight !== null && zoom > 0) {
+        return Math.round(naturalPageHeight * zoom + 16)
+      }
+      return 842
+    },
     overscan: 2,
   })
 
@@ -466,9 +473,10 @@ function ViewerPage() {
                 inverted={inverted}
                 parentRef={parentRef}
                 virtualizer={virtualizer}
-                onLoadSuccess={(numPages, naturalPageWidth) => {
+                onLoadSuccess={(numPages, naturalPageWidth, naturalPageHeight) => {
                   setNumPages(numPages)
                   setNaturalPageWidth(naturalPageWidth)
+                  setNaturalPageHeight(naturalPageHeight)
                   if (parentRef.current) {
                     setZoom((parentRef.current.clientWidth - 64) / naturalPageWidth)
                   }

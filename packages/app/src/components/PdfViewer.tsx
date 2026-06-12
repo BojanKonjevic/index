@@ -15,7 +15,7 @@ interface PdfViewerProps {
   inverted: boolean
   parentRef: RefObject<HTMLDivElement | null>
   virtualizer: Virtualizer<HTMLDivElement, Element>
-  onLoadSuccess: (numPages: number, naturalPageWidth: number) => void
+  onLoadSuccess: (numPages: number, naturalPageWidth: number, naturalPageHeight: number) => void
   onLoadError: (error: string) => void
   setPdfLoading: (loading: boolean) => void
   handleScroll: () => void
@@ -80,10 +80,9 @@ export default function PdfViewer({
         file={url}
         onLoadSuccess={async (pdf) => {
           setPdfLoading(false)
-          onLoadSuccess(
-            pdf.numPages,
-            await pdf.getPage(1).then((p) => p.getViewport({ scale: 1 }).width),
-          )
+          const page1 = await pdf.getPage(1)
+          const viewport = page1.getViewport({ scale: 1 })
+          onLoadSuccess(pdf.numPages, viewport.width, viewport.height)
         }}
         onLoadError={() => {
           onLoadError(t("viewer.load_error_fmt", { type: t("materialType.pdf") || "PDF" }))
