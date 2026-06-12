@@ -18,7 +18,6 @@ import { CATEGORY_ORDER } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { useVirtualizer } from "@tanstack/react-virtual"
 import VideoViewer from "@/components/VideoViewer"
 import AssetGallery from "@/components/AssetGallery"
 
@@ -86,6 +85,7 @@ function ViewerPage() {
   }, [material, materialId, subjectId, subject?.name, addRecent])
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     setNumPages(0)
     setPdfLoading(true)
     setPdfError(null)
@@ -94,6 +94,7 @@ function ViewerPage() {
     setFitWidthMode(true)
     setPageNum(1)
     setZoom(1)
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [material?.url])
 
   useEffect(() => {
@@ -109,34 +110,20 @@ function ViewerPage() {
     return () => observer.disconnect()
   }, [])
 
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const virtualizer = useVirtualizer({
-    count: numPages,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => {
-      if (naturalPageHeight !== null && zoom > 0) {
-        return Math.round(naturalPageHeight * zoom + 16)
-      }
-      return 842
-    },
-    overscan: 2,
-  })
-
-  const handleScroll = () => {
-    const items = virtualizer.getVirtualItems()
-    const scrollTop = parentRef.current?.scrollTop ?? 0
-    const firstVisible = items.find((item) => item.end > scrollTop) ?? items[items.length - 1]
-    if (firstVisible) {
-      setPageNum(firstVisible.index + 1)
-    }
-  }
+  const handlePageChange = useCallback((page: number) => {
+    setPageNum(page)
+  }, [])
 
   const fitWidthZoom =
     naturalPageWidth && containerWidth > 0 ? (containerWidth - 64) / naturalPageWidth : null
   const MAX_ZOOM = fitWidthZoom ? Math.max(fitWidthZoom * 3, 3) : 5
   const MIN_ZOOM = 0.1
-  const atMaxZoom = zoom * ZOOM_STEP >= MAX_ZOOM
-  const atMinZoom = zoom / ZOOM_STEP <= MIN_ZOOM
+  const displayZoom =
+    fitWidthMode && naturalPageWidth && containerWidth > 0
+      ? (containerWidth - 64) / naturalPageWidth
+      : zoom
+  const atMaxZoom = displayZoom * ZOOM_STEP >= MAX_ZOOM
+  const atMinZoom = displayZoom / ZOOM_STEP <= MIN_ZOOM
   const zoomIn = () => {
     setFitWidthMode(false)
     setZoom((z) => (z * ZOOM_STEP >= MAX_ZOOM ? z : Math.min(z * ZOOM_STEP, MAX_ZOOM)))
@@ -153,27 +140,18 @@ function ViewerPage() {
     setFitWidthMode(true)
   }
 
-  useEffect(() => {
-    if (fitWidthMode && naturalPageWidth && containerWidth > 0) {
-      const fit = (containerWidth - 64) / naturalPageWidth
-      setZoom(fit)
-    }
-  }, [containerWidth, naturalPageWidth, fitWidthMode])
-
-  useEffect(() => {
-    virtualizer.measure()
-  }, [zoom, naturalPageWidth, virtualizer])
-
   const goToPage = useCallback(
     (num: number) => {
-      if (num < 1 || num > numPages) return
-      virtualizer.scrollToIndex(num - 1, { align: "start" })
+      if (num < 1 || num > numPages || naturalPageHeight === null) return
+      const offset = (num - 1) * (naturalPageHeight * displayZoom + 16)
+      parentRef.current?.scrollTo({ top: offset, behavior: "smooth" })
       setPageNum(num)
     },
-    [numPages, virtualizer],
+    [numPages, naturalPageHeight, displayZoom, parentRef],
   )
 
   useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     setPageInput(String(pageNum))
   }, [pageNum])
 
@@ -192,46 +170,48 @@ function ViewerPage() {
   }
 
   const handlerRef = useRef<((e: KeyboardEvent) => void) | null>(null)
-  handlerRef.current = (e: KeyboardEvent) => {
-    if (
-      e.target instanceof HTMLInputElement ||
-      e.target instanceof HTMLTextAreaElement ||
-      e.target instanceof HTMLSelectElement ||
-      (e.target instanceof HTMLElement && e.target.isContentEditable)
-    )
-      return
-    const m = materials.find((m) => m.id === materialId)
-    const isPdf =
-      m?.fileType === "pdf" &&
-      material?.fileType !== "image" &&
-      !(hasAssets && !isContainer && viewerTab === "assets")
-    if (e.key === "b" && m) {
-      e.preventDefault()
-      if (isBookmarked(m.id)) removeBookmark(m.id)
-      else addBookmark(m.id)
-      return
+  useEffect(() => {
+    handlerRef.current = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement ||
+        (e.target instanceof HTMLElement && e.target.isContentEditable)
+      )
+        return
+      const m = materials.find((m) => m.id === materialId)
+      const isPdf =
+        m?.fileType === "pdf" &&
+        material?.fileType !== "image" &&
+        !(hasAssets && !isContainer && viewerTab === "assets")
+      if (e.key === "b" && m) {
+        e.preventDefault()
+        if (isBookmarked(m.id)) removeBookmark(m.id)
+        else addBookmark(m.id)
+        return
+      }
+      if (!isPdf) return
+      if (e.key === "ArrowUp") {
+        e.preventDefault()
+        parentRef.current?.scrollBy({ top: -SCROLL_AMOUNT_PX, behavior: "smooth" })
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault()
+        parentRef.current?.scrollBy({ top: SCROLL_AMOUNT_PX, behavior: "smooth" })
+      } else if (e.key === "PageUp") {
+        e.preventDefault()
+        goToPage(pageNum - 1)
+      } else if (e.key === "PageDown") {
+        e.preventDefault()
+        goToPage(pageNum + 1)
+      } else if (e.key === "Home") {
+        e.preventDefault()
+        goToPage(1)
+      } else if (e.key === "End") {
+        e.preventDefault()
+        goToPage(numPages)
+      }
     }
-    if (!isPdf) return
-    if (e.key === "ArrowUp") {
-      e.preventDefault()
-      parentRef.current?.scrollBy({ top: -SCROLL_AMOUNT_PX, behavior: "smooth" })
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault()
-      parentRef.current?.scrollBy({ top: SCROLL_AMOUNT_PX, behavior: "smooth" })
-    } else if (e.key === "PageUp") {
-      e.preventDefault()
-      goToPage(pageNum - 1)
-    } else if (e.key === "PageDown") {
-      e.preventDefault()
-      goToPage(pageNum + 1)
-    } else if (e.key === "Home") {
-      e.preventDefault()
-      goToPage(1)
-    } else if (e.key === "End") {
-      e.preventDefault()
-      goToPage(numPages)
-    }
-  }
+  })
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => handlerRef.current?.(e)
@@ -333,7 +313,7 @@ function ViewerPage() {
                 pageNum={pageNum}
                 numPages={numPages}
                 pageInput={pageInput}
-                zoom={zoom}
+                zoom={displayZoom}
                 onPageInputChange={handlePageInputChange}
                 onPageInputCommit={handlePageInputCommit}
                 onPageInputKeyDown={handlePageInputKeyDown}
@@ -469,21 +449,22 @@ function ViewerPage() {
             >
               <PdfViewer
                 url={material.url}
-                zoom={zoom}
+                zoom={displayZoom}
                 inverted={inverted}
                 parentRef={parentRef}
-                virtualizer={virtualizer}
-                onLoadSuccess={(numPages, naturalPageWidth, naturalPageHeight) => {
-                  setNumPages(numPages)
-                  setNaturalPageWidth(naturalPageWidth)
-                  setNaturalPageHeight(naturalPageHeight)
+                numPages={numPages}
+                naturalPageHeight={naturalPageHeight}
+                onLoadSuccess={(n, w, h) => {
+                  setNumPages(n)
+                  setNaturalPageWidth(w)
+                  setNaturalPageHeight(h)
                   if (parentRef.current) {
-                    setZoom((parentRef.current.clientWidth - 64) / naturalPageWidth)
+                    setZoom((parentRef.current.clientWidth - 64) / w)
                   }
                 }}
                 onLoadError={(error) => setPdfError(error)}
                 setPdfLoading={setPdfLoading}
-                handleScroll={handleScroll}
+                onPageChange={handlePageChange}
                 pdfLoading={pdfLoading}
                 pdfError={pdfError}
               />
@@ -524,7 +505,7 @@ function ViewerPage() {
             pageNum={pageNum}
             numPages={numPages}
             pageInput={pageInput}
-            zoom={zoom}
+            zoom={displayZoom}
             onPageInputChange={handlePageInputChange}
             onPageInputCommit={handlePageInputCommit}
             onPageInputKeyDown={handlePageInputKeyDown}

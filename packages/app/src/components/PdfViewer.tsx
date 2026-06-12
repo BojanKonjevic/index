@@ -4,21 +4,23 @@ import "react-pdf/dist/Page/AnnotationLayer.css"
 import { useI18n } from "@/hooks/useI18n"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useEffect, type RefObject } from "react"
-import type { Virtualizer } from "@tanstack/react-virtual"
+import { useEffect, useRef, useState, useCallback, type RefObject } from "react"
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
+
+const BUFFER = 4
 
 interface PdfViewerProps {
   url: string
   zoom: number
   inverted: boolean
   parentRef: RefObject<HTMLDivElement | null>
-  virtualizer: Virtualizer<HTMLDivElement, Element>
+  numPages: number
+  naturalPageHeight: number | null
   onLoadSuccess: (numPages: number, naturalPageWidth: number, naturalPageHeight: number) => void
   onLoadError: (error: string) => void
   setPdfLoading: (loading: boolean) => void
-  handleScroll: () => void
+  onPageChange: (pageNum: number) => void
   pdfLoading: boolean
   pdfError: string | null
 }
@@ -28,15 +30,58 @@ export default function PdfViewer({
   zoom,
   inverted,
   parentRef,
-  virtualizer,
+  numPages,
+  naturalPageHeight,
   onLoadSuccess,
   onLoadError,
   setPdfLoading,
-  handleScroll,
+  onPageChange,
   pdfLoading,
   pdfError,
 }: PdfViewerProps) {
   const { t } = useI18n()
+  const rafId = useRef<number | null>(null)
+  const [range, setRange] = useState({ start: 0, end: 0 })
+
+  const pageHeight = naturalPageHeight !== null ? naturalPageHeight * zoom + 16 : 842
+  const totalHeight = numPages * pageHeight
+
+  const updateRange = useCallback(() => {
+    const el = parentRef.current
+    if (!el || naturalPageHeight === null || numPages === 0) return
+
+    const scrollTop = el.scrollTop
+    const viewH = el.clientHeight
+
+    const first = Math.floor(scrollTop / pageHeight)
+    const last = Math.ceil((scrollTop + viewH) / pageHeight)
+
+    const start = Math.max(0, first - BUFFER)
+    const end = Math.min(numPages, last + BUFFER)
+
+    setRange({ start, end })
+
+    const mid = Math.round((scrollTop + viewH / 2) / pageHeight)
+    onPageChange(Math.max(1, Math.min(mid + 1, numPages)))
+  }, [parentRef, naturalPageHeight, numPages, pageHeight, onPageChange])
+
+  useEffect(() => {
+    updateRange()
+  }, [numPages, naturalPageHeight, zoom, updateRange])
+
+  const handleScroll = useCallback(() => {
+    if (rafId.current) cancelAnimationFrame(rafId.current)
+    rafId.current = requestAnimationFrame(() => {
+      updateRange()
+      rafId.current = null
+    })
+  }, [updateRange])
+
+  useEffect(() => {
+    return () => {
+      if (rafId.current) cancelAnimationFrame(rafId.current)
+    }
+  }, [])
 
   useEffect(() => {
     const STYLE_ID = "pdf-text-layer-override"
@@ -66,6 +111,11 @@ export default function PdfViewer({
       document.getElementById(STYLE_ID)?.remove()
     }
   }, [])
+
+  const pages: number[] = []
+  for (let i = range.start; i < range.end; i++) {
+    pages.push(i)
+  }
 
   return (
     <div
@@ -102,15 +152,13 @@ export default function PdfViewer({
           </div>
         )}
 
-        <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
-          {virtualizer.getVirtualItems().map((virtualItem) => (
+        <div style={{ height: totalHeight, position: "relative" }}>
+          {pages.map((i) => (
             <div
-              key={virtualItem.key}
-              data-index={virtualItem.index}
-              ref={virtualizer.measureElement}
+              key={i}
               style={{
                 position: "absolute",
-                top: virtualItem.start,
+                top: i * pageHeight,
                 left: 0,
                 right: 0,
                 display: "flex",
@@ -125,7 +173,7 @@ export default function PdfViewer({
                 }}
               >
                 <Page
-                  pageNumber={virtualItem.index + 1}
+                  pageNumber={i + 1}
                   scale={zoom}
                   renderTextLayer={true}
                   renderAnnotationLayer={true}
