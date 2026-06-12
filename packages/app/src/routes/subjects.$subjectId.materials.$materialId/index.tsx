@@ -55,6 +55,39 @@ function ViewerPage() {
   const [containerWidth, setContainerWidth] = useState(0)
   const [fitWidthMode, setFitWidthMode] = useState(true)
   const parentRef = useRef<HTMLDivElement>(null)
+  const observerSetupRef = useRef(false)
+  const [cssScale, setCssScale] = useState(1)
+  const transitioningRef = useRef(false)
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  useEffect(() => {
+    const sidebarPx = 14 * parseFloat(getComputedStyle(document.documentElement).fontSize)
+
+    const handler = (e: Event) => {
+      const { collapsed } = (e as CustomEvent).detail
+      if (!fitWidthMode || !naturalPageWidth) return
+      const el = parentRef.current
+      if (!el) return
+
+      const currentWidth = el.clientWidth
+      const targetWidth = currentWidth + (collapsed ? sidebarPx : -sidebarPx)
+      const targetZoom = (targetWidth - 64) / naturalPageWidth
+
+      setCssScale(targetZoom / zoom)
+
+      transitioningRef.current = true
+      clearTimeout(transitionTimeoutRef.current)
+      transitionTimeoutRef.current = setTimeout(() => {
+        transitioningRef.current = false
+      }, 200)
+    }
+
+    window.addEventListener("sidebar-toggling", handler)
+    return () => {
+      window.removeEventListener("sidebar-toggling", handler)
+      clearTimeout(transitionTimeoutRef.current)
+    }
+  }, [fitWidthMode, naturalPageWidth, zoom])
 
   const { asset: assetParam } = Route.useSearch()
   const assetFromUrl = assetParam ? parseInt(assetParam, 10) || 0 : 0
@@ -94,48 +127,76 @@ function ViewerPage() {
     setFitWidthMode(true)
     setPageNum(1)
     setZoom(1)
+    setCssScale(1)
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [material?.url])
 
   useEffect(() => {
     const el = parentRef.current
-    if (!el) return
+    if (!el || observerSetupRef.current) return
+    observerSetupRef.current = true
+
     const update = () => {
+      if (transitioningRef.current) return
       const w = Math.round(el.clientWidth)
       setContainerWidth((prev) => (prev === w ? prev : w))
     }
     update()
     const observer = new ResizeObserver(update)
     observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
+    return () => {
+      observer.disconnect()
+      observerSetupRef.current = false
+    }
+  })
 
   const handlePageChange = useCallback((page: number) => {
     setPageNum(page)
   }, [])
 
+  const measuredWidth = containerWidth || 0
   const fitWidthZoom =
-    naturalPageWidth && containerWidth > 0 ? (containerWidth - 64) / naturalPageWidth : null
+    naturalPageWidth && measuredWidth > 0 ? (measuredWidth - 64) / naturalPageWidth : null
   const MAX_ZOOM = fitWidthZoom ? Math.max(fitWidthZoom * 3, 3) : 5
   const MIN_ZOOM = 0.1
-  const displayZoom =
-    fitWidthMode && naturalPageWidth && containerWidth > 0
-      ? (containerWidth - 64) / naturalPageWidth
+  const computedZoom =
+    fitWidthMode && naturalPageWidth && measuredWidth > 0
+      ? (measuredWidth - 64) / naturalPageWidth
       : zoom
+  const displayZoom = cssScale !== 1 ? zoom * cssScale : computedZoom
+  const canvasZoom = cssScale !== 1 ? zoom : displayZoom
   const atMaxZoom = displayZoom * ZOOM_STEP >= MAX_ZOOM
   const atMinZoom = displayZoom / ZOOM_STEP <= MIN_ZOOM
   const zoomIn = () => {
     setFitWidthMode(false)
-    setZoom((z) => (z * ZOOM_STEP >= MAX_ZOOM ? z : Math.min(z * ZOOM_STEP, MAX_ZOOM)))
+    const s = cssScale
+    if (s !== 1) setCssScale(1)
+    setZoom((z) => {
+      const effective = s !== 1 ? z * s : z
+      return effective * ZOOM_STEP >= MAX_ZOOM
+        ? effective
+        : Math.min(effective * ZOOM_STEP, MAX_ZOOM)
+    })
   }
   const zoomOut = () => {
     setFitWidthMode(false)
-    setZoom((z) => (z / ZOOM_STEP <= MIN_ZOOM ? z : Math.max(z / ZOOM_STEP, MIN_ZOOM)))
+    const s = cssScale
+    if (s !== 1) setCssScale(1)
+    setZoom((z) => {
+      const effective = s !== 1 ? z * s : z
+      return effective / ZOOM_STEP <= MIN_ZOOM
+        ? effective
+        : Math.max(effective / ZOOM_STEP, MIN_ZOOM)
+    })
   }
 
   const fitWidth = () => {
-    if (!naturalPageWidth || containerWidth <= 0) return
-    const fit = (containerWidth - 64) / naturalPageWidth
+    if (!naturalPageWidth) return
+    const s = cssScale
+    if (s !== 1) setCssScale(1)
+    const w = parentRef.current?.clientWidth ?? containerWidth
+    if (w <= 0) return
+    const fit = (w - 64) / naturalPageWidth
     setZoom(fit)
     setFitWidthMode(true)
   }
@@ -449,7 +510,8 @@ function ViewerPage() {
             >
               <PdfViewer
                 url={material.url}
-                zoom={displayZoom}
+                zoom={canvasZoom}
+                cssScale={cssScale}
                 inverted={inverted}
                 parentRef={parentRef}
                 numPages={numPages}

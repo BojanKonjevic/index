@@ -14,6 +14,8 @@ const translations: Record<Locale, Record<string, string>> = {
 
     // Sidebar
     "sidebar.settings": "Podešavanja",
+    "sidebar.collapse": "Sakrij meni",
+    "sidebar.expand": "Prikaži meni",
     "sidebar.group_label": "Trenutna grupa",
     "sidebar.group_placeholder": "Nije odabrana",
     "sidebar.group_fmt": "Grupa {g}",
@@ -197,6 +199,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.login": "Log in",
 
     "sidebar.settings": "Settings",
+    "sidebar.collapse": "Collapse menu",
+    "sidebar.expand": "Expand menu",
     "sidebar.group_label": "Current group",
     "sidebar.group_placeholder": "Not selected",
     "sidebar.group_fmt": "Group {g}",

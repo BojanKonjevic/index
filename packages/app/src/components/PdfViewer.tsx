@@ -13,6 +13,7 @@ const BUFFER = 4
 interface PdfViewerProps {
   url: string
   zoom: number
+  cssScale?: number
   inverted: boolean
   parentRef: RefObject<HTMLDivElement | null>
   numPages: number
@@ -28,6 +29,7 @@ interface PdfViewerProps {
 export default function PdfViewer({
   url,
   zoom,
+  cssScale,
   inverted,
   parentRef,
   numPages,
@@ -152,7 +154,15 @@ export default function PdfViewer({
           </div>
         )}
 
-        <div style={{ height: totalHeight, position: "relative" }}>
+        <div
+          style={{
+            height: totalHeight,
+            position: "relative",
+            transform: cssScale && cssScale !== 1 ? `scale(${cssScale})` : undefined,
+            transformOrigin: "center top",
+            transition: cssScale && cssScale !== 1 ? "transform 200ms ease-in-out" : undefined,
+          }}
+        >
           {pages.map((i) => (
             <div
               key={i}

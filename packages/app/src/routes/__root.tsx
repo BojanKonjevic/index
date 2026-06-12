@@ -13,11 +13,13 @@ import {
   LogIn,
   ChevronDown,
   SlidersHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toggleTheme, getInitialTheme } from "@/lib/theme"
 
-import { useState, useMemo, useRef } from "react"
+import { useState, useMemo, useRef, useLayoutEffect } from "react"
 import { AuthProvider, useAuth } from "@/hooks/useAuth"
 import { BookmarkProvider } from "@/hooks/useBookmarks"
 import { ErrorFallback } from "@/components/ErrorFallback"
@@ -204,7 +206,17 @@ function BottomTabBar({
   )
 }
 
-function Sidebar({ theme, onToggleTheme }: { theme: "light" | "dark"; onToggleTheme: () => void }) {
+function Sidebar({
+  theme,
+  onToggleTheme,
+  collapsed,
+  onToggleCollapse,
+}: {
+  theme: "light" | "dark"
+  onToggleTheme: () => void
+  collapsed: boolean
+  onToggleCollapse: () => void
+}) {
   const { group, setGroup: setGroupPreference } = usePreferences()
   const { user, isGuest, logout } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
@@ -230,126 +242,142 @@ function Sidebar({ theme, onToggleTheme }: { theme: "light" | "dark"; onToggleTh
   )
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[14rem] flex-col border-r bg-[var(--bg-surface)] border-[var(--border-default)] z-40 hidden md:flex md:flex-col">
-      <div className="flex items-center gap-2.5 px-4 py-[1.125rem] pb-3.5 border-b border-[var(--border-faint)]">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="w-[1.875rem] h-[1.875rem] rounded-[0.5rem] bg-[var(--text-primary)] flex items-center justify-center">
-            <GraduationCap className="size-[0.938rem] text-[var(--bg-surface)]" />
-          </div>
-          <span className="text-[1.063rem] font-semibold tracking-[-0.3px] text-[var(--text-primary)]">
-            Indeks
-          </span>
-        </Link>
-      </div>
-
-      <nav className="flex-1 flex flex-col gap-0.5 px-2 pt-[0.875rem] pb-3">
-        {navItems.map((section) => (
-          <div key={section.section}>
-            <div className="px-2 pb-[0.375rem] pt-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-              {section.section}
-            </div>
-            {section.items.map((item) => (
-              <NavItem key={item.to} to={item.to} icon={item.icon} label={item.label} />
-            ))}
-          </div>
-        ))}
-      </nav>
-
-      <div className="mt-auto border-t border-[var(--border-faint)] px-2 py-3 flex flex-col gap-1">
-        <div className="relative" ref={groupRef}>
-          <button
-            onClick={() => setGroupOpen(!groupOpen)}
-            className="flex w-full items-center gap-2 rounded-[0.438rem] bg-[var(--bg-subtle)] px-[0.563rem] py-[0.438rem] text-xs transition-colors hover:bg-[var(--bg-inset)] cursor-pointer"
-          >
-            <User className="size-[0.875rem] text-[var(--text-hint)] shrink-0" />
-            <div className="flex flex-col flex-1 min-w-0 text-left">
-              <span className="text-[0.625rem] text-[var(--text-hint)]">
-                {t("sidebar.group_label")}
+    <div className="fixed left-0 top-0 h-screen z-40 hidden md:flex">
+      <aside
+        className={`h-screen flex flex-col border-r bg-[var(--bg-surface)] border-[var(--border-default)] transition-[width] duration-200 ease-in-out overflow-hidden ${
+          collapsed ? "w-0 border-r-0" : "w-[14rem]"
+        }`}
+      >
+        <div className="w-[14rem] shrink-0 flex flex-col h-full">
+          <div className="flex items-center gap-2.5 px-4 py-[1.125rem] pb-3.5 border-b border-[var(--border-faint)]">
+            <Link to="/" className="flex items-center gap-2.5">
+              <div className="w-[1.875rem] h-[1.875rem] rounded-[0.5rem] bg-[var(--text-primary)] flex items-center justify-center">
+                <GraduationCap className="size-[0.938rem] text-[var(--bg-surface)]" />
+              </div>
+              <span className="text-[1.063rem] font-semibold tracking-[-0.3px] text-[var(--text-primary)]">
+                Indeks
               </span>
-              <span className="text-[0.75rem] font-medium text-[var(--text-primary)] truncate">
-                {group ? t("sidebar.group_fmt", { g: group }) : t("sidebar.group_placeholder")}
-              </span>
-            </div>
-            <ChevronDown className="size-[0.813rem] text-[var(--text-hint)] shrink-0" />
-          </button>
-          {groupOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setGroupOpen(false)} />
-              <div className="absolute bottom-full left-0 right-0 z-50 mb-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-md overflow-y-auto max-h-[18.75rem] dropdown-enter">
-                {GROUP_NUMBERS.map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => {
-                      setGroupPreference(String(g))
-                      setGroupOpen(false)
-                    }}
-                    className={`w-full cursor-pointer px-3 py-2 text-left text-[0.813rem] transition-colors duration-100 hover:bg-[var(--bg-subtle)] ${
-                      group === String(g)
-                        ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]"
-                        : "text-[var(--text-primary)]"
-                    }`}
-                  >
-                    {t("sidebar.group_fmt", { g })}
-                  </button>
+            </Link>
+          </div>
+
+          <nav className="flex-1 flex flex-col gap-0.5 px-2 pt-[0.875rem] pb-3">
+            {navItems.map((section) => (
+              <div key={section.section}>
+                <div className="px-2 pb-[0.375rem] pt-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+                  {section.section}
+                </div>
+                {section.items.map((item) => (
+                  <NavItem key={item.to} to={item.to} icon={item.icon} label={item.label} />
                 ))}
               </div>
-            </>
-          )}
-        </div>
+            ))}
+          </nav>
 
-        {user && (
-          <div className="flex items-center justify-between rounded-[0.438rem] bg-[var(--bg-subtle)] px-[0.563rem] py-[0.438rem]">
-            <span className="text-[0.813rem] font-medium text-[var(--text-primary)] truncate">
-              {user.name}
-            </span>
-            <button
-              onClick={logout}
-              aria-label={t("nav.logout")}
-              className="shrink-0 cursor-pointer text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors"
-              title={t("nav.logout")}
-            >
-              <LogOut className="size-[0.875rem]" />
-            </button>
-          </div>
-        )}
+          <div className="mt-auto border-t border-[var(--border-faint)] px-2 py-3 flex flex-col gap-1">
+            <div className="relative" ref={groupRef}>
+              <button
+                onClick={() => setGroupOpen(!groupOpen)}
+                className="flex w-full items-center gap-2 rounded-[0.438rem] bg-[var(--bg-subtle)] px-[0.563rem] py-[0.438rem] text-xs transition-colors hover:bg-[var(--bg-inset)] cursor-pointer"
+              >
+                <User className="size-[0.875rem] text-[var(--text-hint)] shrink-0" />
+                <div className="flex flex-col flex-1 min-w-0 text-left">
+                  <span className="text-[0.625rem] text-[var(--text-hint)]">
+                    {t("sidebar.group_label")}
+                  </span>
+                  <span className="text-[0.75rem] font-medium text-[var(--text-primary)] truncate">
+                    {group ? t("sidebar.group_fmt", { g: group }) : t("sidebar.group_placeholder")}
+                  </span>
+                </div>
+                <ChevronDown className="size-[0.813rem] text-[var(--text-hint)] shrink-0" />
+              </button>
+              {groupOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setGroupOpen(false)} />
+                  <div className="absolute bottom-full left-0 right-0 z-50 mb-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-md overflow-y-auto max-h-[18.75rem] dropdown-enter">
+                    {GROUP_NUMBERS.map((g) => (
+                      <button
+                        key={g}
+                        onClick={() => {
+                          setGroupPreference(String(g))
+                          setGroupOpen(false)
+                        }}
+                        className={`w-full cursor-pointer px-3 py-2 text-left text-[0.813rem] transition-colors duration-100 hover:bg-[var(--bg-subtle)] ${
+                          group === String(g)
+                            ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]"
+                            : "text-[var(--text-primary)]"
+                        }`}
+                      >
+                        {t("sidebar.group_fmt", { g })}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
 
-        {!user && isGuest && (
-          <button
-            onClick={() => setAuthOpen(true)}
-            className="flex w-full cursor-pointer items-center gap-2 rounded-[0.438rem] px-[0.563rem] py-[0.438rem] text-[0.813rem] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-subtle)]"
-          >
-            <LogIn className="size-[0.875rem]" />
-            {t("nav.login_register")}
-          </button>
-        )}
-
-        <div className="h-px bg-[var(--border-faint)] my-1.5" />
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleLocale}
-            aria-label={locale === "sr" ? "Switch to English" : "Prebaci na srpski"}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-2 py-1.5 text-[0.688rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-            title={locale === "sr" ? "Switch to English" : "Prebaci na srpski"}
-          >
-            <Languages className="size-[0.875rem]" />
-            <span>{locale === "sr" ? "EN" : "SR"}</span>
-          </button>
-          <button
-            onClick={onToggleTheme}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-2 py-1.5 text-[0.688rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-          >
-            {theme === "dark" ? (
-              <Sun className="size-[0.875rem]" />
-            ) : (
-              <Moon className="size-[0.875rem]" />
+            {user && (
+              <div className="flex items-center justify-between rounded-[0.438rem] bg-[var(--bg-subtle)] px-[0.563rem] py-[0.438rem]">
+                <span className="text-[0.813rem] font-medium text-[var(--text-primary)] truncate">
+                  {user.name}
+                </span>
+                <button
+                  onClick={logout}
+                  aria-label={t("nav.logout")}
+                  className="shrink-0 cursor-pointer text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors"
+                  title={t("nav.logout")}
+                >
+                  <LogOut className="size-[0.875rem]" />
+                </button>
+              </div>
             )}
-            <span>{theme === "dark" ? "Light" : "Dark"}</span>
-          </button>
-        </div>
-      </div>
 
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
-    </aside>
+            {!user && isGuest && (
+              <button
+                onClick={() => setAuthOpen(true)}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-[0.438rem] px-[0.563rem] py-[0.438rem] text-[0.813rem] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-subtle)]"
+              >
+                <LogIn className="size-[0.875rem]" />
+                {t("nav.login_register")}
+              </button>
+            )}
+
+            <div className="h-px bg-[var(--border-faint)] my-1.5" />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleLocale}
+                aria-label={locale === "sr" ? "Switch to English" : "Prebaci na srpski"}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-2 py-1.5 text-[0.688rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+                title={locale === "sr" ? "Switch to English" : "Prebaci na srpski"}
+              >
+                <Languages className="size-[0.875rem]" />
+                <span>{locale === "sr" ? "EN" : "SR"}</span>
+              </button>
+              <button
+                onClick={onToggleTheme}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-2 py-1.5 text-[0.688rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+              >
+                {theme === "dark" ? (
+                  <Sun className="size-[0.875rem]" />
+                ) : (
+                  <Moon className="size-[0.875rem]" />
+                )}
+                <span>{theme === "dark" ? "Light" : "Dark"}</span>
+              </button>
+            </div>
+            <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+          </div>
+        </div>
+      </aside>
+      {!collapsed && (
+        <button
+          onClick={onToggleCollapse}
+          aria-label={t("sidebar.collapse")}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-50 flex items-center justify-center size-7 rounded-l-md bg-[var(--bg-surface)] border border-r-0 border-[var(--border-default)] text-[var(--text-hint)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all duration-100 cursor-pointer"
+        >
+          <PanelLeftClose className="size-4" />
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -380,8 +408,16 @@ function RootLayout() {
 
 function RootContent() {
   const { user, isGuest, loading } = useAuth()
+  const { t } = useI18n()
   const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const toggleThemeHandler = () => setTheme((prev) => toggleTheme(prev))
+
+  useLayoutEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("sidebar-toggling", { detail: { collapsed: sidebarCollapsed } }),
+    )
+  }, [sidebarCollapsed])
 
   if (loading) return <Skeleton />
 
@@ -391,9 +427,27 @@ function RootContent() {
 
   return (
     <div className="min-h-screen bg-bg-page">
-      <Sidebar theme={theme} onToggleTheme={toggleThemeHandler} />
+      <Sidebar
+        theme={theme}
+        onToggleTheme={toggleThemeHandler}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+      />
+      {sidebarCollapsed && (
+        <button
+          onClick={() => setSidebarCollapsed(false)}
+          aria-label={t("sidebar.expand")}
+          className="fixed left-0 top-1/2 -translate-y-1/2 z-50 hidden md:flex items-center justify-center size-7 rounded-r-md bg-[var(--bg-surface)] border border-l-0 border-[var(--border-default)] text-[var(--text-hint)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all duration-100 cursor-pointer shadow-sm"
+        >
+          <PanelLeftOpen className="size-4" />
+        </button>
+      )}
       <BottomTabBar theme={theme} onToggleTheme={toggleThemeHandler} />
-      <main className="ml-0 md:ml-[14rem] min-h-screen pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
+      <main
+        className={`min-h-screen pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0 transition-[margin] duration-200 ease-in-out ${
+          sidebarCollapsed ? "ml-0" : "ml-0 md:ml-[14rem]"
+        }`}
+      >
         <AnimatedOutlet />
       </main>
     </div>
