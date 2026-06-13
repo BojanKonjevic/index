@@ -85,7 +85,11 @@ async function verifyPassword(password: string, stored: string): Promise<VerifyR
     )
     const computedHex = bytesToHex(new Uint8Array(key))
     const valid = timingSafeEqual(computedHex, storedHash)
-    return { valid, needsRehash: valid && iterations < PBKDF2_ITERATIONS }
+    if (valid && iterations < PBKDF2_ITERATIONS) {
+      const newHash = await hashPassword(password)
+      return { valid, needsRehash: true, newHash }
+    }
+    return { valid, needsRehash: false }
   }
 
   return { valid: false, needsRehash: false }

@@ -85,35 +85,6 @@ export default function PdfViewer({
     }
   }, [])
 
-  useEffect(() => {
-    const STYLE_ID = "pdf-text-layer-override"
-    if (document.getElementById(STYLE_ID)) return
-    const el = document.createElement("style")
-    el.id = STYLE_ID
-    el.textContent = `
-      .react-pdf__Page__textContent span {
-        color: transparent !important;
-        -webkit-text-fill-color: transparent !important;
-        text-shadow: none !important;
-      }
-      .react-pdf__Page__textContent span::selection {
-        background-color: rgba(0, 100, 255, 0.25) !important;
-        color: transparent !important;
-        -webkit-text-fill-color: transparent !important;
-      }
-      .react-pdf__Page__textContent span::-moz-selection {
-        background-color: rgba(0, 100, 255, 0.25) !important;
-      }
-      .react-pdf__Page__textContent br {
-        display: none;
-      }
-    `
-    document.head.appendChild(el)
-    return () => {
-      document.getElementById(STYLE_ID)?.remove()
-    }
-  }, [])
-
   const pages: number[] = []
   for (let i = range.start; i < range.end; i++) {
     pages.push(i)

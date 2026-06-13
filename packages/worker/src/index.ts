@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
 import subjects from "./routes/subjects"
-import fileRoutes from "./routes/pdf"
+import fileRoutes from "./routes/files"
 import auth from "./routes/auth"
 import user from "./routes/user"
 import dashboard from "./routes/dashboard"
