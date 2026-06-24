@@ -46,7 +46,11 @@ function ViewerPage() {
   const [pageNum, setPageNum] = useState(1)
   const [numPages, setNumPages] = useState(0)
   const [zoom, setZoom] = useState(1)
-  const [inverted, setInverted] = useState(false)
+  const [inverted, setInverted] = useState(() => localStorage.getItem("pdfInverted") === "true")
+
+  useEffect(() => {
+    localStorage.setItem("pdfInverted", String(inverted))
+  }, [inverted])
   const [pdfLoading, setPdfLoading] = useState(true)
   const [pdfError, setPdfError] = useState<string | null>(null)
   const [pageInput, setPageInput] = useState("1")
