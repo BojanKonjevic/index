@@ -45,6 +45,10 @@ const messages: Record<string, Record<Locale, string>> = {
     sr: "Interna greška servera.",
     en: "Internal server error.",
   },
+  "error.session_secret": {
+    sr: "Server nije ispravno konfigurisan.",
+    en: "Server is not configured properly.",
+  },
 }
 
 export function getLocale(c: { req: { header: (name: string) => string | undefined } }): Locale {

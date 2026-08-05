@@ -15,9 +15,18 @@ export type Bindings = {
   SESSION_SECRET: string
 }
 
+const PLACEHOLDER_SECRET = "change-me-to-a-real-secret"
+
 const app = new Hono<{ Bindings: Bindings }>()
 
 app.use(bodyLimit({ maxSize: 1024 * 1024 }))
+
+app.use("/api/*", async (c, next) => {
+  if (!c.env.SESSION_SECRET || c.env.SESSION_SECRET === PLACEHOLDER_SECRET) {
+    throw new AppError(500, "error.session_secret")
+  }
+  await next()
+})
 
 app.use("/api/*", async (c, next) => {
   await next()

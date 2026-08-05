@@ -12,9 +12,6 @@ migrations_dir = "migrations"
 binding = "BUCKET"
 bucket_name = "index-bucket"
 
-[vars]
-SESSION_SECRET = "change-me-to-a-real-secret"
-
 [assets]
 directory = "../app/dist"
 binding = "ASSETS"
