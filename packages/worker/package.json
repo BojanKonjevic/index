@@ -3,10 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "echo y | wrangler d1 migrations apply index-db --local",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "db:migrate": "wrangler d1 migrations apply index-db --remote",
     "db:migrate:local": "wrangler d1 migrations apply index-db --local",
+    "seed:r2": "node scripts/seed-local-r2.mjs",
     "test": "vitest",
     "format": "prettier --check .",
     "typecheck": "tsc --noEmit"
