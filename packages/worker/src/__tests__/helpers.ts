@@ -44,3 +44,11 @@ export async function seedSubject() {
     ),
   ])
 }
+
+export async function seedExam() {
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO exams (id, subject_id, title, date, time, location) VALUES ('exam-test-1', 'matematicka-analiza-2', 'Test ispit', date('now', '+7 days'), '09:00', 'A1')`,
+    )
+    .run()
+}
