@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@11.4.0",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
+    "dev": "pnpm -F app build && pnpm -r --parallel dev",
     "deploy": "pnpm -F app build && pnpm -F worker deploy",
     "format:fix": "prettier --write --ignore-unknown .",
     "lint": "pnpm -r lint",
