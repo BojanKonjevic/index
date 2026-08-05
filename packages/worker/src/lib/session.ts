@@ -115,15 +115,6 @@ export async function getValidatedSessionUser(
   return { id: user.id, name: user.name }
 }
 
-export async function getUserId(
-  c: Context,
-  db: D1Database,
-  secret: string,
-): Promise<string | null> {
-  const user = await getValidatedSessionUser(c, db, secret)
-  return user?.id ?? null
-}
-
 export const requireAuth = createMiddleware<{
   Bindings: { DB: D1Database; SESSION_SECRET: string }
   Variables: { user: { id: string; name: string } }

@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import Fuse from "fuse.js"
 import type { Material, ExamEvent } from "@index/shared"
-import { normalizeSr } from "@/lib/normalize"
+import { normalizeSr, srGetFn } from "@/lib/normalize"
 
 export type SearchResultItem = {
   id: string
@@ -13,7 +13,7 @@ export type SearchResultItem = {
   params: Record<string, string>
 }
 
-type GlobalData = {
+export type GlobalData = {
   subjects: Array<{ id: string; name: string; semester: number; espb: number }>
   materials: Material[]
   exams: ExamEvent[]
@@ -72,14 +72,7 @@ export function useGlobalSearch(data: GlobalData | null, query: string, limit = 
       new Fuse(index, {
         keys: ["label", "description"],
         threshold: 0.4,
-        getFn: (obj: unknown, path: string | string[]) => {
-          const keys = Array.isArray(path) ? path : [path]
-          let value: unknown = obj
-          for (const key of keys) {
-            value = (value as Record<string, unknown>)?.[key]
-          }
-          return normalizeSr(String(value ?? ""))
-        },
+        getFn: srGetFn,
       }),
     [index],
   )
