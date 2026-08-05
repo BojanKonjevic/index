@@ -39,6 +39,9 @@ function SubjectsPage() {
     if (!grouped[s.semester]) grouped[s.semester] = []
     grouped[s.semester].push(s)
   })
+  for (const semester of Object.keys(grouped)) {
+    grouped[Number(semester)].sort((a, b) => a.name.localeCompare(b.name, "sr"))
+  }
 
   const semesters = Object.keys(grouped).map(Number).sort()
   const uniqueSemesters = [...new Set(subjects.map((s) => s.semester))].sort()

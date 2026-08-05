@@ -138,12 +138,14 @@ function SubjectPage() {
     debouncedQuery,
   )
 
-  const filteredMaterials = searchedMaterials.filter((m) => {
-    if (fileTypeFilter !== "all" && m.fileType !== fileTypeFilter) return false
-    const vcat = getVirtualCategory(m)
-    if (categoryFilter !== "all" && vcat !== categoryFilter) return false
-    return true
-  })
+  const filteredMaterials = searchedMaterials
+    .filter((m) => {
+      if (fileTypeFilter !== "all" && m.fileType !== fileTypeFilter) return false
+      const vcat = getVirtualCategory(m)
+      if (categoryFilter !== "all" && vcat !== categoryFilter) return false
+      return true
+    })
+    .sort((a, b) => a.title.localeCompare(b.title, "sr"))
 
   type GroupedMaterials = { solved: Material[]; unsolved: Material[]; unknown: Material[] }
   const grouped: Record<string, GroupedMaterials> = {}
