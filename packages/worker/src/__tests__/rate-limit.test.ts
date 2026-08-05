@@ -31,4 +31,27 @@ describe("auth rate limiter", () => {
     const body = await res.json<{ error: string }>()
     expect(body.error).toContain("Previše zahteva")
   })
+
+  it("ignores client-supplied x-forwarded-for so the limit cannot be bypassed by rotating it", async () => {
+    for (let i = 0; i < 10; i++) {
+      const res = await SELF.fetch("http://localhost/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": `203.0.113.${i + 1}`,
+        },
+        body: JSON.stringify({ name: `spoof${i}`, password: "wrongpass" }),
+      })
+      expect(res.status).not.toBe(429)
+    }
+    const res = await SELF.fetch("http://localhost/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-forwarded-for": "203.0.113.99",
+      },
+      body: JSON.stringify({ name: "spoofed", password: "wrongpass" }),
+    })
+    expect(res.status).toBe(429)
+  })
 })

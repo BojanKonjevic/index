@@ -26,7 +26,7 @@ export function rateLimit(config: RateLimitConfig) {
       }
     }
 
-    const ip = c.req.header("cf-connecting-ip") || c.req.header("x-forwarded-for") || "unknown"
+    const ip = c.req.header("cf-connecting-ip") || "unknown"
     const key = `${ip}:${c.req.path}`
 
     let entry = stores.get(key)
