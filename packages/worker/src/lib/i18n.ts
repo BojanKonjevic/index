@@ -13,6 +13,10 @@ const messages: Record<string, Record<Locale, string>> = {
     sr: "Lozinka mora imati najmanje 8 karaktera.",
     en: "Password must be at least 8 characters.",
   },
+  "auth.invalid": {
+    sr: "Neispravni podaci.",
+    en: "Invalid data.",
+  },
   "auth.username_taken": {
     sr: "Korisničko ime je zauzeto.",
     en: "Username is already taken.",

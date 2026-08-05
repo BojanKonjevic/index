@@ -46,6 +46,41 @@ describe("POST /api/auth/register", () => {
       body: JSON.stringify({ name: "ab", password: "test1234" }),
     })
     expect(res.status).toBe(400)
+    const body = await res.json<{ error: string }>()
+    expect(body.error).toContain("Ime")
+  })
+
+  it("returns 400 for short password", async () => {
+    const res = await SELF.fetch("http://localhost/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "shortpass", password: "abcd" }),
+    })
+    expect(res.status).toBe(400)
+    const body = await res.json<{ error: string }>()
+    expect(body.error).toContain("Lozinka")
+  })
+
+  it("returns 400 for overlong password", async () => {
+    const res = await SELF.fetch("http://localhost/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "longpass", password: "x".repeat(129) }),
+    })
+    expect(res.status).toBe(400)
+    const body = await res.json<{ error: string }>()
+    expect(body.error).toContain("Lozinka")
+  })
+
+  it("returns 400 with generic message for invalid field types", async () => {
+    const res = await SELF.fetch("http://localhost/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "goodname", password: "test1234", bookmarks: "not-an-array" }),
+    })
+    expect(res.status).toBe(400)
+    const body = await res.json<{ error: string }>()
+    expect(body.error).toContain("Neispravni podaci")
   })
 })
 

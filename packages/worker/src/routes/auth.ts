@@ -102,7 +102,13 @@ app.post("/auth/register", authLimiter, bodyLimit({ maxSize: 1024 * 10 }), async
   const parsed = registerSchema.safeParse(raw)
   if (!parsed.success) {
     const issue = parsed.error.issues[0]
-    throw new AppError(400, issue.path[0] === "name" ? "auth.name_length" : "auth.password_length")
+    const key =
+      issue.path[0] === "name"
+        ? "auth.name_length"
+        : issue.path[0] === "password"
+          ? "auth.password_length"
+          : "auth.invalid"
+    throw new AppError(400, key)
   }
   const { name, password, bookmarks, group, history } = parsed.data
 
