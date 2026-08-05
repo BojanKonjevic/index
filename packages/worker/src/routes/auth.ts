@@ -13,15 +13,13 @@ import { registerSchema, loginSchema } from "@index/shared/schemas"
 const PBKDF2_ITERATIONS = 100_000
 const SESSION_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000
 
-function timingSafeEqual(a: string, b: string): boolean {
-  const enc = new TextEncoder()
-  const aBuf = enc.encode(a)
-  const bBuf = enc.encode(b)
-  if (aBuf.byteLength !== bBuf.byteLength) return false
-  return (crypto.subtle as any).timingSafeEqual(
-    aBuf.buffer as ArrayBuffer,
-    bBuf.buffer as ArrayBuffer,
-  )
+export function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let acc = 0
+  for (let i = 0; i < a.length; i++) {
+    acc |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  return acc === 0
 }
 
 function bytesToHex(bytes: Uint8Array): string {
