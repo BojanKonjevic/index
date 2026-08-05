@@ -36,16 +36,14 @@ function useAuthLogic(): AuthContextType {
   const [isGuest, setIsGuest] = useState(() => localStorage.getItem("guest") === "true")
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
+    fetchApi<{ user: User | null }>("/auth/me")
       .then((data) => {
         if (data.user) setUser(data.user)
-        setLoading(false)
       })
       .catch((e) => {
         console.error("Failed to fetch current user:", e)
-        setLoading(false)
       })
+      .finally(() => setLoading(false))
   }, [])
 
   const register = async (name: string, password: string) => {
@@ -80,7 +78,7 @@ function useAuthLogic(): AuthContextType {
   }
 
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" })
+    await fetchApi<{ ok: boolean }>("/auth/logout", { method: "POST" })
     setUser(null)
     localStorage.setItem("guest", "true")
     setIsGuest(true)

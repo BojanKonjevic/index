@@ -23,7 +23,7 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
     headers["Content-Type"] = "application/json"
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers })
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers, credentials: "include" })
   const data = await res.json().catch(() => ({}))
 
   if (!res.ok) throw new ApiError(res.status, data.error || "API Error", data)
