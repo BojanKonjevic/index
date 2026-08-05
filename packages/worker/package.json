@@ -10,6 +10,7 @@
     "db:migrate:local": "wrangler d1 migrations apply index-db --local",
     "seed:r2": "node scripts/seed-local-r2.mjs",
     "test": "vitest",
+    "lint": "eslint .",
     "format": "prettier --check .",
     "typecheck": "tsc --noEmit"
   },
@@ -21,7 +22,11 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.13",
     "@cloudflare/workers-types": "^4.20260603.1",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.4.1",
+    "globals": "^17.6.0",
     "typescript": "~6.0.3",
+    "typescript-eslint": "^8.60.1",
     "vitest": "^4.1.8",
     "wrangler": "^4.97.0"
   }
