@@ -1,31 +1,24 @@
 import { env } from "cloudflare:workers"
+import initialSql from "../../migrations/0001_initial.sql?raw"
+import seedSql from "../../migrations/0002_seed_data.sql?raw"
 
 const db = (env as unknown as { DB: import("@cloudflare/workers-types").D1Database }).DB
 
-const SCHEMA_STATEMENTS = [
-  `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
-  `CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
-  `CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at)`,
-  `CREATE TABLE IF NOT EXISTS bookmarks (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), material_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
-  `CREATE INDEX IF NOT EXISTS idx_bookmarks_user_id ON bookmarks(user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_bookmarks_material_id ON bookmarks(material_id)`,
-  `CREATE TABLE IF NOT EXISTS preferences (user_id TEXT PRIMARY KEY REFERENCES users(id), group_number TEXT, updated_at TEXT NOT NULL DEFAULT (datetime('now')))`,
-  `CREATE TABLE IF NOT EXISTS subjects (id TEXT PRIMARY KEY, name TEXT NOT NULL, semester INTEGER NOT NULL, espb INTEGER NOT NULL, elective INTEGER NOT NULL DEFAULT 0, elective_group TEXT, description TEXT NOT NULL DEFAULT '', professors TEXT NOT NULL DEFAULT '[]', assistants TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
-  `CREATE TABLE IF NOT EXISTS materials (id TEXT PRIMARY KEY, subject_id TEXT NOT NULL REFERENCES subjects(id), title TEXT NOT NULL, category TEXT NOT NULL, exam_part TEXT, solved INTEGER, file_type TEXT NOT NULL, url TEXT NOT NULL, page_count INTEGER NOT NULL DEFAULT 0, tags TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
-  `CREATE INDEX IF NOT EXISTS idx_materials_subject_id ON materials(subject_id)`,
-  `CREATE TABLE IF NOT EXISTS exams (id TEXT PRIMARY KEY, subject_id TEXT NOT NULL REFERENCES subjects(id), title TEXT NOT NULL, date TEXT NOT NULL, time TEXT NOT NULL DEFAULT '', location TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
-  `CREATE INDEX IF NOT EXISTS idx_exams_subject_id ON exams(subject_id)`,
-  `CREATE TABLE IF NOT EXISTS material_assets (id TEXT PRIMARY KEY, material_id TEXT NOT NULL REFERENCES materials(id) ON DELETE CASCADE, page_number INTEGER NOT NULL, name TEXT NOT NULL DEFAULT '', file_type TEXT NOT NULL DEFAULT 'image', url TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
-  `CREATE INDEX IF NOT EXISTS idx_material_assets_material_id ON material_assets(material_id)`,
-  `CREATE TABLE IF NOT EXISTS visit_history (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), material_id TEXT NOT NULL, visited_at TEXT NOT NULL DEFAULT (datetime('now')))`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS idx_visit_history_user_material ON visit_history(user_id, material_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_visit_history_user_visited ON visit_history(user_id, visited_at DESC)`,
-]
+let migrated = false
 
 export async function runMigrations() {
-  const stmts = SCHEMA_STATEMENTS.map((sql) => db.prepare(sql))
-  await db.batch(stmts)
+  if (migrated) return
+  migrated = true
+  await db.exec(statements(initialSql))
+  await db.exec(statements(seedSql))
+}
+
+function statements(sql: string) {
+  return sql
+    .split(/;\r?\n/)
+    .map((s) => s.replace(/\s*\r?\n\s*/g, " ").trim())
+    .filter(Boolean)
+    .join("\n")
 }
 
 export async function seedSubject() {
