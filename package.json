@@ -14,6 +14,9 @@
     "check": "pnpm format && pnpm lint && pnpm typecheck",
     "db:migrate": "pnpm -F worker db:migrate",
     "db:migrate:local": "pnpm -F worker db:migrate:local",
+    "seed:r2": "pnpm -F worker seed:r2",
+    "index:local": "node packages/worker/scripts/index-pdfs.mjs --local",
+    "index:remote": "node packages/worker/scripts/index-pdfs.mjs --remote",
     "clean": "pnpm -r exec rm -rf dist .wrangler node_modules/.tmp",
     "prepare": "husky"
   },

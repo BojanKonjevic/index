@@ -1,3 +1,6 @@
+// Syncs remote R2 objects into the local dev bucket.
+// Note: materials.page_count is no longer left at 0 — scripts/index-pdfs.mjs
+// writes real page counts when it indexes each material's text.
 import { spawnSync } from "node:child_process"
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
