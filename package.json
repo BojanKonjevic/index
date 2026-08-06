@@ -11,7 +11,7 @@
     "test": "pnpm -r test",
     "test:worker": "pnpm -F worker test",
     "test:app": "pnpm -F app test",
-    "check": "pnpm format && pnpm lint && pnpm typecheck",
+    "check": "prettier --check --ignore-unknown . && pnpm -F app lint && pnpm -F worker lint && pnpm -r typecheck",
     "db:migrate": "pnpm -F worker db:migrate",
     "db:migrate:local": "pnpm -F worker db:migrate:local",
     "seed:r2": "pnpm -F worker seed:r2",
