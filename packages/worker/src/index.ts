@@ -14,6 +14,7 @@ export type Bindings = {
   DB: D1Database
   BUCKET: R2Bucket
   SESSION_SECRET: string
+  SEARCH_RATE_LIMITER?: RateLimit
 }
 
 const PLACEHOLDER_SECRET = "change-me-to-a-real-secret"

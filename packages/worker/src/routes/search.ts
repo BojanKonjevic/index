@@ -16,6 +16,15 @@ const SNIPPET_WIDTH = 90
 
 const app = new Hono<{ Bindings: Bindings }>()
 
+app.use("/search", async (c, next) => {
+  const limiter = c.env.SEARCH_RATE_LIMITER
+  if (!limiter) return next()
+  const key = c.req.header("cf-connecting-ip") ?? "unknown"
+  const { success } = await limiter.limit({ key })
+  if (!success) throw new AppError(429, "error.rate_limited")
+  return next()
+})
+
 function parseScope(raw: string | undefined): SearchScope {
   if (raw === "subject" || raw === "material") return raw
   return "global"

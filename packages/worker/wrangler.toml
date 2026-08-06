@@ -12,6 +12,14 @@ migrations_dir = "migrations"
 binding = "BUCKET"
 bucket_name = "index-bucket"
 
+[[ratelimits]]
+name = "SEARCH_RATE_LIMITER"
+namespace_id = "1001"
+
+[ratelimits.simple]
+limit = 120
+period = 60
+
 [assets]
 directory = "../app/dist"
 binding = "ASSETS"
