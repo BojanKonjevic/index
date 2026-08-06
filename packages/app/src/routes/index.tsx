@@ -1,10 +1,9 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { Search, FileText, BookOpen, Calendar, X } from "lucide-react"
+import { createFileRoute, Link } from "@tanstack/react-router"
+import { Search, FileText } from "lucide-react"
 import { fetchDashboard } from "@/lib/api"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useAssetCache } from "@/hooks/useAssetCache"
-import { useDebounce } from "@/hooks/useDebounce"
-import { useGlobalSearch } from "@/lib/search"
+import { useSearchPalette } from "@/hooks/useSearchPalette"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import { MaterialBadges } from "@/components/MaterialBadges"
 import ExpandableAssets from "@/components/ExpandableAssets"
@@ -12,7 +11,6 @@ import { daysUntil } from "@/lib/utils"
 import { formatDate, getRelativeTime } from "@/lib/i18n"
 import { useI18n } from "@/hooks/useI18n"
 import type { ExamEvent, Material } from "@index/shared"
-import { useState, useRef, useEffect } from "react"
 import { typeIconMap, typeTagStyles } from "@/lib/styles"
 
 function getUrgency(
@@ -85,13 +83,7 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   const data = Route.useLoaderData()
   const { recent } = useRecentlyOpened()
-  const navigate = useNavigate()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const [isOpen, setIsOpen] = useState(false)
-  const searchRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const debouncedQuery = useDebounce(searchQuery, 200)
+  const { openPalette } = useSearchPalette()
   const { t, locale } = useI18n()
   const {
     cache: recentAssetCache,
@@ -100,132 +92,21 @@ function HomePage() {
   } = useAssetCache()
 
   const subjectNameMap = Object.fromEntries((data?.subjects ?? []).map((s) => [s.id, s.name]))
-  const allMaterials = data?.materials ?? []
   const allExams = data?.exams ?? []
-
-  const searchData = data
-    ? {
-        subjects: data.subjects,
-        materials: allMaterials,
-        exams: allExams,
-        subjectNameMap,
-        semestarLabel: t("materialType.semestar"),
-      }
-    : null
-
-  const results = useGlobalSearch(searchData, debouncedQuery)
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
-  }, [])
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "/" && document.activeElement !== inputRef.current) {
-        e.preventDefault()
-        inputRef.current?.focus()
-      }
-    }
-    document.addEventListener("keydown", handler)
-    return () => document.removeEventListener("keydown", handler)
-  }, [])
 
   return (
     <div className="mx-auto max-w-[35rem] md:px-6 md:pt-10 px-4 pt-5 pb-16">
-      <div className="relative mb-12" ref={searchRef}>
-        <div className="relative">
-          <Search className="absolute left-[0.688rem] top-1/2 size-[0.938rem] -translate-y-1/2 text-[var(--text-hint)]" />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder={t("home.search_placeholder")}
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value)
-              setIsOpen(true)
-              setSelectedIndex(0)
-            }}
-            onFocus={() => {
-              if (searchQuery.trim()) setIsOpen(true)
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowDown") {
-                e.preventDefault()
-                setSelectedIndex((i) => Math.min(i + 1, results.length - 1))
-              } else if (e.key === "ArrowUp") {
-                e.preventDefault()
-                setSelectedIndex((i) => Math.max(i - 1, 0))
-              } else if (e.key === "Enter" && results[selectedIndex]) {
-                const r = results[selectedIndex]
-                navigate({ to: r.to, params: r.params })
-                setIsOpen(false)
-                setSearchQuery("")
-              } else if (e.key === "Escape") {
-                setIsOpen(false)
-                inputRef.current?.blur()
-              }
-            }}
-            className="h-[2.75rem] w-full rounded-[0.563rem] pl-[2.25rem] pr-10 text-[0.813rem] text-[var(--text-primary)] bg-[var(--bg-subtle)] border-[0.094rem] border-[var(--border-default)] outline-none transition-all duration-100 placeholder:text-[var(--text-hint)] shadow-sm focus:shadow-md focus:border-[var(--accent)] focus:bg-[var(--bg-surface)]"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => {
-                setSearchQuery("")
-                inputRef.current?.focus()
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <X className="size-[0.938rem]" />
-            </button>
-          )}
-        </div>
-
-        {isOpen && results.length > 0 && (
-          <div className="absolute left-0 right-0 top-[3rem] z-50 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] py-1 dropdown-enter max-h-[60vh] overflow-y-auto">
-            {results.map((r, i) => (
-              <button
-                key={r.id}
-                onClick={() => {
-                  navigate({ to: r.to, params: r.params })
-                  setIsOpen(false)
-                  setSearchQuery("")
-                }}
-                onMouseEnter={() => setSelectedIndex(i)}
-                className={`flex w-full items-center gap-3 px-3 py-2 text-left text-[0.813rem] transition-colors ${
-                  i === selectedIndex ? "bg-[var(--bg-subtle)]" : ""
-                }`}
-              >
-                <div className="flex size-7 shrink-0 items-center justify-center rounded bg-[var(--bg-subtle)]">
-                  {r.type === "subject" ? (
-                    <BookOpen className="size-3.5 text-[var(--text-secondary)]" />
-                  ) : r.type === "material" ? (
-                    (() => {
-                      const Icon = typeIconMap[r.subtype || ""] || FileText
-                      return <Icon className="size-3.5 text-[var(--text-secondary)]" />
-                    })()
-                  ) : (
-                    <Calendar className="size-3.5 text-[var(--text-secondary)]" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium text-[var(--text-primary)]">{r.label}</div>
-                  <div className="truncate text-xs text-[var(--text-secondary)]">
-                    {r.description}
-                  </div>
-                </div>
-                <span className="shrink-0 inline-block rounded-full px-1.5 py-0.5 text-[0.625rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
-                  {r.subtype ? t(`category.${r.subtype}`) : t(`materialType.${r.type}`) || r.type}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="relative mb-12">
+        <button
+          onClick={openPalette}
+          className="flex h-[2.75rem] w-full cursor-pointer items-center gap-2 rounded-[0.563rem] border-[0.094rem] border-[var(--border-default)] bg-[var(--bg-subtle)] px-3 text-left text-[0.813rem] text-[var(--text-hint)] shadow-sm transition-all duration-100 hover:border-[var(--accent)] hover:bg-[var(--bg-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+        >
+          <Search className="size-[0.938rem] shrink-0" />
+          <span className="flex-1 truncate">{t("home.search_placeholder")}</span>
+          <kbd className="hidden rounded border border-[var(--border-faint)] px-1 font-sans text-[0.625rem] md:inline">
+            ⌘K
+          </kbd>
+        </button>
 
         <p className="mt-2 text-xs text-[var(--text-hint)] hidden md:block">
           {t("home.search_hint")}

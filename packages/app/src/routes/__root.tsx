@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toggleTheme, getInitialTheme } from "@/lib/theme"
+import { Search } from "lucide-react"
 
 import { useState, useMemo, useRef, useLayoutEffect } from "react"
 import { AuthProvider, useAuth } from "@/hooks/useAuth"
@@ -29,6 +30,8 @@ import { WelcomeScreen } from "@/components/WelcomeScreen"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useI18n } from "@/hooks/useI18n"
 import { Skeleton } from "@/components/Skeleton"
+import { SearchPaletteProvider, useSearchPalette } from "@/hooks/useSearchPalette"
+import CommandPalette from "@/components/CommandPalette"
 
 const GROUP_NUMBERS = Array.from({ length: 14 }, (_, i) => i + 1)
 const SETTINGS_CLOSE_DELAY_MS = 200
@@ -66,6 +69,7 @@ function BottomTabBar({
   const { t, toggleLocale, locale } = useI18n()
   const { user, isGuest, logout } = useAuth()
   const { group, setGroup: setGroupPreference } = usePreferences()
+  const { openPalette } = useSearchPalette()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
 
@@ -74,6 +78,12 @@ function BottomTabBar({
       { to: "/", label: t("nav.home"), icon: Home },
       { to: "/subjects", label: t("nav.subjects"), icon: BookOpen },
       { to: "/bookmarks", label: t("nav.bookmarks"), icon: Bookmark },
+      {
+        to: "#search",
+        label: t("nav.search"),
+        icon: Search,
+        isSearch: true as const,
+      },
       {
         to: "#settings",
         label: t("sidebar.settings"),
@@ -88,6 +98,19 @@ function BottomTabBar({
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-14 items-center border-t bg-[var(--bg-surface)] border-[var(--border-default)] pb-safe md:hidden">
         {tabs.map((tab) => {
+          if (tab.isSearch) {
+            return (
+              <button
+                key="search"
+                onClick={openPalette}
+                aria-label={t("nav.search")}
+                className="flex flex-1 flex-col items-center justify-center h-full gap-0.5 text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors duration-100 cursor-pointer"
+              >
+                <Search className="size-[1.125rem]" />
+                <span className="text-[0.625rem] font-medium">{tab.label}</span>
+              </button>
+            )
+          }
           if (tab.isSettings) {
             return (
               <Sheet key="settings" open={settingsOpen} onOpenChange={setSettingsOpen}>
@@ -219,6 +242,7 @@ function Sidebar({
 }) {
   const { group, setGroup: setGroupPreference } = usePreferences()
   const { user, isGuest, logout } = useAuth()
+  const { openPalette } = useSearchPalette()
   const [authOpen, setAuthOpen] = useState(false)
   const [groupOpen, setGroupOpen] = useState(false)
   const groupRef = useRef<HTMLDivElement>(null)
@@ -261,6 +285,16 @@ function Sidebar({
           </div>
 
           <nav className="flex-1 flex flex-col gap-0.5 px-2 pt-[0.875rem] pb-3">
+            <button
+              onClick={openPalette}
+              className="mb-2 flex w-full cursor-pointer items-center gap-2 rounded-[0.438rem] border border-[var(--border-default)] bg-[var(--bg-subtle)] px-[0.563rem] py-[0.438rem] text-[0.75rem] text-[var(--text-hint)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+            >
+              <Search className="size-3.5 shrink-0" />
+              <span className="flex-1 truncate text-left">{t("nav.search")}</span>
+              <kbd className="rounded border border-[var(--border-faint)] px-1 font-sans text-[0.625rem]">
+                ⌘K
+              </kbd>
+            </button>
             {navItems.map((section) => (
               <div key={section.section}>
                 <div className="px-2 pb-[0.375rem] pt-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
@@ -399,7 +433,9 @@ function RootLayout() {
     <AuthProvider>
       <BookmarkProvider>
         <PreferencesProvider>
-          <RootContent />
+          <SearchPaletteProvider>
+            <RootContent />
+          </SearchPaletteProvider>
         </PreferencesProvider>
       </BookmarkProvider>
     </AuthProvider>
@@ -450,6 +486,7 @@ function RootContent() {
       >
         <AnimatedOutlet />
       </main>
+      <CommandPalette />
     </div>
   )
 }
