@@ -224,3 +224,55 @@ describe("GET /api/search", () => {
     expect(body.content.items.find((i) => i.materialId === mA)!.hits).toBeGreaterThanOrEqual(500)
   })
 })
+
+type SearchPages = {
+  total: number
+  pages: Array<{ page: number; count: number }>
+}
+
+async function searchPages(
+  params: Record<string, string>,
+): Promise<{ status: number; body: SearchPages }> {
+  const qs = new URLSearchParams(Object.entries(params))
+  const res = await SELF.fetch(`http://localhost/api/search/pages?${qs}`)
+  return { status: res.status, body: (await res.json()) as SearchPages }
+}
+
+describe("GET /api/search/pages", () => {
+  beforeAll(async () => {
+    await DB.prepare("DELETE FROM material_pages_fts WHERE page_number >= 1000").run()
+  })
+
+  it("returns per-page occurrence counts for one material", async () => {
+    const { status, body } = await searchPages({ q: "resenje", materialId: mA })
+    expect(status).toBe(200)
+    expect(body.total).toBe(10) // pages 1(1) + 2(7) + 3(1) + 4(1); ocr page 99 excluded
+    expect(body.pages.map((p) => p.page).sort((a, b) => a - b)).toEqual([1, 2, 3, 4])
+    expect(body.pages.find((p) => p.page === 2)?.count).toBe(7)
+    expect(body.pages.find((p) => p.page === 4)?.count).toBe(1)
+  })
+
+  it("orders pages ascending by page number", async () => {
+    const { body } = await searchPages({ q: "resenje", materialId: mA })
+    expect(body.pages[0].page).toBe(1)
+    expect(body.pages.map((p) => p.page)).toEqual([1, 2, 3, 4])
+  })
+
+  it("includes ocr pages when requested", async () => {
+    const { body } = await searchPages({ q: "resenje", materialId: mA, includeOcr: "1" })
+    expect(body.total).toBe(11)
+    expect(body.pages.some((p) => p.page === 99)).toBe(true)
+  })
+
+  it("returns empty for a material without matches", async () => {
+    const { status, body } = await searchPages({ q: "nepostojeci", materialId: mA })
+    expect(status).toBe(200)
+    expect(body.total).toBe(0)
+    expect(body.pages).toEqual([])
+  })
+
+  it("rejects a missing materialId", async () => {
+    const { status } = await searchPages({ q: "resenje" })
+    expect(status).toBe(400)
+  })
+})

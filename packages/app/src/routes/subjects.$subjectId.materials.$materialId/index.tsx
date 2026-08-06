@@ -5,7 +5,7 @@ const SCROLL_AMOUNT_PX = 300
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, SunMoon, Layers as LayersIcon, ChevronUp, ChevronDown, X } from "lucide-react"
 
-import { fetchSubject } from "@/lib/api"
+import { fetchSearchPages, fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useI18n } from "@/hooks/useI18n"
@@ -13,7 +13,7 @@ import { ErrorFallback } from "@/components/ErrorFallback"
 import { PdfControls } from "@/components/PdfControls"
 import { SidebarContent } from "@/components/SidebarContent"
 import { BookmarkButton } from "@/components/BookmarkButton"
-import { getMatchMarks, getTextLayer } from "@/lib/textLayer"
+import { getOrderedMarks, getTextLayer } from "@/lib/textLayer"
 import type { Material, MaterialAsset } from "@index/shared"
 import { CATEGORY_ORDER } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
@@ -155,34 +155,84 @@ function ViewerPage() {
   const hlPage = pageParam ?? 1
   const [findCount, setFindCount] = useState(0)
   const [findIndex, setFindIndex] = useState(1)
+  const [matchPages, setMatchPages] = useState<Array<{ page: number; count: number }>>([])
+  const [matchTotal, setMatchTotal] = useState(0)
+  const pendingFindTargetRef = useRef<"start" | "end" | null>(null)
 
   const handleHighlightCount = useCallback((count: number) => {
     setFindCount(count)
-    setFindIndex((prev) => (count === 0 ? 0 : prev > count ? 1 : prev))
+    if (pendingFindTargetRef.current === "end") {
+      setFindIndex(Math.max(1, count))
+      pendingFindTargetRef.current = null
+    } else if (pendingFindTargetRef.current === "start") {
+      setFindIndex(1)
+      pendingFindTargetRef.current = null
+    } else {
+      setFindIndex((prev) => (count === 0 ? 0 : prev > count ? 1 : prev))
+    }
   }, [])
+
+  const navigateToMatchPage = useCallback(
+    (page: number) => {
+      navigate({
+        to: ".",
+        search: assetParam ? { asset: assetParam, page, hl: hlParam } : { page, hl: hlParam },
+        replace: true,
+      })
+    },
+    [navigate, assetParam, hlParam],
+  )
 
   const stepMatch = useCallback(
     (delta: number) => {
-      if (findCount <= 0) return
+      const idx = matchPages.findIndex((p) => p.page === hlPage)
+      const pageCount = idx >= 0 ? matchPages[idx].count : 0
       const root = parentRef.current
       const layer = root ? getTextLayer(root, hlPage) : null
-      const count = layer ? getMatchMarks(layer).length : 0
-      const next =
-        count > 0
-          ? ((findIndex - 1 + delta + count) % count) + 1
-          : ((findIndex - 1 + delta + findCount) % findCount) + 1
-      setFindIndex(next)
-      if (layer) {
-        const mark = getMatchMarks(layer)[next - 1]
-        if (mark) mark.scrollIntoView({ block: "center", behavior: "smooth" })
+      const marks = layer ? getOrderedMarks(layer) : []
+      const count = Math.max(pageCount, findCount, marks.length)
+      if (count <= 0) return
+
+      if (matchPages.length > 0 && idx >= 0) {
+        if (delta > 0 && findIndex >= count) {
+          const nextPage = matchPages[(idx + 1) % matchPages.length]
+          if (nextPage.page !== hlPage) {
+            pendingFindTargetRef.current = "start"
+            navigateToMatchPage(nextPage.page)
+            return
+          }
+        } else if (delta < 0 && findIndex <= 1) {
+          const prevPage = idx > 0 ? matchPages[idx - 1] : matchPages[matchPages.length - 1]
+          if (prevPage.page !== hlPage) {
+            pendingFindTargetRef.current = "end"
+            navigateToMatchPage(prevPage.page)
+            return
+          }
+        }
       }
+
+      const next = ((findIndex - 1 + delta + count) % count) + 1
+      setFindIndex(next)
+      const mark = marks[next - 1]
+      if (mark) mark.scrollIntoView({ block: "center", behavior: "smooth" })
     },
-    [findCount, findIndex, hlPage, parentRef],
+    [findCount, findIndex, matchPages, hlPage, parentRef, navigateToMatchPage],
   )
+
+  const matchIdx = matchPages.findIndex((p) => p.page === hlPage)
+  const pageMatchesBefore =
+    matchIdx > 0 ? matchPages.slice(0, matchIdx).reduce((a, p) => a + p.count, 0) : 0
+  const displayIndex =
+    matchIdx >= 0 && matchTotal > 0
+      ? pageMatchesBefore + Math.min(findIndex, matchPages[matchIdx].count || 0)
+      : findIndex
+  const displayCount = matchTotal > 0 ? matchTotal : findCount
 
   const clearFind = useCallback(() => {
     setFindCount(0)
     setFindIndex(1)
+    setMatchPages([])
+    setMatchTotal(0)
     navigate({
       to: ".",
       search: assetParam ? { asset: assetParam } : {},
@@ -194,6 +244,31 @@ function ViewerPage() {
   const hasAssets = !!(material && material.assets.length > 0)
   const isContainer = material?.fileType === "image" && hasAssets
   const showAssetGallery = isContainer || viewerTab === "assets"
+
+  useEffect(() => {
+    if (!hlParam || material?.fileType !== "pdf" || showAssetGallery) {
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setMatchPages([])
+      setMatchTotal(0)
+      /* eslint-enable react-hooks/set-state-in-effect */
+      return
+    }
+    let active = true
+    fetchSearchPages(materialId, hlParam)
+      .then((res) => {
+        if (!active) return
+        setMatchPages(res.pages)
+        setMatchTotal(res.total)
+      })
+      .catch(() => {
+        if (!active) return
+        setMatchPages([])
+        setMatchTotal(0)
+      })
+    return () => {
+      active = false
+    }
+  }, [hlParam, materialId, material?.url, material?.fileType, showAssetGallery])
 
   const { addRecent } = useRecentlyOpened()
 
@@ -307,16 +382,14 @@ function ViewerPage() {
     [numPages, naturalPageHeight, displayZoom, parentRef],
   )
 
-  const jumpedRef = useRef<string | null>(null)
+  const jumpedRef = useRef<{ hl: string; page: number } | null>(null)
   useEffect(() => {
     if (!hlParam || material?.fileType !== "pdf" || naturalPageHeight === null) return
-    if (jumpedRef.current === `${hlParam}:${hlPage}`) return
-    if (hlPage > 1) {
-      const offset = (hlPage - 1) * (naturalPageHeight * displayZoom + 16)
-      parentRef.current?.scrollTo({ top: offset })
-    }
+    if (jumpedRef.current?.hl === hlParam && jumpedRef.current?.page === hlPage) return
+    const offset = (hlPage - 1) * (naturalPageHeight * displayZoom + 16)
+    parentRef.current?.scrollTo({ top: Math.max(0, offset) })
     setPageNum(hlPage)
-    jumpedRef.current = `${hlParam}:${hlPage}`
+    jumpedRef.current = { hl: hlParam, page: hlPage }
   }, [
     hlParam,
     hlPage,
@@ -368,6 +441,16 @@ function ViewerPage() {
         return
       }
       if (!isPdf) return
+      if (e.key === "Enter" && hlParam) {
+        e.preventDefault()
+        stepMatch(e.shiftKey ? -1 : 1)
+        return
+      }
+      if (e.key === "F3" && hlParam) {
+        e.preventDefault()
+        stepMatch(e.shiftKey ? -1 : 1)
+        return
+      }
       if (e.key === "ArrowUp") {
         e.preventDefault()
         parentRef.current?.scrollBy({ top: -SCROLL_AMOUNT_PX, behavior: "smooth" })
@@ -488,8 +571,8 @@ function ViewerPage() {
             <>
               {hlParam && (
                 <FindChip
-                  count={findCount}
-                  index={findIndex}
+                  count={displayCount}
+                  index={displayIndex}
                   page={hlPage}
                   onPrev={() => stepMatch(-1)}
                   onNext={() => stepMatch(1)}
@@ -679,6 +762,17 @@ function ViewerPage() {
           />
 
           <div className="flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[var(--border-faint)] px-3 py-2.5 text-[0.688rem] text-[var(--text-hint)]">
+            {hlParam && material?.fileType === "pdf" ? (
+              <span>
+                <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
+                  ↵
+                </kbd>{" "}
+                <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
+                  ⇧↵
+                </kbd>{" "}
+                <span className="text-[var(--text-secondary)]">{t("viewer.shortcut_find")}</span>
+              </span>
+            ) : null}
             <span>
               <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
                 b
@@ -695,8 +789,8 @@ function ViewerPage() {
           <>
             {hlParam && (
               <FindChip
-                count={findCount}
-                index={findIndex}
+                count={displayCount}
+                index={displayIndex}
                 page={hlPage}
                 onPrev={() => stepMatch(-1)}
                 onNext={() => stepMatch(1)}

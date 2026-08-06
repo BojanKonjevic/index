@@ -6,6 +6,7 @@ import type {
   MaterialAsset,
   SearchContentParams,
   SearchContentResponse,
+  SearchPagesResult,
 } from "@index/shared"
 import { ApiError } from "./api-error"
 
@@ -103,4 +104,12 @@ export async function searchContent(
     }
     throw err
   }
+}
+
+export async function fetchSearchPages(materialId: string, q: string): Promise<SearchPagesResult> {
+  const query = new URLSearchParams()
+  query.set("q", q)
+  query.set("materialId", materialId)
+
+  return fetchApi(`/search/pages?${query.toString()}`)
 }

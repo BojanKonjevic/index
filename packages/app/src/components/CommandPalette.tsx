@@ -42,7 +42,13 @@ type Row =
       activate: () => void
     }
   | { key: string; kind: "exam"; title: string; sub: string; activate: () => void }
-  | { key: string; kind: "content"; item: SearchContentItem; activate: () => void }
+  | {
+      key: string
+      kind: "content"
+      item: SearchContentItem
+      activate: () => void
+      openPage: (page: number) => void
+    }
 
 type Section = { header: string; rows: Row[] }
 
@@ -330,7 +336,21 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
               title: m.title,
               sub: m.subjectName,
               fileType: m.fileType,
-              activate: () => openMaterial(m.subjectId, m.id),
+              activate: () => {
+                const hit = content ? content.items.find((i) => i.materialId === m.id) : undefined
+                if (hit && hit.pages.length > 0) {
+                  const firstPage = hit.pages.reduce(
+                    (min, p) => (min === 0 || p.page < min ? p.page : min),
+                    0,
+                  )
+                  openMaterial(m.subjectId, m.id, {
+                    page: firstPage || hit.pages[0].page,
+                    hl: query,
+                  })
+                } else {
+                  openMaterial(m.subjectId, m.id)
+                }
+              },
             }),
           ),
           ...shownExams.map(
@@ -350,7 +370,11 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
       list.push({
         header: t("palette.section_content"),
         rows: content.items.map((item): Row => {
-          const page = item.pages[0]?.page ?? 1
+          const firstPage = item.pages.reduce(
+            (min, p) => (min === 0 || p.page < min ? p.page : min),
+            0,
+          )
+          const page = firstPage || item.pages[0]?.page || 1
           return {
             key: `c-${item.materialId}`,
             kind: "content",
@@ -358,6 +382,11 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
             activate: () =>
               openMaterial(item.subjectId, item.materialId, {
                 page,
+                hl: query,
+              }),
+            openPage: (pageNum) =>
+              openMaterial(item.subjectId, item.materialId, {
+                page: pageNum,
                 hl: query,
               }),
           }
@@ -761,15 +790,22 @@ function RowView({
         </div>
         {row.item.pages.map((p, i) => (
           <div key={p.page} className={cn("mt-1.5 pl-10", i > 0 && !expanded && "hidden")}>
-            <div className="flex items-baseline gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                row.openPage(p.page)
+              }}
+              className="flex w-full cursor-pointer items-baseline gap-2 rounded px-1 py-0.5 text-left transition-colors hover:bg-[var(--bg-subtle)]"
+            >
               <span className="shrink-0 text-[0.625rem] font-medium text-[var(--text-hint)]">
                 str. {p.page}
               </span>
-              <div
+              <span
                 className="search-hit-container min-w-0 flex-1 text-xs leading-relaxed text-[var(--text-secondary)]"
                 dangerouslySetInnerHTML={{ __html: p.snippet }}
               />
-            </div>
+            </button>
           </div>
         ))}
       </div>

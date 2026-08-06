@@ -138,6 +138,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.find_prev": "Prethodni nalaz",
     "viewer.find_next": "Sledeći nalaz",
     "viewer.find_clear": "Ukloni pretragu",
+    "viewer.shortcut_find": "Sledeći / prethodni nalaz",
     "viewer.bookmark_add": "Obeleži",
     "viewer.bookmark_remove": "Ukloni obeleživač",
 
@@ -339,6 +340,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.find_prev": "Previous match",
     "viewer.find_next": "Next match",
     "viewer.find_clear": "Clear search",
+    "viewer.shortcut_find": "Next / previous match",
     "viewer.gallery_thumbnail_fmt": "Image {n} of {total}",
     "viewer.bookmark_add": "Bookmark",
     "viewer.bookmark_remove": "Remove bookmark",

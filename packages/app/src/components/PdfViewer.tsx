@@ -5,7 +5,7 @@ import { useI18n } from "@/hooks/useI18n"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useEffect, useRef, useState, useCallback, type RefObject } from "react"
-import { clearHighlights, getTextLayer, highlightMatches } from "@/lib/textLayer"
+import { clearHighlights, getOrderedMarks, getTextLayer, highlightMatches } from "@/lib/textLayer"
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
 
@@ -97,6 +97,11 @@ export default function PdfViewer({
     onHighlightCountRef.current = onHighlightCount
   }, [onHighlightCount])
 
+  const scrolledForRef = useRef<{ hl: string; page: number } | null>(null)
+  useEffect(() => {
+    scrolledForRef.current = null
+  }, [url])
+
   useEffect(() => {
     const root = parentRef.current
     const page = hlPage ?? 1
@@ -126,23 +131,27 @@ export default function PdfViewer({
       if (!hasText) return
       notify(highlightMatches(layer, hl))
       done = true
+      if (scrolledForRef.current?.hl !== hl || scrolledForRef.current?.page !== page) {
+        scrolledForRef.current = { hl, page }
+        const marks = getOrderedMarks(layer)
+        if (marks.length > 0) {
+          requestAnimationFrame(() => {
+            marks[0].scrollIntoView({ block: "center", behavior: "smooth" })
+          })
+        }
+      }
     }
 
     const observer = new MutationObserver(() => tryHighlight())
     observer.observe(root, { childList: true, subtree: true })
-    const timeout = setTimeout(() => {
-      tryHighlight()
-      observer.disconnect()
-    }, 5000)
 
     tryHighlight()
 
     return () => {
       done = true
       observer.disconnect()
-      clearTimeout(timeout)
     }
-  }, [hl, hlPage, zoom, parentRef])
+  }, [hl, hlPage, zoom, parentRef, url, range])
 
   const pages: number[] = []
   for (let i = range.start; i < range.end; i++) {

@@ -11,6 +11,22 @@ export function getMatchMarks(layer: HTMLElement): HTMLElement[] {
   return Array.from(layer.querySelectorAll<HTMLElement>(MARK_SELECTOR))
 }
 
+/** Marks ordered by visual position (top-to-bottom, then left-to-right)
+ *  instead of DOM order, which pdfjs does not guarantee to match reading
+ *  order on multi-column or math-heavy pages. */
+export function getOrderedMarks(layer: HTMLElement): HTMLElement[] {
+  const marks = getMatchMarks(layer)
+  if (marks.length < 2) return marks
+  return marks
+    .map((mark) => ({ mark, rect: mark.getBoundingClientRect() }))
+    .sort((a, b) => {
+      const dy = a.rect.top - b.rect.top
+      if (Math.abs(dy) > 1) return dy
+      return a.rect.left - b.rect.left
+    })
+    .map(({ mark }) => mark)
+}
+
 /** Replaces every <mark class="search-hit"> in the layer with plain text. */
 export function clearHighlights(layer: HTMLElement): void {
   for (const mark of Array.from(layer.querySelectorAll<HTMLElement>(MARK_SELECTOR))) {

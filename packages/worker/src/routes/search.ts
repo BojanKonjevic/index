@@ -1,12 +1,13 @@
-import { Hono } from "hono"
+import { Hono, type MiddlewareHandler } from "hono"
 import type { Bindings } from ".."
 import type {
   SearchContentItem,
   SearchContentPage,
   SearchContentResponse,
+  SearchPagesResult,
   SearchScope,
 } from "@index/shared"
-import { buildFtsQuery, makeSnippet } from "@index/shared"
+import { buildFtsQuery, findAll, makeSnippet } from "@index/shared"
 import { AppError } from "../lib/error"
 
 const DEFAULT_LIMIT = 20
@@ -16,14 +17,17 @@ const SNIPPET_WIDTH = 90
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-app.use("/search", async (c, next) => {
+const rateLimit: MiddlewareHandler<{ Bindings: Bindings }> = async (c, next) => {
   const limiter = c.env.SEARCH_RATE_LIMITER
   if (!limiter) return next()
   const key = c.req.header("cf-connecting-ip") ?? "unknown"
   const { success } = await limiter.limit({ key })
   if (!success) throw new AppError(429, "error.rate_limited")
   return next()
-})
+}
+
+app.use("/search", rateLimit)
+app.use("/search/*", rateLimit)
 
 function parseScope(raw: string | undefined): SearchScope {
   if (raw === "subject" || raw === "material") return raw
@@ -188,6 +192,37 @@ app.get("/search", async (c) => {
   })
 
   return c.json({ content: { total, hasMore, items } } satisfies SearchContentResponse, 200)
+})
+
+app.get("/search/pages", async (c) => {
+  const materialId = c.req.query("materialId")
+  if (!materialId) throw new AppError(400, "search.invalid")
+
+  const rawQuery = c.req.query("q") ?? ""
+  const ftsQuery = buildFtsQuery(rawQuery)
+  if (!ftsQuery) return c.json({ total: 0, pages: [] } satisfies SearchPagesResult, 200)
+
+  const includeOcr = c.req.query("includeOcr") === "1"
+
+  const sql =
+    "SELECT page_number, orig\n" +
+    "FROM material_pages_fts\n" +
+    "WHERE material_pages_fts MATCH ? AND material_id = ?" +
+    (includeOcr ? "" : " AND source = 'pdf'") +
+    "\nORDER BY page_number"
+
+  const rows = await c.env.DB.prepare(sql)
+    .bind(ftsQuery, materialId)
+    .all<{ page_number: number; orig: string }>()
+
+  let total = 0
+  const pages = rows.results.map((row) => {
+    const count = findAll(row.orig, rawQuery).length
+    total += count
+    return { page: row.page_number, count }
+  })
+
+  return c.json({ total, pages } satisfies SearchPagesResult, 200)
 })
 
 export default app

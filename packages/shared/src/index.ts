@@ -123,3 +123,8 @@ export interface SearchContentResponse {
     items: SearchContentItem[]
   }
 }
+
+export interface SearchPagesResult {
+  total: number
+  pages: Array<{ page: number; count: number }>
+}
