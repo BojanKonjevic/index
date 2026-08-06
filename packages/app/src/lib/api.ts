@@ -4,6 +4,8 @@ import type {
   DashboardData,
   Material,
   MaterialAsset,
+  SearchContentParams,
+  SearchContentResponse,
 } from "@index/shared"
 import { ApiError } from "./api-error"
 
@@ -51,4 +53,54 @@ export async function fetchBookmarkedMaterials(): Promise<{
 
 export async function fetchMaterialAssets(id: string): Promise<MaterialAsset[]> {
   return fetchApi(`/material/${id}/assets`)
+}
+
+export class SearchAbortedError extends Error {
+  constructor() {
+    super("Search request aborted")
+    this.name = "AbortError"
+  }
+}
+
+/** Monotonic sequence guard: a response whose seq predates the last applied
+ *  response is stale and must be dropped. Belt-and-suspenders for the case
+ *  where abort fires too late to prevent an in-flight response from landing. */
+export class SearchSequenceGuard {
+  private lastIssued = 0
+  private lastApplied = 0
+
+  beginRequest(): number {
+    return ++this.lastIssued
+  }
+
+  shouldApply(seq: number): boolean {
+    if (seq < this.lastApplied) return false
+    this.lastApplied = seq
+    return true
+  }
+}
+
+export async function searchContent(
+  params: SearchContentParams,
+  signal?: AbortSignal,
+): Promise<SearchContentResponse> {
+  if (signal?.aborted) throw new SearchAbortedError()
+
+  const query = new URLSearchParams()
+  query.set("q", params.q)
+  query.set("scope", params.scope)
+  if (params.subjectId) query.set("subjectId", params.subjectId)
+  if (params.materialId) query.set("materialId", params.materialId)
+  if (params.includeOcr) query.set("includeOcr", "1")
+  query.set("limit", String(params.limit ?? 20))
+  query.set("offset", String(params.offset ?? 0))
+
+  try {
+    return await fetchApi(`/search?${query.toString()}`, { signal })
+  } catch (err) {
+    if (signal?.aborted || (err instanceof Error && err.name === "AbortError")) {
+      throw new SearchAbortedError()
+    }
+    throw err
+  }
 }
