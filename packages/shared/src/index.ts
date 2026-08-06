@@ -77,3 +77,49 @@ export interface DashboardData {
   exams: ExamEvent[]
   subjectNameMap: Record<string, string>
 }
+
+export { buildFtsQuery } from "./ftsQuery"
+export {
+  findAll,
+  makeSnippet,
+  normalizeSr,
+  normalizeWithMap,
+  repairDiacritics,
+  srGetFn,
+  type NormalizedMap,
+} from "./normalize"
+
+export type SearchScope = "global" | "subject" | "material"
+
+export interface SearchContentParams {
+  q: string
+  scope: SearchScope
+  subjectId?: string
+  materialId?: string
+  includeOcr?: boolean
+  limit?: number
+  offset?: number
+}
+
+export interface SearchContentPage {
+  page: number
+  snippet: string
+}
+
+export interface SearchContentItem {
+  materialId: string
+  subjectId: string
+  subjectName: string
+  title: string
+  fileType: "pdf" | "video" | "image"
+  hits: number
+  pages: SearchContentPage[]
+}
+
+export interface SearchContentResponse {
+  content: {
+    total: number
+    hasMore: boolean
+    items: SearchContentItem[]
+  }
+}
