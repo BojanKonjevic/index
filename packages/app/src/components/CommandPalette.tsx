@@ -247,10 +247,11 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
     [navigate, onClose],
   )
   const openMaterial = useCallback(
-    (sid: string, mid: string) => {
+    (sid: string, mid: string, search?: { page?: number; hl?: string }) => {
       navigate({
         to: "/subjects/$subjectId/materials/$materialId",
         params: { subjectId: sid, materialId: mid },
+        search,
       })
       onClose()
     },
@@ -337,14 +338,19 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
     if (hasQuery && resolved && content && content.items.length > 0) {
       list.push({
         header: t("palette.section_content"),
-        rows: content.items.map(
-          (item): Row => ({
+        rows: content.items.map((item): Row => {
+          const page = item.pages[0]?.page ?? 1
+          return {
             key: `c-${item.materialId}`,
             kind: "content",
             item,
-            activate: () => openMaterial(item.subjectId, item.materialId),
-          }),
-        ),
+            activate: () =>
+              openMaterial(item.subjectId, item.materialId, {
+                page,
+                hl: query,
+              }),
+          }
+        }),
       })
     }
 
@@ -352,6 +358,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
   }, [
     picking,
     hasQuery,
+    query,
     mode,
     resolved,
     content,

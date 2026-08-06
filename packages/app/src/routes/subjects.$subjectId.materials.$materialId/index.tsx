@@ -3,7 +3,7 @@ const ZOOM_STEP = 1.25
 const SCROLL_AMOUNT_PX = 300
 
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { ArrowLeft, SunMoon, Layers as LayersIcon } from "lucide-react"
+import { ArrowLeft, SunMoon, Layers as LayersIcon, ChevronUp, ChevronDown, X } from "lucide-react"
 
 import { fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
@@ -13,6 +13,7 @@ import { ErrorFallback } from "@/components/ErrorFallback"
 import { PdfControls } from "@/components/PdfControls"
 import { SidebarContent } from "@/components/SidebarContent"
 import { BookmarkButton } from "@/components/BookmarkButton"
+import { getMatchMarks, getTextLayer } from "@/lib/textLayer"
 import type { Material, MaterialAsset } from "@index/shared"
 import { CATEGORY_ORDER } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
@@ -24,15 +25,68 @@ import AssetGallery from "@/components/AssetGallery"
 const PdfViewer = lazy(() => import("@/components/PdfViewer"))
 
 export const Route = createFileRoute("/subjects/$subjectId/materials/$materialId/")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    ...(typeof search.asset === "string" ? { asset: search.asset } : {}),
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const out: { asset?: string; page?: number; hl?: string } = {}
+    if (typeof search.asset === "string") out.asset = search.asset
+    if (typeof search.page === "string" || typeof search.page === "number") {
+      const n = Number(search.page)
+      if (Number.isFinite(n) && n >= 1) out.page = Math.floor(n)
+    }
+    if (typeof search.hl === "string" && search.hl.length > 0 && search.hl.length <= 40) {
+      out.hl = search.hl
+    }
+    return out
+  },
   loader: ({ params }) => fetchSubject(params.subjectId),
   staleTime: 30_000,
   gcTime: 60_000,
   component: ViewerPage,
   errorComponent: ErrorFallback,
 })
+
+function FindChip({
+  count,
+  index,
+  page,
+  onPrev,
+  onNext,
+  onClear,
+}: {
+  count: number
+  index: number
+  page: number
+  onPrev: () => void
+  onNext: () => void
+  onClear: () => void
+}) {
+  const { t } = useI18n()
+  return (
+    <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-subtle)] px-2 py-1 text-[0.688rem] font-medium text-[var(--text-secondary)]">
+      <span className="mr-1">{t("viewer.find_count_fmt", { index, n: count, page })}</span>
+      <button
+        onClick={onPrev}
+        aria-label={t("viewer.find_prev")}
+        className="cursor-pointer rounded p-0.5 text-[var(--text-hint)] transition-colors hover:text-[var(--text-primary)]"
+      >
+        <ChevronUp className="size-3.5" />
+      </button>
+      <button
+        onClick={onNext}
+        aria-label={t("viewer.find_next")}
+        className="cursor-pointer rounded p-0.5 text-[var(--text-hint)] transition-colors hover:text-[var(--text-primary)]"
+      >
+        <ChevronDown className="size-3.5" />
+      </button>
+      <button
+        onClick={onClear}
+        aria-label={t("viewer.find_clear")}
+        className="cursor-pointer rounded p-0.5 text-[var(--text-hint)] transition-colors hover:text-[var(--text-primary)]"
+      >
+        <X className="size-3.5" />
+      </button>
+    </div>
+  )
+}
 
 function ViewerPage() {
   const { subject, materials } = Route.useLoaderData()
@@ -93,10 +147,48 @@ function ViewerPage() {
     }
   }, [fitWidthMode, naturalPageWidth, zoom])
 
-  const { asset: assetParam } = Route.useSearch()
+  const { asset: assetParam, page: pageParam, hl: hlParam } = Route.useSearch()
   const assetFromUrl = assetParam ? parseInt(assetParam, 10) || 0 : 0
   const viewerTab = assetFromUrl > 0 ? "assets" : "material"
   const assetIndex = assetFromUrl > 0 ? assetFromUrl - 1 : 0
+
+  const hlPage = pageParam ?? 1
+  const [findCount, setFindCount] = useState(0)
+  const [findIndex, setFindIndex] = useState(1)
+
+  const handleHighlightCount = useCallback((count: number) => {
+    setFindCount(count)
+    setFindIndex((prev) => (prev > count ? 1 : prev))
+  }, [])
+
+  const stepMatch = useCallback(
+    (delta: number) => {
+      if (findCount <= 0) return
+      const root = parentRef.current
+      const layer = root ? getTextLayer(root, hlPage) : null
+      const count = layer ? getMatchMarks(layer).length : 0
+      const next =
+        count > 0
+          ? ((findIndex - 1 + delta + count) % count) + 1
+          : ((findIndex - 1 + delta + findCount) % findCount) + 1
+      setFindIndex(next)
+      if (layer) {
+        const mark = getMatchMarks(layer)[next - 1]
+        if (mark) mark.scrollIntoView({ block: "center", behavior: "smooth" })
+      }
+    },
+    [findCount, findIndex, hlPage, parentRef],
+  )
+
+  const clearFind = useCallback(() => {
+    setFindCount(0)
+    setFindIndex(1)
+    navigate({
+      to: ".",
+      search: assetParam ? { asset: assetParam } : {},
+      replace: true,
+    })
+  }, [navigate, assetParam])
 
   const material = materials.find((m) => m.id === materialId)
   const hasAssets = !!(material && material.assets.length > 0)
@@ -214,6 +306,26 @@ function ViewerPage() {
     },
     [numPages, naturalPageHeight, displayZoom, parentRef],
   )
+
+  const jumpedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!hlParam || material?.fileType !== "pdf" || naturalPageHeight === null) return
+    if (jumpedRef.current === `${hlParam}:${hlPage}`) return
+    if (hlPage > 1) {
+      const offset = (hlPage - 1) * (naturalPageHeight * displayZoom + 16)
+      parentRef.current?.scrollTo({ top: offset })
+    }
+    setPageNum(hlPage)
+    jumpedRef.current = `${hlParam}:${hlPage}`
+  }, [
+    hlParam,
+    hlPage,
+    material?.url,
+    material?.fileType,
+    naturalPageHeight,
+    displayZoom,
+    parentRef,
+  ])
 
   useEffect(() => {
     /* eslint-disable-next-line react-hooks/set-state-in-effect */
@@ -374,6 +486,16 @@ function ViewerPage() {
         <div className="flex items-center gap-1 shrink-0">
           {material?.fileType === "pdf" && !showAssetGallery && (
             <>
+              {hlParam && (
+                <FindChip
+                  count={findCount}
+                  index={findIndex}
+                  page={hlPage}
+                  onPrev={() => stepMatch(-1)}
+                  onNext={() => stepMatch(1)}
+                  onClear={clearFind}
+                />
+              )}
               <PdfControls
                 pageNum={pageNum}
                 numPages={numPages}
@@ -533,6 +655,9 @@ function ViewerPage() {
                 onPageChange={handlePageChange}
                 pdfLoading={pdfLoading}
                 pdfError={pdfError}
+                hl={hlParam}
+                hlPage={hlPage}
+                onHighlightCount={handleHighlightCount}
               />
             </Suspense>
           )}
@@ -567,22 +692,34 @@ function ViewerPage() {
       {/* ── Bottom toolbar (mobile) ── */}
       <div className="sm:hidden flex h-14 shrink-0 items-center border-t bg-[var(--bg-surface)] border-[var(--border-default)] px-2 gap-2 pb-safe">
         {material?.fileType === "pdf" && !showAssetGallery ? (
-          <PdfControls
-            pageNum={pageNum}
-            numPages={numPages}
-            pageInput={pageInput}
-            zoom={displayZoom}
-            onPageInputChange={handlePageInputChange}
-            onPageInputCommit={handlePageInputCommit}
-            onPageInputKeyDown={handlePageInputKeyDown}
-            onZoomIn={zoomIn}
-            onZoomOut={zoomOut}
-            onFitWidth={fitWidth}
-            onGoToPage={goToPage}
-            atMaxZoom={atMaxZoom}
-            atMinZoom={atMinZoom}
-            variant="mobile"
-          />
+          <>
+            {hlParam && (
+              <FindChip
+                count={findCount}
+                index={findIndex}
+                page={hlPage}
+                onPrev={() => stepMatch(-1)}
+                onNext={() => stepMatch(1)}
+                onClear={clearFind}
+              />
+            )}
+            <PdfControls
+              pageNum={pageNum}
+              numPages={numPages}
+              pageInput={pageInput}
+              zoom={displayZoom}
+              onPageInputChange={handlePageInputChange}
+              onPageInputCommit={handlePageInputCommit}
+              onPageInputKeyDown={handlePageInputKeyDown}
+              onZoomIn={zoomIn}
+              onZoomOut={zoomOut}
+              onFitWidth={fitWidth}
+              onGoToPage={goToPage}
+              atMaxZoom={atMaxZoom}
+              atMinZoom={atMinZoom}
+              variant="mobile"
+            />
+          </>
         ) : null}
 
         <div className="flex-1" />

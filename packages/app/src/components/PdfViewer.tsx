@@ -5,6 +5,7 @@ import { useI18n } from "@/hooks/useI18n"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useEffect, useRef, useState, useCallback, type RefObject } from "react"
+import { clearHighlights, getTextLayer, highlightMatches } from "@/lib/textLayer"
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
 
@@ -24,6 +25,9 @@ interface PdfViewerProps {
   onPageChange: (pageNum: number) => void
   pdfLoading: boolean
   pdfError: string | null
+  hl?: string | null
+  hlPage?: number | null
+  onHighlightCount?: (count: number) => void
 }
 
 export default function PdfViewer({
@@ -40,6 +44,9 @@ export default function PdfViewer({
   onPageChange,
   pdfLoading,
   pdfError,
+  hl = null,
+  hlPage = null,
+  onHighlightCount,
 }: PdfViewerProps) {
   const { t } = useI18n()
   const rafId = useRef<number | null>(null)
@@ -84,6 +91,57 @@ export default function PdfViewer({
       if (rafId.current) cancelAnimationFrame(rafId.current)
     }
   }, [])
+
+  const onHighlightCountRef = useRef(onHighlightCount)
+  useEffect(() => {
+    onHighlightCountRef.current = onHighlightCount
+  }, [onHighlightCount])
+
+  useEffect(() => {
+    const root = parentRef.current
+    const page = hlPage ?? 1
+    const notify = (n: number) => onHighlightCountRef.current?.(n)
+
+    if (!hl) {
+      if (root) {
+        for (const layer of root.querySelectorAll<HTMLElement>(".react-pdf__Page__textContent")) {
+          clearHighlights(layer)
+        }
+      }
+      notify(0)
+      return
+    }
+    if (!root) return
+
+    let done = false
+    const tryHighlight = () => {
+      if (done) return
+      const layer = getTextLayer(root, page)
+      if (!layer) return
+      clearHighlights(layer)
+      const hasText = Array.from(layer.querySelectorAll("span")).some(
+        (s) => (s.textContent ?? "").trim().length > 0,
+      )
+      if (!hasText) return
+      notify(highlightMatches(layer, hl))
+      done = true
+    }
+
+    const observer = new MutationObserver(() => tryHighlight())
+    observer.observe(root, { childList: true, subtree: true })
+    const timeout = setTimeout(() => {
+      tryHighlight()
+      observer.disconnect()
+    }, 5000)
+
+    tryHighlight()
+
+    return () => {
+      done = true
+      observer.disconnect()
+      clearTimeout(timeout)
+    }
+  }, [hl, hlPage, zoom, parentRef])
 
   const pages: number[] = []
   for (let i = range.start; i < range.end; i++) {
