@@ -185,9 +185,18 @@ export function findAll(origText: string, query: string): Array<{ start: number;
   return result
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
 export function makeSnippet(origText: string, query: string, width = 80): string {
   const matches = findAll(origText, query)
-  if (matches.length === 0) return origText.slice(0, width)
+  if (matches.length === 0) return escapeHtml(origText.slice(0, width))
 
   const first = matches[0]
   const firstLen = first.end - first.start
@@ -207,11 +216,11 @@ export function makeSnippet(origText: string, query: string, width = 80): string
   let cursor = start
   for (const m of matches) {
     if (m.end <= start || m.start >= end) continue
-    if (m.start > cursor) out += origText.slice(cursor, m.start)
-    out += `<mark>${origText.slice(m.start, m.end)}</mark>`
+    if (m.start > cursor) out += escapeHtml(origText.slice(cursor, m.start))
+    out += `<mark>${escapeHtml(origText.slice(m.start, m.end))}</mark>`
     cursor = Math.max(cursor, m.end)
   }
-  out += origText.slice(cursor, end)
+  out += escapeHtml(origText.slice(cursor, end))
   return out
 }
 

@@ -175,4 +175,16 @@ describe("makeSnippet", () => {
     const snippet = makeSnippet(text, "loranov", 20)
     expect(snippet).toContain("<mark>")
   })
+
+  it("escapes HTML in the surrounding snippet text", () => {
+    expect(makeSnippet("x < y & z > q", "zzz", 20)).toBe("x &lt; y &amp; z &gt; q")
+  })
+
+  it("escapes HTML inside matched segments", () => {
+    expect(makeSnippet("a <x> b", "<x>", 20)).toBe("a <mark>&lt;x&gt;</mark> b")
+  })
+
+  it("does not double-escape a no-match plain prefix", () => {
+    expect(makeSnippet("don't <run>", "zzz", 20)).toBe("don&#39;t &lt;run&gt;")
+  })
 })

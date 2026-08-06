@@ -100,6 +100,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     guardRef.current = new SearchSequenceGuard()
     return () => {
+      abortRef.current?.abort()
       guardRef.current = null
     }
   }, [])
@@ -133,7 +134,8 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
     (mode === "subject" && !!subjectId) ||
     (mode === "material" && !!materialId)
   const picking = (mode === "subject" && !subjectId) || (mode === "material" && !materialId)
-  const hasQuery = debounced.trim().length > 0
+  const cleanQuery = debounced.trim()
+  const hasQuery = cleanQuery.length > 0
 
   const subjects = data?.subjects ?? []
   const materials = data?.materials ?? []
@@ -194,7 +196,9 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
-    const seq = guardRef.current!.beginRequest()
+    const guard = guardRef.current
+    if (!guard) return
+    const seq = guard.beginRequest()
     searchContent(
       {
         q,
@@ -208,7 +212,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
       controller.signal,
     )
       .then((res) => {
-        if (!guardRef.current!.shouldApply(seq)) return
+        if (!guard.shouldApply(seq)) return
         setSearchState((prev) => ({
           q,
           content:
@@ -220,24 +224,24 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
       })
       .catch((err) => {
         if (err instanceof SearchAbortedError) return
-        if (!guardRef.current!.shouldApply(seq)) return
+        if (!guard.shouldApply(seq)) return
         setSearchState({ q, content: emptyContent, error: true })
       })
   }
 
   useEffect(() => {
-    const q = debounced.trim()
+    const q = cleanQuery
     if (q.length < 2 || !resolved || picking) {
       abortRef.current?.abort()
       return
     }
     runSearch(q, 0, mode, subjectId, materialId, includeOcr)
-  }, [debounced, resolved, picking, mode, subjectId, materialId, includeOcr])
+  }, [cleanQuery, resolved, picking, mode, subjectId, materialId, includeOcr])
 
-  const activeSearch = searchState?.q === debounced ? searchState : null
+  const activeSearch = searchState?.q === cleanQuery ? searchState : null
   const content = activeSearch?.content ?? null
   const contentError = activeSearch?.error ?? false
-  const contentLoading = hasQuery && resolved && !picking && searchState?.q !== debounced
+  const contentLoading = hasQuery && resolved && !picking && searchState?.q !== cleanQuery
 
   const openSubject = useCallback(
     (id: string) => {
@@ -414,7 +418,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
   }
 
   const loadMore = () => {
-    const q = debounced.trim()
+    const q = cleanQuery
     if (!q || !content) return
     runSearch(q, content.items.length, mode, subjectId, materialId, includeOcr)
   }
@@ -581,9 +585,13 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
                         [row.item.materialId]: !prev[row.item.materialId],
                       }))
                     }
-                    hitsLabel={t("palette.hits_fmt", {
-                      n: row.kind === "content" ? row.item.hits : 0,
-                    })}
+                    hitsLabel={
+                      row.kind === "content"
+                        ? row.item.hits === 1
+                          ? t("palette.hits_one")
+                          : t("palette.hits_fmt", { n: row.item.hits })
+                        : ""
+                    }
                   />
                 </div>
               )
@@ -592,7 +600,13 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
             {content && content.items.length > 0 && (
               <div className="flex items-center justify-between px-3.5 py-2 text-[0.688rem] text-[var(--text-hint)]">
                 <span>
-                  {t("palette.footer_hits_fmt", { hits: sumHits, materials: content.total })}
+                  {t(
+                    content.total === 1 ? "palette.footer_hits_in_one" : "palette.footer_hits_fmt",
+                    {
+                      hits: sumHits,
+                      materials: content.total,
+                    },
+                  )}
                 </span>
                 {content.hasMore && (
                   <button

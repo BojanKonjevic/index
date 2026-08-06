@@ -102,12 +102,13 @@ export default function PdfViewer({
     const page = hlPage ?? 1
     const notify = (n: number) => onHighlightCountRef.current?.(n)
 
-    if (!hl) {
-      if (root) {
-        for (const layer of root.querySelectorAll<HTMLElement>(".react-pdf__Page__textContent")) {
-          clearHighlights(layer)
-        }
+    if (root) {
+      for (const layer of root.querySelectorAll<HTMLElement>(".react-pdf__Page__textContent")) {
+        clearHighlights(layer)
       }
+    }
+
+    if (!hl) {
       notify(0)
       return
     }

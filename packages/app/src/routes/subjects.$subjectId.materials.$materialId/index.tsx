@@ -158,7 +158,7 @@ function ViewerPage() {
 
   const handleHighlightCount = useCallback((count: number) => {
     setFindCount(count)
-    setFindIndex((prev) => (prev > count ? 1 : prev))
+    setFindIndex((prev) => (count === 0 ? 0 : prev > count ? 1 : prev))
   }, [])
 
   const stepMatch = useCallback(
