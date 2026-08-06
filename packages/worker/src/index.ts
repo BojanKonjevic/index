@@ -5,6 +5,7 @@ import fileRoutes from "./routes/files"
 import auth from "./routes/auth"
 import user from "./routes/user"
 import dashboard from "./routes/dashboard"
+import search from "./routes/search"
 import { msg } from "./lib/i18n"
 import { AppError } from "./lib/error"
 
@@ -49,6 +50,7 @@ app.route("/api", fileRoutes)
 app.route("/api", auth)
 app.route("/api", user)
 app.route("/api", dashboard)
+app.route("/api", search)
 
 app.get("/api/health", (c) => c.json({ status: "ok" }))
 

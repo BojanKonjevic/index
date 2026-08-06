@@ -49,6 +49,10 @@ const messages: Record<string, Record<Locale, string>> = {
     sr: "Interna greška servera.",
     en: "Internal server error.",
   },
+  "search.invalid": {
+    sr: "Neispravni parametri pretrage.",
+    en: "Invalid search parameters.",
+  },
   "error.session_secret": {
     sr: "Server nije ispravno konfigurisan.",
     en: "Server is not configured properly.",
