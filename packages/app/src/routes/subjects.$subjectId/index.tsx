@@ -4,7 +4,6 @@ import {
   FileText,
   BookOpen,
   Pencil,
-  Search,
   ChevronDown,
   Folder,
   SlidersHorizontal,
@@ -15,8 +14,6 @@ import { useBookmarks } from "@/hooks/useBookmarks"
 import { daysUntil, parseISODate } from "@/lib/utils"
 import { formatDate } from "@/lib/i18n"
 import { useI18n } from "@/hooks/useI18n"
-import { useDebounce } from "@/hooks/useDebounce"
-import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import { MaterialBadges } from "@/components/MaterialBadges"
 import ExpandableAssets from "@/components/ExpandableAssets"
@@ -129,16 +126,9 @@ function SubjectPage() {
     localStorage.setItem(storageKey, JSON.stringify([...collapsed]))
   }, [collapsed, storageKey])
 
-  const [searchQuery, setSearchQuery] = useState("")
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
-  const debouncedQuery = useDebounce(searchQuery, 200)
-  const searchedMaterials = useFuseSearch(
-    materials,
-    { keys: ["title"], threshold: 0.4 },
-    debouncedQuery,
-  )
 
-  const filteredMaterials = searchedMaterials
+  const filteredMaterials = materials
     .filter((m) => {
       if (fileTypeFilter !== "all" && m.fileType !== fileTypeFilter) return false
       const vcat = getVirtualCategory(m)
@@ -258,17 +248,6 @@ function SubjectPage() {
         </div>
 
         <div className="border-t border-[var(--border-default)] md:px-9 px-4 py-4">
-          <div className="relative mb-4">
-            <Search className="absolute left-[0.688rem] top-1/2 size-[0.938rem] -translate-y-1/2 text-[var(--text-hint)]" />
-            <input
-              type="search"
-              placeholder={t("subject.search_placeholder")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-[0.5rem] border border-[var(--border-default)] bg-[var(--bg-subtle)] py-2 pl-8 pr-3 text-[0.813rem] text-[var(--text-primary)] outline-none transition-all duration-100 placeholder:text-[var(--text-hint)] focus:border-[var(--accent)] focus:bg-[var(--bg-surface)]"
-            />
-          </div>
-
           <MaterialFilters
             fileTypeFilter={fileTypeFilter}
             setFileTypeFilter={setFileTypeFilter}

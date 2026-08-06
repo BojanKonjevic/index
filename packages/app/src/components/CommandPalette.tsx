@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react"
 import { useLocation, useNavigate } from "@tanstack/react-router"
 import { Search, X, ChevronRight, Loader2, BookOpen, Calendar } from "lucide-react"
 import { useI18n } from "@/hooks/useI18n"
@@ -8,7 +16,7 @@ import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { fetchDashboard } from "@/lib/api"
 import { SearchAbortedError, SearchSequenceGuard, searchContent } from "@/lib/api"
 import { cn } from "@/lib/utils"
-import { typeIconMap } from "@/lib/styles"
+import { typeIconMap, typeTagStyles } from "@/lib/styles"
 import type {
   DashboardData,
   Material,
@@ -84,7 +92,6 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
   const [materialId, setMaterialId] = useState<string | null>(
     () => scopeFromPath(location.pathname).materialId,
   )
-  const [includeOcr, setIncludeOcr] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
@@ -96,6 +103,8 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
   } | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const guardRef = useRef<SearchSequenceGuard | null>(null)
+  const keyboardNavRef = useRef(false)
+  const lastPointerRef = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     guardRef.current = new SearchSequenceGuard()
@@ -191,7 +200,6 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
     m: SearchScope,
     sid: string | null,
     mid: string | null,
-    ocr: boolean,
   ) => {
     abortRef.current?.abort()
     const controller = new AbortController()
@@ -205,7 +213,6 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
         scope: m,
         subjectId: m === "subject" && sid ? sid : undefined,
         materialId: m === "material" && mid ? mid : undefined,
-        includeOcr: ocr,
         limit: 20,
         offset,
       },
@@ -235,8 +242,8 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
       abortRef.current?.abort()
       return
     }
-    runSearch(q, 0, mode, subjectId, materialId, includeOcr)
-  }, [cleanQuery, resolved, picking, mode, subjectId, materialId, includeOcr])
+    runSearch(q, 0, mode, subjectId, materialId)
+  }, [cleanQuery, resolved, picking, mode, subjectId, materialId])
 
   const activeSearch = searchState?.q === cleanQuery ? searchState : null
   const content = activeSearch?.content ?? null
@@ -379,9 +386,22 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
 
   const flatRows = useMemo(() => sections.flatMap((s) => s.rows), [sections])
 
-  useEffect(() => {
-    const el = listRef.current?.querySelectorAll("[data-palette-row]")[activeIndex]
-    el?.scrollIntoView({ block: "nearest" })
+  useLayoutEffect(() => {
+    const container = listRef.current
+    const row = container?.querySelectorAll("[data-palette-row]")[activeIndex] as
+      | HTMLElement
+      | undefined
+    if (!container || !row) return
+    const HEADER_OFFSET = 32
+    const containerRect = container.getBoundingClientRect()
+    const rowRect = row.getBoundingClientRect()
+    const top = rowRect.top - containerRect.top + container.scrollTop
+    const bottom = top + rowRect.height
+    const viewTop = container.scrollTop + HEADER_OFFSET
+    const viewBottom = container.scrollTop + container.clientHeight
+    if (top < viewTop) container.scrollTo({ top: top - HEADER_OFFSET, behavior: "smooth" })
+    else if (bottom > viewBottom)
+      container.scrollTo({ top: bottom - container.clientHeight + 8, behavior: "smooth" })
   }, [activeIndex, flatRows.length])
 
   const clearSelection = () => {
@@ -420,7 +440,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
   const loadMore = () => {
     const q = cleanQuery
     if (!q || !content) return
-    runSearch(q, content.items.length, mode, subjectId, materialId, includeOcr)
+    runSearch(q, content.items.length, mode, subjectId, materialId)
   }
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -445,11 +465,13 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
     }
     if (e.key === "ArrowDown") {
       e.preventDefault()
+      keyboardNavRef.current = true
       setActiveIndex((i) => Math.min(i + 1, Math.max(flatRows.length - 1, 0)))
       return
     }
     if (e.key === "ArrowUp") {
       e.preventDefault()
+      keyboardNavRef.current = true
       setActiveIndex((i) => Math.max(i - 1, 0))
       return
     }
@@ -513,7 +535,11 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
                   ? mode === "subject"
                     ? t("palette.pick_subject")
                     : t("palette.pick_material")
-                  : t("palette.placeholder")
+                  : mode === "subject"
+                    ? t("palette.placeholder_subject")
+                    : mode === "material"
+                      ? t("palette.placeholder_material")
+                      : t("palette.placeholder")
               }
               aria-label={t("palette.placeholder")}
               className="min-w-0 flex-1 bg-transparent text-[0.938rem] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-hint)]"
@@ -558,7 +584,17 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
-          <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div
+            ref={listRef}
+            onMouseMove={(e) => {
+              const last = lastPointerRef.current
+              if (!last || Math.abs(e.clientX - last.x) > 3 || Math.abs(e.clientY - last.y) > 3) {
+                lastPointerRef.current = { x: e.clientX, y: e.clientY }
+                keyboardNavRef.current = false
+              }
+            }}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+          >
             {sections.length === 0 && hasQuery && (
               <div className="px-3.5 py-3 text-xs text-[var(--text-hint)]">
                 {t("palette.no_results")}
@@ -577,7 +613,10 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
                     row={row}
                     active={index === activeIndex}
                     expanded={row.kind === "content" ? !!expanded[row.item.materialId] : false}
-                    onHover={() => setActiveIndex(index)}
+                    onHover={() => {
+                      if (keyboardNavRef.current) return
+                      setActiveIndex(index)
+                    }}
                     onExpandToggle={() =>
                       row.kind === "content" &&
                       setExpanded((prev) => ({
@@ -638,15 +677,6 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="flex items-center justify-between gap-3 border-t border-[var(--border-faint)] px-3.5 py-2 text-[0.688rem] text-[var(--text-hint)]">
-            <label className="flex cursor-pointer items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={includeOcr}
-                onChange={(e) => setIncludeOcr(e.target.checked)}
-                className="size-3.5 accent-[var(--accent)]"
-              />
-              {t("palette.ocr_toggle")}
-            </label>
             <div className="hidden items-center gap-1.5 md:flex">
               <kbd className="rounded border border-[var(--border-default)] px-1 font-sans">↑↓</kbd>
               <span>·</span>
@@ -682,6 +712,7 @@ function RowView({
 
   if (row.kind === "content") {
     const Icon = typeIconMap[row.item.fileType] ?? null
+    const ts = typeTagStyles[row.item.fileType]
     return (
       <div
         data-palette-row
@@ -694,8 +725,15 @@ function RowView({
         )}
       >
         <div className="flex w-full items-center gap-3 text-left text-[0.813rem]">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded bg-[var(--bg-subtle)]">
-            {Icon ? <Icon className="size-3.5 text-[var(--text-secondary)]" /> : null}
+          <div
+            className={cn(
+              "flex size-7 shrink-0 items-center justify-center rounded border",
+              ts?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]",
+            )}
+          >
+            {Icon ? (
+              <Icon className={cn("size-3.5", ts?.icon || "text-[var(--text-secondary)]")} />
+            ) : null}
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate font-medium text-[var(--text-primary)]">{row.item.title}</div>
@@ -741,6 +779,7 @@ function RowView({
   const isSubject = row.kind === "subject"
   const isExam = row.kind === "exam"
   const Icon = isSubject ? BookOpen : isExam ? Calendar : (typeIconMap[row.fileType] ?? null)
+  const ts = !isSubject && !isExam ? typeTagStyles[row.fileType] : undefined
 
   return (
     <button
@@ -752,8 +791,15 @@ function RowView({
         active ? "bg-[var(--bg-subtle)]" : "",
       )}
     >
-      <div className="flex size-7 shrink-0 items-center justify-center rounded bg-[var(--bg-subtle)]">
-        {Icon ? <Icon className="size-3.5 text-[var(--text-secondary)]" /> : null}
+      <div
+        className={cn(
+          "flex size-7 shrink-0 items-center justify-center rounded border",
+          ts?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]",
+        )}
+      >
+        {Icon ? (
+          <Icon className={cn("size-3.5", ts?.icon || "text-[var(--text-secondary)]")} />
+        ) : null}
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium text-[var(--text-primary)]">
