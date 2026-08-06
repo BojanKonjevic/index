@@ -53,8 +53,6 @@ const translations: Record<Locale, Record<string, string>> = {
     // Home
     "home.greeting": "Dobar dan.",
     "home.semester_fmt": "4. semestar · {count} predmet",
-    "home.search_placeholder": "Pretraži predmete, materijale, ispite…",
-    "home.search_hint": "Pritisni / za brzu pretragu",
     "home.upcoming_exams": "Predstojeći ispiti",
     "home.all_link": "Svi →",
     "home.no_exams": "Ništa zakazano.",
@@ -261,8 +259,6 @@ const translations: Record<Locale, Record<string, string>> = {
 
     "home.greeting": "Good day.",
     "home.semester_fmt": "Semester 4 · {count} subject",
-    "home.search_placeholder": "Search subjects, materials, exams…",
-    "home.search_hint": "Press / for quick search",
     "home.upcoming_exams": "Upcoming exams",
     "home.all_link": "All →",
     "home.no_exams": "Nothing scheduled.",

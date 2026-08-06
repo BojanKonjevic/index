@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Search, FileText } from "lucide-react"
+import { FileText } from "lucide-react"
 import { fetchDashboard } from "@/lib/api"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
 import { useAssetCache } from "@/hooks/useAssetCache"
-import { useSearchPalette } from "@/hooks/useSearchPalette"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import { MaterialBadges } from "@/components/MaterialBadges"
 import ExpandableAssets from "@/components/ExpandableAssets"
@@ -83,7 +82,6 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   const data = Route.useLoaderData()
   const { recent } = useRecentlyOpened()
-  const { openPalette } = useSearchPalette()
   const { t, locale } = useI18n()
   const {
     cache: recentAssetCache,
@@ -96,23 +94,6 @@ function HomePage() {
 
   return (
     <div className="mx-auto max-w-[35rem] md:px-6 md:pt-10 px-4 pt-5 pb-16">
-      <div className="relative mb-12">
-        <button
-          onClick={openPalette}
-          className="flex h-[2.75rem] w-full cursor-pointer items-center gap-2 rounded-[0.563rem] border-[0.094rem] border-[var(--border-default)] bg-[var(--bg-subtle)] px-3 text-left text-[0.813rem] text-[var(--text-hint)] shadow-sm transition-all duration-100 hover:border-[var(--accent)] hover:bg-[var(--bg-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-        >
-          <Search className="size-[0.938rem] shrink-0" />
-          <span className="flex-1 truncate">{t("home.search_placeholder")}</span>
-          <kbd className="hidden rounded border border-[var(--border-faint)] px-1 font-sans text-[0.625rem] md:inline">
-            ⌘K
-          </kbd>
-        </button>
-
-        <p className="mt-2 text-xs text-[var(--text-hint)] hidden md:block">
-          {t("home.search_hint")}
-        </p>
-      </div>
-
       <section className="mb-9">
         <div className="flex items-center gap-3 mb-3.5">
           <span className="text-[0.625rem] md:text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)] whitespace-nowrap">
