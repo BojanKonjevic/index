@@ -25,6 +25,9 @@ import { useState, useEffect, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { typeIconMap, typeTagStyles } from "@/lib/styles"
+import { useOfflineDownloads } from "@/hooks/useOfflineDownloads"
+import { SubjectOfflineControls } from "@/components/SubjectOfflineControls"
+import { OfflineBadge } from "@/components/OfflineBadge"
 
 const categoryOrder = CATEGORY_ORDER
 
@@ -35,7 +38,7 @@ export const Route = createFileRoute("/subjects/$subjectId/")({
 })
 
 // eslint-disable-next-line react-refresh/only-export-components
-function MaterialRow({ material }: { material: Material }) {
+function MaterialRow({ material, offline }: { material: Material; offline: boolean }) {
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
   const bookmarked = isBookmarked(material.id)
   const TypeIcon = typeIconMap[material.fileType] || FileText
@@ -70,6 +73,7 @@ function MaterialRow({ material }: { material: Material }) {
           </div>
           <div className="mt-0.5 flex flex-wrap gap-1.5">
             <MaterialBadges material={material} />
+            {offline && <OfflineBadge />}
           </div>
         </div>
 
@@ -109,6 +113,8 @@ function MaterialRow({ material }: { material: Material }) {
 function SubjectPage() {
   const { subject, materials, exams } = Route.useLoaderData()
   const { t, locale } = useI18n()
+  const { isDownloaded } = useOfflineDownloads()
+  const offline = isDownloaded(subject.id)
 
   const [fileTypeFilter, setFileTypeFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
@@ -245,6 +251,12 @@ function SubjectPage() {
               </div>
             </div>
           )}
+
+          <SubjectOfflineControls
+            subjectId={subject.id}
+            materialCount={materials.length}
+            className="mb-4"
+          />
         </div>
 
         <div className="border-t border-[var(--border-default)] md:px-9 px-4 py-4">
@@ -343,7 +355,7 @@ function SubjectPage() {
                             </div>
                             <div className="flex flex-col gap-1">
                               {solved.map((m) => (
-                                <MaterialRow key={m.id} material={m} />
+                                <MaterialRow key={m.id} material={m} offline={offline} />
                               ))}
                             </div>
                           </div>
@@ -355,7 +367,7 @@ function SubjectPage() {
                             </div>
                             <div className="flex flex-col gap-1">
                               {unsolved.map((m) => (
-                                <MaterialRow key={m.id} material={m} />
+                                <MaterialRow key={m.id} material={m} offline={offline} />
                               ))}
                             </div>
                           </div>
@@ -367,7 +379,7 @@ function SubjectPage() {
                             </div>
                             <div className="flex flex-col gap-1">
                               {unknown.map((m) => (
-                                <MaterialRow key={m.id} material={m} />
+                                <MaterialRow key={m.id} material={m} offline={offline} />
                               ))}
                             </div>
                           </div>
@@ -376,7 +388,7 @@ function SubjectPage() {
                     ) : (
                       <div className="flex flex-col gap-1 mt-3">
                         {[...solved, ...unsolved, ...unknown].map((m) => (
-                          <MaterialRow key={m.id} material={m} />
+                          <MaterialRow key={m.id} material={m} offline={offline} />
                         ))}
                       </div>
                     )}

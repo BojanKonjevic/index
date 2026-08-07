@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { getSubjectBundles } from "@/lib/offline/db"
+import { getSubjectBundles, type OfflineSubjectRecord } from "@/lib/offline/db"
 import {
   downloadSubjectOffline,
   removeSubjectOffline,
@@ -16,17 +16,20 @@ export interface OfflineJob {
 
 export function useOfflineDownloads() {
   const [jobs, setJobs] = useState<Record<string, OfflineJob>>({})
-  const [downloaded, setDownloaded] = useState<string[]>([])
+  const [bundles, setBundles] = useState<OfflineSubjectRecord[]>([])
   const controllers = useRef(new Map<string, AbortController>())
 
-  const refreshDownloaded = useCallback(async () => {
-    const bundles = await getSubjectBundles()
-    setDownloaded(bundles.map((bundle) => bundle.subjectId))
+  const refreshBundles = useCallback(async () => {
+    setBundles(await getSubjectBundles())
   }, [])
 
   useEffect(() => {
-    void refreshDownloaded()
-  }, [refreshDownloaded])
+    void refreshBundles()
+  }, [refreshBundles])
+
+  const downloaded = bundles
+    .filter((bundle) => bundle.status === "complete")
+    .map((bundle) => bundle.subjectId)
 
   const startDownload = useCallback(
     async (subjectId: string) => {
@@ -57,7 +60,7 @@ export function useOfflineDownloads() {
           ...jobs,
           [subjectId]: { subjectId, status: "done", progress: null, error: null },
         }))
-        await refreshDownloaded()
+        await refreshBundles()
       } catch (error) {
         const status: OfflineDownloadStatus =
           error instanceof DOMException && error.name === "AbortError" ? "cancelled" : "failed"
@@ -74,7 +77,7 @@ export function useOfflineDownloads() {
         controllers.current.delete(subjectId)
       }
     },
-    [refreshDownloaded],
+    [refreshBundles],
   )
 
   const cancelDownload = useCallback((subjectId: string) => {
@@ -85,13 +88,14 @@ export function useOfflineDownloads() {
     async (subjectId: string) => {
       if (controllers.current.has(subjectId)) return
       await removeSubjectOffline(subjectId)
-      await refreshDownloaded()
+      await refreshBundles()
     },
-    [refreshDownloaded],
+    [refreshBundles],
   )
 
   return {
     jobs,
+    bundles,
     downloaded,
     isDownloaded: (subjectId: string) => downloaded.includes(subjectId),
     startDownload,

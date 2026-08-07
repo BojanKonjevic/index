@@ -8,6 +8,7 @@ import { ArrowLeft, SunMoon, Layers as LayersIcon, ChevronUp, ChevronDown, X } f
 import { fetchSearchPages, fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 import { useRecentlyOpened } from "@/hooks/useRecentlyOpened"
+import { useOfflineDownloads } from "@/hooks/useOfflineDownloads"
 import { useI18n } from "@/hooks/useI18n"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import { PdfControls } from "@/components/PdfControls"
@@ -93,6 +94,8 @@ function ViewerPage() {
   const { subjectId, materialId } = Route.useParams()
   const navigate = useNavigate()
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
+  const { isDownloaded } = useOfflineDownloads()
+  const offline = isDownloaded(subjectId)
   const { t } = useI18n()
   const [sidebarMode, setSidebarMode] = useState<"category" | "all" | "this">("category")
   const [materialsSheetOpen, setMaterialsSheetOpen] = useState(false)
@@ -790,6 +793,7 @@ function ViewerPage() {
             subjectId={subjectId}
             materialId={materialId}
             assetFromUrl={assetFromUrl}
+            offline={offline}
           />
 
           <div className="flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[var(--border-faint)] px-3 py-2.5 text-[0.688rem] text-[var(--text-hint)]">
@@ -877,6 +881,7 @@ function ViewerPage() {
               subjectId={subjectId}
               materialId={materialId}
               assetFromUrl={assetFromUrl}
+              offline={offline}
               onItemClick={() => setMaterialsSheetOpen(false)}
             />
           </SheetContent>

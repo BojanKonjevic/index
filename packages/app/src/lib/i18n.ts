@@ -100,6 +100,17 @@ const translations: Record<Locale, Record<string, string>> = {
     "subject.exam_count_fmt": "{n} dana",
     "subject.today": "Danas",
 
+    // Offline
+    "offline.download": "Preuzmi za van mreže",
+    "offline.resume": "Nastavi preuzimanje",
+    "offline.downloading": "Preuzimanje…",
+    "offline.progress_fmt": "{done}/{total} fajlova",
+    "offline.available": "Van mreže",
+    "offline.remove": "Ukloni sa uređaja",
+    "offline.update_hint": "Novi materijali — ažuriraj",
+    "offline.cancel": "Otkaži",
+    "offline.failed": "Preuzimanje nije uspelo.",
+
     // Categories
     "category.theory": "Teorija",
     "category.problems": "Zadaci",
@@ -304,6 +315,17 @@ const translations: Record<Locale, Record<string, string>> = {
     "subject.unsolved_badge": "Unsolved",
     "subject.exam_count_fmt": "{n} days",
     "subject.today": "Today",
+
+    // Offline
+    "offline.download": "Download for offline",
+    "offline.resume": "Resume download",
+    "offline.downloading": "Downloading…",
+    "offline.progress_fmt": "{done}/{total} files",
+    "offline.available": "Offline",
+    "offline.remove": "Remove from device",
+    "offline.update_hint": "New materials — update",
+    "offline.cancel": "Cancel",
+    "offline.failed": "Download failed.",
 
     "category.theory": "Theory",
     "category.problems": "Problems",

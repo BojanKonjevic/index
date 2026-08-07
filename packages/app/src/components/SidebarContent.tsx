@@ -3,6 +3,7 @@ import { FileText, FileImage } from "lucide-react"
 import { useI18n } from "@/hooks/useI18n"
 import ExpandableAssets from "@/components/ExpandableAssets"
 import { BookmarkButton } from "./BookmarkButton"
+import { OfflineBadge } from "./OfflineBadge"
 import { typeIconMap, typeTagStyles, typeBadgeStyles } from "@/lib/styles"
 import { CATEGORY_ORDER } from "@index/shared"
 import type { Material } from "@index/shared"
@@ -18,6 +19,7 @@ interface SidebarContentProps {
   subjectId: string
   materialId: string
   assetFromUrl: number
+  offline?: boolean
   onItemClick?: () => void
 }
 
@@ -32,6 +34,7 @@ export function SidebarContent({
   subjectId,
   materialId,
   assetFromUrl,
+  offline,
   onItemClick,
 }: SidebarContentProps) {
   const { t } = useI18n()
@@ -75,6 +78,7 @@ export function SidebarContent({
                 <SidebarItem
                   material={m}
                   isActive={m.id === materialId}
+                  offline={offline}
                   onItemClick={onItemClick}
                 />
                 {m.assets.length > 0 && (
@@ -130,6 +134,7 @@ export function SidebarContent({
                       <SidebarItem
                         material={m}
                         isActive={m.id === materialId}
+                        offline={offline}
                         onItemClick={onItemClick}
                       />
                       {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
@@ -157,6 +162,7 @@ export function SidebarContent({
                       <SidebarItem
                         material={m}
                         isActive={m.id === materialId}
+                        offline={offline}
                         onItemClick={onItemClick}
                       />
                       {(m.assets?.length ?? m.assetCount ?? 0) > 0 && (
@@ -181,10 +187,12 @@ export function SidebarContent({
 function SidebarItem({
   material,
   isActive,
+  offline,
   onItemClick,
 }: {
   material: Material
   isActive: boolean
+  offline?: boolean
   onItemClick?: () => void
 }) {
   const { t } = useI18n()
@@ -217,6 +225,7 @@ function SidebarItem({
           >
             {t(`materialType.${material.fileType}`) || material.fileType}
           </span>
+          {offline && <OfflineBadge size="xs" />}
         </div>
       </div>
       <span onClick={(e) => e.preventDefault()} className="shrink-0">

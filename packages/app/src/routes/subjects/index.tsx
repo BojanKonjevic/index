@@ -6,6 +6,8 @@ import { useDebounce } from "@/hooks/useDebounce"
 import { useI18n } from "@/hooks/useI18n"
 import { usePreferences } from "@/hooks/usePreferences"
 import { ErrorFallback } from "@/components/ErrorFallback"
+import { OfflineBadge } from "@/components/OfflineBadge"
+import { useOfflineDownloads } from "@/hooks/useOfflineDownloads"
 import type { SubjectListItem } from "@index/shared"
 import { useState } from "react"
 
@@ -23,6 +25,7 @@ function SubjectsPage() {
   const [electiveOnly, setElectiveOnly] = useState(false)
   const { viewMode, setViewMode } = usePreferences()
   const { t } = useI18n()
+  const { isDownloaded } = useOfflineDownloads()
 
   const debouncedQuery = useDebounce(searchQuery, 200)
 
@@ -174,6 +177,7 @@ function SubjectsPage() {
 
                   <div className="mb-2.5 flex items-start justify-between">
                     <div className="flex gap-1.5">
+                      {isDownloaded(subject.id) && <OfflineBadge />}
                       <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
                         {t("subjects.sem_fmt", { s: subject.semester })}
                       </span>
