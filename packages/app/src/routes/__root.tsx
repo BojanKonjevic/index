@@ -31,7 +31,9 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/co
 import { useI18n } from "@/hooks/useI18n"
 import { Skeleton } from "@/components/Skeleton"
 import { SearchPaletteProvider, useSearchPalette } from "@/hooks/useSearchPalette"
+import { useOnlineStatus } from "@/hooks/useOnlineStatus"
 import CommandPalette from "@/components/CommandPalette"
+import { OfflineBanner } from "@/components/OfflineBanner"
 
 const GROUP_NUMBERS = Array.from({ length: 14 }, (_, i) => i + 1)
 const SETTINGS_CLOSE_DELAY_MS = 200
@@ -449,6 +451,7 @@ function RootContent() {
   const { t } = useI18n()
   const location = useLocation()
   const isViewer = isViewerPath(location.pathname)
+  const online = useOnlineStatus()
   const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const toggleThemeHandler = () => setTheme((prev) => toggleTheme(prev))
@@ -467,6 +470,7 @@ function RootContent() {
 
   return (
     <div className="min-h-screen bg-bg-page">
+      {!online && !isViewer && <OfflineBanner />}
       <Sidebar
         theme={theme}
         onToggleTheme={toggleThemeHandler}

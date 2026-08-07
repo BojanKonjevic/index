@@ -8,6 +8,7 @@ import { usePreferences } from "@/hooks/usePreferences"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import { OfflineBadge } from "@/components/OfflineBadge"
 import { useOfflineDownloads } from "@/hooks/useOfflineDownloads"
+import { useOnlineStatus } from "@/hooks/useOnlineStatus"
 import type { SubjectListItem } from "@index/shared"
 import { useState } from "react"
 
@@ -26,6 +27,7 @@ function SubjectsPage() {
   const { viewMode, setViewMode } = usePreferences()
   const { t } = useI18n()
   const { isDownloaded } = useOfflineDownloads()
+  const online = useOnlineStatus()
 
   const debouncedQuery = useDebounce(searchQuery, 200)
 
@@ -167,7 +169,7 @@ function SubjectsPage() {
                   key={subject.id}
                   to="/subjects/$subjectId"
                   params={{ subjectId: subject.id }}
-                  className={`relative flex flex-col rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 pr-5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5 ${viewMode === "list" ? "border-l-[3px] border-l-[var(--accent)]" : ""}`}
+                  className={`relative flex flex-col rounded-[0.563rem] border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 pr-5 transition-all duration-100 hover:border-[var(--border-strong)] hover:-translate-y-0.5 ${viewMode === "list" ? "border-l-[3px] border-l-[var(--accent)]" : ""} ${!online && !isDownloaded(subject.id) ? "opacity-55" : ""}`}
                 >
                   {subject.elective && (
                     <span className="absolute right-0 top-0 rounded-bl-lg rounded-tr-[var(--radius-xl)] bg-[var(--status-info-bg)] px-2 py-0.5 text-[0.625rem] font-semibold tracking-[0.019rem] text-[var(--status-info-text)]">
@@ -178,6 +180,11 @@ function SubjectsPage() {
                   <div className="mb-2.5 flex items-start justify-between">
                     <div className="flex gap-1.5">
                       {isDownloaded(subject.id) && <OfflineBadge />}
+                      {!online && !isDownloaded(subject.id) && (
+                        <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-hint)]">
+                          {t("offline.not_downloaded")}
+                        </span>
+                      )}
                       <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]">
                         {t("subjects.sem_fmt", { s: subject.semester })}
                       </span>
