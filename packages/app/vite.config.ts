@@ -22,17 +22,20 @@ declare const caches: {
 // worker (evaluated at SW start and not always updated until the SW is
 // destroyed), so it must never be a hard gate: if nothing is cached, fall
 // through to a real fetch attempt, which fails fast when truly offline.
-async function fetchWithTimeout(request: Request, timeoutMs: number) {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(request, { signal: controller.signal })
-  } finally {
-    clearTimeout(timeout)
-  }
-}
-
+//
+// NOTE: workbox-build inlines this handler into sw.js but drops module-scope
+// helpers it references, so everything it needs must live inside the handler
+// body itself.
 export async function apiStrategyHandler({ request }: { request: Request }): Promise<Response> {
+  const fetchWithTimeout = async (req: Request, timeoutMs: number) => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      return await fetch(req, { signal: controller.signal })
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
   const cache = await caches.open("api")
   const cached = await cache.match(request)
   const offline = (navigator as unknown as { onLine?: boolean }).onLine === false
