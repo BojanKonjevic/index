@@ -1,13 +1,10 @@
 import { Hono } from "hono"
-import { compress } from "hono/compress"
 import type { Bindings } from ".."
 import type { Material, OfflineSubjectPayload, Subject } from "@index/shared"
 import { mapMaterial, mapAsset } from "../lib/db"
 import { AppError } from "../lib/error"
 
 const app = new Hono<{ Bindings: Bindings }>()
-
-app.use(compress())
 
 app.get("/offline/subject/:id", async (c) => {
   const db = c.env.DB

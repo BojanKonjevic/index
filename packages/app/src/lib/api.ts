@@ -27,9 +27,17 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
   }
 
   const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers, credentials: "include" })
-  const data = await res.json().catch(() => ({}))
+  let data: unknown
+  try {
+    data = await res.json()
+  } catch {
+    if (res.ok) {
+      throw new ApiError(500, "Invalid JSON response", { endpoint })
+    }
+  }
+  const parsed = (data ?? {}) as Record<string, unknown>
 
-  if (!res.ok) throw new ApiError(res.status, data.error || "API Error", data)
+  if (!res.ok) throw new ApiError(res.status, (parsed.error as string) || "API Error", parsed)
   return data as T
 }
 

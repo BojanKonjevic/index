@@ -41,13 +41,6 @@ async function seedPageRows() {
   ])
 }
 
-async function gunzip(res: Response): Promise<unknown> {
-  const buffer = await res.arrayBuffer()
-  const stream = new Response(buffer).body!.pipeThrough(new DecompressionStream("gzip"))
-  const text = await new Response(stream).text()
-  return JSON.parse(text)
-}
-
 beforeAll(async () => {
   await runMigrations()
   await db.exec(statements(searchSql))
@@ -88,23 +81,15 @@ describe("GET /api/offline/subject/:id", () => {
     expect(res.status).toBe(404)
   })
 
-  it("gzip-compresses the bundle when the client accepts gzip", async () => {
+  it("serves the bundle as plain json (no content-encoding)", async () => {
     const res = await SELF.fetch("http://localhost/api/offline/subject/matematicka-analiza-2", {
       headers: { "Accept-Encoding": "gzip" },
     })
     expect(res.status).toBe(200)
-    expect(res.headers.get("content-encoding")).toBe("gzip")
+    expect(res.headers.get("content-encoding")).toBeNull()
 
-    const body = (await gunzip(res)) as OfflineSubjectPayload
+    const body = (await res.json()) as OfflineSubjectPayload
     expect(body.subject.id).toBe("matematicka-analiza-2")
     expect(body.pages).toHaveLength(3)
-  })
-
-  it("serves plain json without accept-encoding gzip", async () => {
-    const res = await SELF.fetch("http://localhost/api/offline/subject/matematicka-analiza-2", {
-      headers: { "Accept-Encoding": "identity" },
-    })
-    expect(res.status).toBe(200)
-    expect(res.headers.get("content-encoding")).toBeNull()
   })
 })
