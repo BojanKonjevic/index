@@ -66,10 +66,22 @@ const SPA_CSP = [
   "connect-src 'self'",
 ].join("; ")
 
+const NO_CACHE_ASSETS = new Set([
+  "/sw.js",
+  "/manifest.webmanifest",
+  "/pwa-192x192.png",
+  "/pwa-512x512.png",
+  "/pwa-maskable-512x512.png",
+  "/apple-touch-icon.png",
+])
+
 app.all("*", async (c) => {
   const response = await c.env.ASSETS.fetch(c.req.raw)
   const headers = new Headers(response.headers)
   headers.set("Content-Security-Policy", SPA_CSP)
+  if (NO_CACHE_ASSETS.has(new URL(c.req.url).pathname)) {
+    headers.set("Cache-Control", "no-cache")
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
