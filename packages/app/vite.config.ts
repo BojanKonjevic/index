@@ -7,6 +7,46 @@ import { VitePWA } from "vite-plugin-pwa"
 import { RangeRequestsPlugin } from "workbox-range-requests"
 import path from "path"
 
+// The api route handler runs inside the service worker, but vite.config.ts is
+// typechecked with Node libs — declare the web APIs it touches.
+declare const caches: {
+  open(name: string): Promise<{
+    match(request: Request): Promise<Response | undefined>
+    put(request: Request, response: Response): Promise<void>
+  }>
+}
+
+// NetworkFirst with a 3s timeout would wait out the whole timeout on every API
+// call when offline. Skip the network entirely when the device is offline and
+// serve the last-good cached response immediately.
+async function fetchWithTimeout(request: Request, timeoutMs: number) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(request, { signal: controller.signal })
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+export async function apiStrategyHandler({ request }: { request: Request }): Promise<Response> {
+  const cache = await caches.open("api")
+  const cached = await cache.match(request)
+  const offline = (navigator as unknown as { onLine?: boolean }).onLine === false
+  if (offline) {
+    if (cached) return cached
+    throw new Error("Offline and request not cached")
+  }
+  try {
+    const response = await fetchWithTimeout(request, 3000)
+    if (response && response.ok) await cache.put(request, response.clone())
+    return response
+  } catch (error) {
+    if (cached) return cached
+    throw error
+  }
+}
+
 export default defineConfig({
   plugins: [
     TanStackRouterVite({ target: "react" }),
@@ -54,16 +94,14 @@ export default defineConfig({
             },
           },
           {
-            // API GETs (dashboard, subjects, bookmarks, search): network-first with
-            // a short timeout, falling back to the last-good cache offline.
+            // API GETs (dashboard, subjects, bookmarks, search): network-first
+            // with a 3s timeout, falling back to the last-good cache — except
+            // when the device is offline, where cached responses are served
+            // immediately instead of waiting out the timeout.
             // Mutations (POST/PUT/DELETE) never match these routes and stay
             // network-only by default.
             urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api",
-              networkTimeoutSeconds: 3,
-            },
+            handler: apiStrategyHandler,
           },
         ],
       },

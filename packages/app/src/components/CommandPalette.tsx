@@ -444,7 +444,11 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
 
   const flatRows = useMemo(() => sections.flatMap((s) => s.rows), [sections])
 
+  const lastActiveIndexRef = useRef(activeIndex)
+
   useLayoutEffect(() => {
+    if (lastActiveIndexRef.current === activeIndex) return
+    lastActiveIndexRef.current = activeIndex
     const container = listRef.current
     const row = container?.querySelectorAll("[data-palette-row]")[activeIndex] as
       | HTMLElement

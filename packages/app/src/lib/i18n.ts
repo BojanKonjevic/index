@@ -101,7 +101,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "subject.today": "Danas",
 
     // Offline
-    "offline.download": "Preuzmi offline",
+    "offline.download": "Preuzmi predmet",
     "offline.resume": "Nastavi preuzimanje",
     "offline.downloading": "Preuzimanje…",
     "offline.progress_fmt": "{done}/{total} fajlova",
@@ -320,7 +320,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "subject.today": "Today",
 
     // Offline
-    "offline.download": "Download for offline",
+    "offline.download": "Download subject",
     "offline.resume": "Resume download",
     "offline.downloading": "Downloading…",
     "offline.progress_fmt": "{done}/{total} files",

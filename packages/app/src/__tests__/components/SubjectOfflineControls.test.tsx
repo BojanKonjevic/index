@@ -109,13 +109,13 @@ describe("SubjectOfflineControls", () => {
 
   it("offers to download when the subject is not downloaded", async () => {
     renderControls()
-    await screen.findByRole("button", { name: "Preuzmi offline" })
+    await screen.findByRole("button", { name: "Preuzmi predmet" })
   })
 
   it("downloads on click and shows the offline badge with remove", async () => {
     const user = userEvent.setup()
     renderControls()
-    const download = await screen.findByRole("button", { name: "Preuzmi offline" })
+    const download = await screen.findByRole("button", { name: "Preuzmi predmet" })
     await user.click(download)
 
     await screen.findByText("Offline")
@@ -142,6 +142,6 @@ describe("SubjectOfflineControls", () => {
 
     await user.click(screen.getByRole("button", { name: "Ukloni sa uređaja" }))
     await waitFor(() => expect(screen.queryByText("Offline")).not.toBeInTheDocument())
-    await screen.findByRole("button", { name: "Preuzmi offline" })
+    await screen.findByRole("button", { name: "Preuzmi predmet" })
   })
 })
