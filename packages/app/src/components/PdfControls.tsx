@@ -43,19 +43,19 @@ export function PdfControls({
           onClick={() => onGoToPage(pageNum - 1)}
           disabled={pageNum <= 1}
           aria-label={t("viewer.gallery_prev")}
-          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+          className="flex items-center justify-center min-h-[2.75rem] min-w-0 px-2 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
         >
           <ChevronLeft className="size-5" />
         </button>
 
-        <span className="flex items-center gap-1 px-2 text-[0.813rem] text-[var(--text-secondary)]">
+        <span className="flex min-w-0 items-center gap-1 px-1 text-[0.813rem] text-[var(--text-secondary)]">
           <input
             type="text"
             value={pageInput}
             onChange={onPageInputChange}
             onBlur={onPageInputCommit}
             onKeyDown={onPageInputKeyDown}
-            className="w-10 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
+            className="w-9 rounded border border-[var(--border-default)] px-1 py-1 text-center text-sm outline-none bg-[var(--bg-subtle)] text-[var(--text-primary)]"
           />
           <span className="text-[var(--text-hint)]">/</span>
           <span>{numPages || "?"}</span>
@@ -65,31 +65,9 @@ export function PdfControls({
           onClick={() => onGoToPage(pageNum + 1)}
           disabled={pageNum >= numPages}
           aria-label={t("viewer.gallery_next")}
-          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+          className="flex items-center justify-center min-h-[2.75rem] min-w-0 px-2 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
         >
           <ChevronRight className="size-5" />
-        </button>
-
-        <span className="h-6 w-px bg-[var(--border-faint)]" />
-
-        <button
-          onClick={onZoomOut}
-          disabled={atMinZoom}
-          aria-label={t("viewer.zoom_out")}
-          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-        >
-          <ZoomOut className="size-5" />
-        </button>
-        <span className="text-[0.625rem] font-medium text-[var(--text-secondary)] tabular-nums">
-          {Math.round(zoom * 100)}%
-        </span>
-        <button
-          onClick={onZoomIn}
-          disabled={atMaxZoom}
-          aria-label={t("viewer.zoom_in")}
-          className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-        >
-          <ZoomIn className="size-5" />
         </button>
       </>
     )

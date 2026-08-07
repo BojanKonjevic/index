@@ -3,7 +3,16 @@ const ZOOM_STEP = 1.25
 const SCROLL_AMOUNT_PX = 300
 
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { ArrowLeft, SunMoon, Layers as LayersIcon, ChevronUp, ChevronDown, X } from "lucide-react"
+import {
+  ArrowLeft,
+  SunMoon,
+  Layers as LayersIcon,
+  ChevronUp,
+  ChevronDown,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react"
 
 import { fetchSearchPages, fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
@@ -559,7 +568,44 @@ function ViewerPage() {
       : null
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
+      {/* ── Top bar (mobile): back + title + zoom ── */}
+      <div className="sm:hidden flex h-11 shrink-0 items-center gap-1 border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-2">
+        <button
+          onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
+          aria-label={t("viewer.back")}
+          className="flex shrink-0 cursor-pointer items-center justify-center size-9 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+        >
+          <ArrowLeft className="size-5" />
+        </button>
+        <span className="min-w-0 flex-1 truncate text-[0.813rem] font-medium text-[var(--text-primary)]">
+          {material?.title}
+        </span>
+        {material?.fileType === "pdf" && !showAssetGallery && (
+          <div className="flex shrink-0 items-center gap-0.5">
+            <button
+              onClick={zoomOut}
+              disabled={atMinZoom}
+              aria-label={t("viewer.zoom_out")}
+              className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ZoomOut className="size-4" />
+            </button>
+            <span className="w-9 text-center text-[0.688rem] font-medium text-[var(--text-secondary)] tabular-nums">
+              {Math.round(displayZoom * 100)}%
+            </span>
+            <button
+              onClick={zoomIn}
+              disabled={atMaxZoom}
+              aria-label={t("viewer.zoom_in")}
+              className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ZoomIn className="size-4" />
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* ── Top bar (desktop) ── */}
       <div className="hidden sm:flex h-11 items-center gap-3 shrink-0 border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-3">
         <button
@@ -819,7 +865,7 @@ function ViewerPage() {
       </div>
 
       {/* ── Bottom toolbar (mobile) ── */}
-      <div className="sm:hidden flex h-14 shrink-0 items-center border-t bg-[var(--bg-surface)] border-[var(--border-default)] px-2 gap-2 pb-safe">
+      <div className="sm:hidden flex h-14 shrink-0 items-center border-t bg-[var(--bg-surface)] border-[var(--border-default)] px-2 gap-1 pb-safe">
         {material?.fileType === "pdf" && !showAssetGallery ? (
           <>
             {hlParam && (
@@ -855,7 +901,7 @@ function ViewerPage() {
         <Sheet open={materialsSheetOpen} onOpenChange={setMaterialsSheetOpen}>
           <SheetTrigger
             aria-label={t("viewer.sidebar_all")}
-            className="flex items-center justify-center min-w-[2.75rem] min-h-[2.75rem] rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+            className="flex items-center justify-center min-h-[2.75rem] min-w-0 px-2 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
           >
             <LayersIcon className="size-5" />
           </SheetTrigger>
