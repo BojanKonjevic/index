@@ -47,6 +47,7 @@ export function SubjectOfflineControls({ subjectId, materialCount, className }: 
       <div className={cn("flex flex-wrap items-center gap-2", className)}>
         <span className="text-[0.813rem] text-[var(--status-soon-text)]">
           {t("offline.failed")}
+          {job.error ? <span className="ml-1 text-[var(--text-hint)]">({job.error})</span> : null}
         </span>
         <button onClick={() => void startDownload(subjectId)} className={buttonClass}>
           <Download className="size-4" />

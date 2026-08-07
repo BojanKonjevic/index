@@ -62,6 +62,7 @@ export function useOfflineDownloads() {
         }))
         await refreshBundles()
       } catch (error) {
+        console.error("Offline download failed:", error)
         const status: OfflineDownloadStatus =
           error instanceof DOMException && error.name === "AbortError" ? "cancelled" : "failed"
         setJobs((jobs) => ({
