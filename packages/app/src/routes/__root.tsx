@@ -35,6 +35,8 @@ import CommandPalette from "@/components/CommandPalette"
 
 const GROUP_NUMBERS = Array.from({ length: 14 }, (_, i) => i + 1)
 const SETTINGS_CLOSE_DELAY_MS = 200
+const VIEWER_PATH_RE = /^\/subjects\/[^/]+\/materials\/[^/]+/
+const isViewerPath = (pathname: string) => VIEWER_PATH_RE.test(pathname)
 
 function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof Home; label: string }) {
   const location = useLocation()
@@ -445,6 +447,8 @@ function RootLayout() {
 function RootContent() {
   const { user, isGuest, loading } = useAuth()
   const { t } = useI18n()
+  const location = useLocation()
+  const isViewer = isViewerPath(location.pathname)
   const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const toggleThemeHandler = () => setTheme((prev) => toggleTheme(prev))
@@ -478,11 +482,11 @@ function RootContent() {
           <PanelLeftOpen className="size-4" />
         </button>
       )}
-      <BottomTabBar theme={theme} onToggleTheme={toggleThemeHandler} />
+      {!isViewer && <BottomTabBar theme={theme} onToggleTheme={toggleThemeHandler} />}
       <main
-        className={`min-h-screen pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0 transition-[margin] duration-200 ease-in-out ${
-          sidebarCollapsed ? "ml-0" : "ml-0 md:ml-[14rem]"
-        }`}
+        className={`min-h-screen transition-[margin] duration-200 ease-in-out ${
+          isViewer ? "" : "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"
+        } ${sidebarCollapsed ? "ml-0" : "ml-0 md:ml-[14rem]"}`}
       >
         <AnimatedOutlet />
       </main>
