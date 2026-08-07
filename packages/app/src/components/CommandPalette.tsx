@@ -338,13 +338,9 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
               fileType: m.fileType,
               activate: () => {
                 const hit = content ? content.items.find((i) => i.materialId === m.id) : undefined
-                if (hit && hit.pages.length > 0) {
-                  const firstPage = hit.pages.reduce(
-                    (min, p) => (min === 0 || p.page < min ? p.page : min),
-                    0,
-                  )
+                if (hit && (hit.firstPage || hit.pages.length > 0)) {
                   openMaterial(m.subjectId, m.id, {
-                    page: firstPage || hit.pages[0].page,
+                    page: hit.firstPage || hit.pages[0].page,
                     hl: query,
                   })
                 } else {
@@ -370,11 +366,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
       list.push({
         header: t("palette.section_content"),
         rows: content.items.map((item): Row => {
-          const firstPage = item.pages.reduce(
-            (min, p) => (min === 0 || p.page < min ? p.page : min),
-            0,
-          )
-          const page = firstPage || item.pages[0]?.page || 1
+          const page = item.firstPage || item.pages[0]?.page || 1
           return {
             key: `c-${item.materialId}`,
             kind: "content",

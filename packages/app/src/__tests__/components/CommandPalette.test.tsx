@@ -42,6 +42,7 @@ const contentResponse = {
         title: "Loranov red — vežbe",
         fileType: "pdf",
         hits: 3,
+        firstPage: 4,
         pages: [{ page: 4, snippet: "<mark>loran</mark> red je tema vežbi" }],
       },
     ],

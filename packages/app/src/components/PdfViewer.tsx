@@ -143,7 +143,7 @@ export default function PdfViewer({
     }
 
     const observer = new MutationObserver(() => tryHighlight())
-    observer.observe(root, { childList: true, subtree: true })
+    observer.observe(root, { childList: true, subtree: true, characterData: true })
 
     tryHighlight()
 

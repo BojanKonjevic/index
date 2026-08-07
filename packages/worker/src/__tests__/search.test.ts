@@ -15,6 +15,7 @@ type SearchItem = {
   title: string
   fileType: string
   hits: number
+  firstPage: number
   pages: Array<{ page: number; snippet: string }>
 }
 
@@ -31,6 +32,7 @@ const DB = (env as unknown as { DB: import("@cloudflare/workers-types").D1Databa
 const mA = "ma2-k1-kolokvijum-2015-11-15"
 const mB = "ma2-vezbe-01"
 const mC = "fizika-skripta"
+const mD = "ma2-definicije"
 const SUBJECT_A = "matematicka-analiza-2"
 const SUBJECT_C = "fizika"
 
@@ -55,6 +57,9 @@ async function seedSearch() {
     ),
     DB.prepare(
       `INSERT OR IGNORE INTO materials (id, subject_id, title, category, exam_part, solved, file_type, url, page_count, tags) VALUES ('${mC}', '${SUBJECT_C}', 'Skripta iz fizike', 'theory', NULL, NULL, 'pdf', '/api/file/fizika-skripta.pdf', 0, '[]')`,
+    ),
+    DB.prepare(
+      `INSERT OR IGNORE INTO materials (id, subject_id, title, category, exam_part, solved, file_type, url, page_count, tags) VALUES ('${mD}', '${SUBJECT_A}', 'Definicije', 'theory', NULL, NULL, 'pdf', '/api/file/ma2/definicije.pdf', 0, '[]')`,
     ),
   ])
 
@@ -82,6 +87,17 @@ async function seedSearch() {
     ftsRow(mC, 1, "resenje fizicke", "Rešenje fizicke"),
     ftsRow(mC, 2, "resenje toplotte", "Rešenje toplotte"),
     ftsRow(mC, 3, "resenje mehanike", "Rešenje mehanike"),
+    // mD: the first occurrence is on page 1 but is a weak match buried in
+    // filler, so it falls outside the top-3-by-relevance snippet window.
+    ftsRow(
+      mD,
+      1,
+      "definicija " + "slaba strana ".repeat(150),
+      "Definicija " + "slaba strana ".repeat(150),
+    ),
+    ftsRow(mD, 10, "definicija kontura", "Definicija kontura"),
+    ftsRow(mD, 11, "definicija kontura", "Definicija kontura"),
+    ftsRow(mD, 12, "definicija kontura", "Definicija kontura"),
   ]
   await DB.batch(rows)
 }
@@ -126,6 +142,7 @@ describe("GET /api/search", () => {
     expect(itemA.subjectId).toBe(SUBJECT_A)
     expect(itemA.subjectName).toBe("Matematička analiza 2")
     expect(itemA.fileType).toBe("pdf")
+    expect(itemA.firstPage).toBe(1)
     expect(itemA.pages).toHaveLength(3)
     const pagesOfA = itemA.pages.map((p) => p.page)
     expect(pagesOfA).toContain(2)
@@ -144,6 +161,17 @@ describe("GET /api/search", () => {
     const item = body.content.items[0]
     expect(item.hits).toBe(3)
     expect(item.pages).toHaveLength(3)
+  })
+
+  it("reports the true first occurrence page even when it ranks outside the snippet window", async () => {
+    const { body } = await search({ q: "definicija", scope: "material", materialId: mD })
+    expect(body.content.items).toHaveLength(1)
+    const item = body.content.items[0]
+    expect(item.hits).toBe(4)
+    const pageNumbers = item.pages.map((p) => p.page)
+    expect(pageNumbers).toHaveLength(3)
+    expect(pageNumbers).not.toContain(1) // page 1 is too weak to make the top 3
+    expect(item.firstPage).toBe(1) // ...but it IS the document's first occurrence
   })
 
   it("scopes results to a subject", async () => {

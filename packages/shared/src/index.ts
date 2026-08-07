@@ -113,6 +113,9 @@ export interface SearchContentItem {
   title: string
   fileType: "pdf" | "video" | "image"
   hits: number
+  /** Lowest-numbered page containing the query — the true first occurrence,
+   *  independent of the top-3-by-relevance snippet window. */
+  firstPage: number
   pages: SearchContentPage[]
 }
 

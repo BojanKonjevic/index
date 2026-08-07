@@ -92,7 +92,7 @@ app.get("/search", async (c) => {
 
   const ftsMatch =
     "WITH ranked AS MATERIALIZED (\n" +
-    "  SELECT material_id, bm25(material_pages_fts) AS rnk\n" +
+    "  SELECT material_id, page_number, bm25(material_pages_fts) AS rnk\n" +
     "  FROM material_pages_fts\n" +
     "  WHERE material_pages_fts MATCH ?" +
     filter.sql +
@@ -100,7 +100,7 @@ app.get("/search", async (c) => {
 
   const pageQuery =
     ftsMatch +
-    "\nSELECT material_id, MIN(rnk) AS best_rank, COUNT(*) AS hits\n" +
+    "\nSELECT material_id, MIN(rnk) AS best_rank, COUNT(*) AS hits, MIN(page_number) AS first_page\n" +
     "FROM ranked\n" +
     "GROUP BY material_id\n" +
     "ORDER BY best_rank, material_id\n" +
@@ -124,6 +124,7 @@ app.get("/search", async (c) => {
     material_id: string
     best_rank: number
     hits: number
+    first_page: number
   }>
 
   if (aggRows.length === 0) return c.json(emptyResponse(), 200)
@@ -187,6 +188,7 @@ app.get("/search", async (c) => {
       title: (meta?.title as string) ?? "",
       fileType: ((meta?.file_type as string) ?? "pdf") as SearchContentItem["fileType"],
       hits: row.hits,
+      firstPage: row.first_page,
       pages: pagesByMaterial.get(row.material_id) ?? [],
     }
   })

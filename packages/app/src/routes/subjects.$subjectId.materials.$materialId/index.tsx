@@ -157,19 +157,10 @@ function ViewerPage() {
   const [findIndex, setFindIndex] = useState(1)
   const [matchPages, setMatchPages] = useState<Array<{ page: number; count: number }>>([])
   const [matchTotal, setMatchTotal] = useState(0)
-  const pendingFindTargetRef = useRef<"start" | "end" | null>(null)
+  const findTargetRef = useRef<"start" | "end" | null>(null)
 
   const handleHighlightCount = useCallback((count: number) => {
     setFindCount(count)
-    if (pendingFindTargetRef.current === "end") {
-      setFindIndex(Math.max(1, count))
-      pendingFindTargetRef.current = null
-    } else if (pendingFindTargetRef.current === "start") {
-      setFindIndex(1)
-      pendingFindTargetRef.current = null
-    } else {
-      setFindIndex((prev) => (count === 0 ? 0 : prev > count ? 1 : prev))
-    }
   }, [])
 
   const navigateToMatchPage = useCallback(
@@ -186,38 +177,49 @@ function ViewerPage() {
   const stepMatch = useCallback(
     (delta: number) => {
       const idx = matchPages.findIndex((p) => p.page === hlPage)
-      const pageCount = idx >= 0 ? matchPages[idx].count : 0
-      const root = parentRef.current
-      const layer = root ? getTextLayer(root, hlPage) : null
-      const marks = layer ? getOrderedMarks(layer) : []
-      const count = Math.max(pageCount, findCount, marks.length)
-      if (count <= 0) return
+      if (idx < 0) return
+      const pageCount = matchPages[idx].count
+      if (pageCount <= 0) return
 
-      if (matchPages.length > 0 && idx >= 0) {
-        if (delta > 0 && findIndex >= count) {
-          const nextPage = matchPages[(idx + 1) % matchPages.length]
-          if (nextPage.page !== hlPage) {
-            pendingFindTargetRef.current = "start"
-            navigateToMatchPage(nextPage.page)
-            return
-          }
-        } else if (delta < 0 && findIndex <= 1) {
-          const prevPage = idx > 0 ? matchPages[idx - 1] : matchPages[matchPages.length - 1]
-          if (prevPage.page !== hlPage) {
-            pendingFindTargetRef.current = "end"
-            navigateToMatchPage(prevPage.page)
-            return
-          }
+      if (delta > 0 && findIndex >= pageCount) {
+        const nextPage = matchPages[(idx + 1) % matchPages.length]
+        if (nextPage.page !== hlPage) {
+          findTargetRef.current = "start"
+          navigateToMatchPage(nextPage.page)
+          return
+        }
+      } else if (delta < 0 && findIndex <= 1) {
+        const prevIdx = idx > 0 ? idx - 1 : matchPages.length - 1
+        const prevPage = matchPages[prevIdx]
+        if (prevPage.page !== hlPage) {
+          findTargetRef.current = "end"
+          navigateToMatchPage(prevPage.page)
+          return
         }
       }
 
-      const next = ((findIndex - 1 + delta + count) % count) + 1
+      const next = ((findIndex - 1 + delta + pageCount) % pageCount) + 1
       setFindIndex(next)
-      const mark = marks[next - 1]
-      if (mark) mark.scrollIntoView({ block: "center", behavior: "smooth" })
+      const root = parentRef.current
+      const layer = root ? getTextLayer(root, hlPage) : null
+      const marks = layer ? getOrderedMarks(layer) : []
+      marks[next - 1]?.scrollIntoView({ block: "center", behavior: "smooth" })
     },
-    [findCount, findIndex, matchPages, hlPage, parentRef, navigateToMatchPage],
+    [findIndex, matchPages, hlPage, parentRef, navigateToMatchPage],
   )
+
+  // Server per-page counts are the only authority over findIndex: reset to the
+  // first match on a new page, or the last match when stepping backwards onto it.
+  useEffect(() => {
+    const target = findTargetRef.current
+    findTargetRef.current = null
+    if (target === "end") {
+      const idx = matchPages.findIndex((p) => p.page === hlPage)
+      setFindIndex(idx >= 0 ? Math.max(1, matchPages[idx].count) : 1)
+    } else {
+      setFindIndex(1)
+    }
+  }, [hlPage, matchPages])
 
   const matchIdx = matchPages.findIndex((p) => p.page === hlPage)
   const pageMatchesBefore =

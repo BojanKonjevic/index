@@ -36,24 +36,6 @@ export function clearHighlights(layer: HTMLElement): void {
   }
 }
 
-interface NodeRange {
-  node: Text
-  from: number
-  to: number
-}
-
-function collectNodeRanges(span: HTMLElement): NodeRange[] {
-  const out: NodeRange[] = []
-  let acc = 0
-  for (const child of span.childNodes) {
-    if (child.nodeType !== Node.TEXT_NODE) continue
-    const len = child.textContent?.length ?? 0
-    if (len > 0) out.push({ node: child as Text, from: acc, to: acc + len })
-    acc += len
-  }
-  return out
-}
-
 /** Splits `node` at [start, end] (offsets within node text), wrapping the
  *  middle in a <mark class="search-hit">. Returns the node holding the
  *  prefix, so earlier ranges can be applied to it in turn. */
@@ -75,34 +57,87 @@ function wrapTextRange(node: Text, start: number, end: number): Text {
   return before
 }
 
+interface LayerNode {
+  node: Text
+  start: number
+  end: number
+}
+
+/** Every text node in the layer, in DOM order, with offsets into the
+ *  concatenated layer text.
+ *
+ *  Adjacent nodes that sit a real horizontal or vertical gap apart are joined
+ *  with an implicit separator (a space, or a newline for a line break) in the
+ *  concatenated string only — never in the DOM. pdf.js renders visually
+ *  distinct words as separate spans with no literal space character when the
+ *  separation comes from positioning, so without this a find pass could fuse
+ *  two real words into a false match. Mid-word splits from separate
+ *  text-show operators have a ~zero gap and stay joined, which is what the
+ *  cross-span matching relies on. */
+function collectLayerNodes(layer: HTMLElement): { nodes: LayerNode[]; text: string } {
+  const nodes: LayerNode[] = []
+  let text = ""
+  let prevSpan: HTMLElement | null = null
+  let prevRect: DOMRect | null = null
+  let prevLastChar = ""
+
+  for (const span of layer.querySelectorAll<HTMLElement>("span")) {
+    const rect = span.getBoundingClientRect()
+    for (const child of span.childNodes) {
+      if (child.nodeType !== Node.TEXT_NODE) continue
+      const content = child.textContent ?? ""
+      if (content.length === 0) continue
+      if (
+        prevSpan &&
+        prevSpan !== span &&
+        prevRect &&
+        !/\s/.test(prevLastChar) &&
+        !/\s/.test(content[0])
+      ) {
+        const fontSize = parseFloat(getComputedStyle(span).fontSize) || 16
+        const sameLine = Math.abs(rect.top - prevRect.top) <= fontSize * 0.6
+        if (sameLine ? rect.left - prevRect.right > fontSize * 0.2 : rect.top > prevRect.top) {
+          text += sameLine ? " " : "\n"
+        }
+      }
+      nodes.push({ node: child as Text, start: text.length, end: text.length + content.length })
+      text += content
+      prevSpan = span
+      prevRect = rect
+      prevLastChar = content[content.length - 1]
+    }
+  }
+  return { nodes, text }
+}
+
 /** Wraps every occurrence of `query` in the layer's text spans with
- *  <mark class="search-hit">. Returns the number of matches found. */
+ *  <mark class="search-hit">. Matching runs once over the concatenated layer
+ *  text, so occurrences that pdf.js splits across text nodes or spans (a
+ *  separate text-show operator can land mid-word in kerning-heavy PDFs) are
+ *  still found; a logical match may be wrapped in several <mark> elements if
+ *  it crosses node boundaries. Returns the number of logical matches. */
 export function highlightMatches(layer: HTMLElement, query: string): number {
   clearHighlights(layer)
   if (!query.trim()) return 0
 
+  const { nodes, text } = collectLayerNodes(layer)
+  if (text.trim().length === 0) return 0
+
+  const matches = findAll(text, query)
+  if (matches.length === 0) return 0
+
   const byNode = new Map<Text, Array<[number, number]>>()
-  let count = 0
-
-  for (const span of layer.querySelectorAll<HTMLElement>("span")) {
-    const text = span.textContent ?? ""
-    if (!text.trim()) continue
-    const matches = findAll(text, query)
-    if (matches.length === 0) continue
-    const ranges = collectNodeRanges(span)
-    if (ranges.length === 0) continue
-
-    for (const match of matches) {
-      count++
-      for (const range of ranges) {
-        if (match.end <= range.from || match.start >= range.to) continue
-        const start = Math.max(match.start, range.from) - range.from
-        const end = Math.min(match.end, range.to) - range.from
-        if (end <= start) continue
-        const list = byNode.get(range.node) ?? []
-        list.push([start, end])
-        byNode.set(range.node, list)
-      }
+  let ni = 0
+  for (const { start, end } of matches) {
+    while (ni < nodes.length && nodes[ni].end <= start) ni++
+    for (let j = ni; j < nodes.length && nodes[j].start < end; j++) {
+      const { node, start: nodeStart } = nodes[j]
+      const from = Math.max(start, nodeStart)
+      const to = Math.min(end, nodes[j].end)
+      if (to <= from) continue
+      const list = byNode.get(node) ?? []
+      list.push([from - nodeStart, to - nodeStart])
+      byNode.set(node, list)
     }
   }
 
@@ -120,5 +155,5 @@ export function highlightMatches(layer: HTMLElement, query: string): number {
     }
   }
 
-  return count
+  return matches.length
 }
