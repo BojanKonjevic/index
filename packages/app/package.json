@@ -11,6 +11,7 @@
     "format": "prettier --check .",
     "typecheck": "tsc -b --noEmit",
     "preview": "vite preview",
+    "generate-icons": "node scripts/generate-icons.mjs",
     "postinstall": "mkdir -p public && cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs",
     "deploy": "pnpm run build && wrangler pages deploy dist"
   },
@@ -54,9 +55,11 @@
     "globals": "^17.6.0",
     "happy-dom": "^20.10.2",
     "shadcn": "^4.10.0",
+    "sharp": "^0.35.3",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
+    "vite-plugin-pwa": "^1.3.0",
     "vitest": "^4.1.8"
   }
 }
