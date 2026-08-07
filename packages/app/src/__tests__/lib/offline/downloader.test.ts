@@ -321,6 +321,8 @@ describe("offline downloader", () => {
 
     await downloadSubjectOffline("ma2", () => {}, new AbortController().signal)
     await downloadSubjectOffline("ri", () => {}, new AbortController().signal)
+    await cache.put(`${ABS_BASE}/api/offline/subject/ma2`, jsonResponse(riPayload))
+    await cache.put(`${ABS_BASE}/api/offline/subject/ri`, jsonResponse(riPayload))
 
     await removeSubjectOffline("ma2")
 
@@ -329,6 +331,8 @@ describe("offline downloader", () => {
     expect(cache.entriesForTest()).not.toContain(`${ABS_BASE}/api/file/vezbe.pdf`)
     expect(cache.entriesForTest()).not.toContain(`${ABS_BASE}/api/file/vezbe-1.jpg`)
     expect(cache.entriesForTest()).toContain(`${ABS_BASE}/api/file/ri-vezbe.pdf`)
+    expect(cache.entriesForTest()).not.toContain(`${ABS_BASE}/api/offline/subject/ma2`)
+    expect(cache.entriesForTest()).toContain(`${ABS_BASE}/api/offline/subject/ri`)
   })
 
   it("removing a subject that was never downloaded is a no-op", async () => {

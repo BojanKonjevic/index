@@ -2,8 +2,9 @@ import type { OfflineSubjectPayload } from "@index/shared"
 import { fetchApi } from "@/lib/api"
 import { getSubjectBundle, removeSubjectBundle, saveSubjectBundle } from "./db"
 
-/** Must match the Workbox runtime cache name in vite.config.ts. */
+/** Must match the Workbox runtime cache names in vite.config.ts. */
 export const FILES_CACHE = "files"
+const API_CACHE = "api"
 
 export interface OfflineDownloadProgress {
   filesDone: number
@@ -42,6 +43,15 @@ async function getFilesCache(): Promise<Cache> {
     throw new OfflineDownloadError("Cache API is not available")
   }
   return caches.open(FILES_CACHE)
+}
+
+async function getCache(name: string): Promise<Cache | null> {
+  if (typeof caches === "undefined") return null
+  try {
+    return await caches.open(name)
+  } catch {
+    return null
+  }
 }
 
 function abortError(): Error {
@@ -142,14 +152,26 @@ export async function downloadSubjectOffline(
   await saveSubjectBundle(subjectId, payload, Date.now(), "complete")
 }
 
-/** Removes the subject's bundle and all of its cached files in one action. */
+/** Removes the subject's bundle, its cached files, and the cached bundle JSON
+ *  (the latter lives in the SW's api runtime cache, which the downloader does
+ *  not manage). */
 export async function removeSubjectOffline(subjectId: string): Promise<void> {
   const record = await getSubjectBundle(subjectId)
   await removeSubjectBundle(subjectId)
-  if (!record) return
-  const cache = await getFilesCache().catch(() => null)
-  if (!cache) return
-  await Promise.all(offlineFileUrls(record.payload).map((url) => cache.delete(toAbsolute(url))))
+  const deletions: Promise<boolean>[] = []
+  if (record) {
+    const filesCache = await getFilesCache().catch(() => null)
+    if (filesCache) {
+      for (const url of offlineFileUrls(record.payload)) {
+        deletions.push(filesCache.delete(toAbsolute(url)))
+      }
+    }
+  }
+  const apiCache = await getCache(API_CACHE)
+  if (apiCache) {
+    deletions.push(apiCache.delete(toAbsolute(`/api/offline/subject/${subjectId}`)))
+  }
+  await Promise.all(deletions)
 }
 
 export function fetchOfflineSubject(subjectId: string): Promise<OfflineSubjectPayload> {
