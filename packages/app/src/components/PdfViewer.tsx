@@ -19,15 +19,37 @@ interface PdfViewerProps {
   parentRef: RefObject<HTMLDivElement | null>
   numPages: number
   naturalPageHeight: number | null
+  minZoom: number
+  maxZoom: number
   onLoadSuccess: (numPages: number, naturalPageWidth: number, naturalPageHeight: number) => void
   onLoadError: (error: string) => void
   setPdfLoading: (loading: boolean) => void
   onPageChange: (pageNum: number) => void
+  onUserZoom: (zoom: number | null, fitWidth: boolean) => void
+  onUserScale: (scale: number) => void
+  onUserGestureEnd: () => void
   pdfLoading: boolean
   pdfError: string | null
   hl?: string | null
   hlPage?: number | null
   onHighlightCount?: (count: number) => void
+}
+
+interface GestureState {
+  pointers: Map<number, { x: number; y: number }>
+  mode: "none" | "pan" | "pinch"
+  startX: number
+  startY: number
+  startScrollLeft: number
+  startScrollTop: number
+  anchorX: number
+  anchorY: number
+  moved: boolean
+  startDist: number
+  baseZoom: number
+  downAt: number
+  downX: number
+  downY: number
 }
 
 export default function PdfViewer({
@@ -38,10 +60,15 @@ export default function PdfViewer({
   parentRef,
   numPages,
   naturalPageHeight,
+  minZoom,
+  maxZoom,
   onLoadSuccess,
   onLoadError,
   setPdfLoading,
   onPageChange,
+  onUserZoom,
+  onUserScale,
+  onUserGestureEnd,
   pdfLoading,
   pdfError,
   hl = null,
@@ -52,6 +79,209 @@ export default function PdfViewer({
   const rafId = useRef<number | null>(null)
   const [range, setRange] = useState({ start: 0, end: 0 })
 
+  const [coarse] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
+  )
+  const [docWidth, setDocWidth] = useState<{ url: string; width: number } | null>(null)
+  const [viewWidth, setViewWidth] = useState(0)
+  const [pinching, setPinching] = useState(false)
+  const pinchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const padRef = useRef({ left: 0, top: 0 })
+
+  const gestureRef = useRef<GestureState>({
+    pointers: new Map(),
+    mode: "none",
+    startX: 0,
+    startY: 0,
+    startScrollLeft: 0,
+    startScrollTop: 0,
+    anchorX: 0,
+    anchorY: 0,
+    moved: false,
+    startDist: 0,
+    baseZoom: 1,
+    downAt: 0,
+    downX: 0,
+    downY: 0,
+  })
+  const lastTapRef = useRef<{ at: number; x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    const el = parentRef.current
+    if (!el) return
+    const cs = window.getComputedStyle(el)
+    padRef.current = {
+      left: parseFloat(cs.paddingLeft) || 0,
+      top: parseFloat(cs.paddingTop) || 0,
+    }
+  }, [parentRef])
+
+  useEffect(() => {
+    const el = parentRef.current
+    if (!el) return
+    const update = () => setViewWidth(Math.round(el.clientWidth))
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [parentRef])
+
+  const zoomed = viewWidth > 0 && docWidth?.url === url && docWidth.width * zoom > viewWidth
+
+  const handleDoubleTap = (clientX: number, clientY: number) => {
+    const el = parentRef.current
+    if (!el || !docWidth || docWidth.url !== url || viewWidth === 0) return
+    const rect = el.getBoundingClientRect()
+    const ax = clientX - rect.left - padRef.current.left
+    const ay = clientY - rect.top - padRef.current.top
+    const fitZoom = (viewWidth - 64) / docWidth.width
+    if (docWidth.width * zoom > viewWidth) {
+      const ratio = fitZoom / zoom
+      el.scrollTo({ left: 0, top: Math.max(0, (el.scrollTop + ay) * ratio - ay) })
+      onUserZoom(null, true)
+    } else {
+      const target = Math.min(Math.max(fitZoom * 2, minZoom), maxZoom)
+      const ratio = target / zoom
+      el.scrollTo({
+        left: Math.max(0, (el.scrollLeft + ax) * ratio - ax),
+        top: Math.max(0, (el.scrollTop + ay) * ratio - ay),
+      })
+      onUserZoom(target, false)
+    }
+  }
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!coarse) return
+    const el = parentRef.current
+    if (!el || !docWidth || docWidth.url !== url) return
+    gestureRef.current.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+    if (gestureRef.current.pointers.size === 2) {
+      const [a, b] = Array.from(gestureRef.current.pointers.values())
+      gestureRef.current.mode = "pinch"
+      gestureRef.current.moved = true
+      gestureRef.current.startDist = Math.hypot(a.x - b.x, a.y - b.y)
+      gestureRef.current.baseZoom = zoom
+      gestureRef.current.anchorX = (a.x + b.x) / 2 - padRef.current.left
+      gestureRef.current.anchorY = (a.y + b.y) / 2 - padRef.current.top
+      gestureRef.current.startScrollLeft = el.scrollLeft
+      gestureRef.current.startScrollTop = el.scrollTop
+      setPinching(true)
+      onUserZoom(zoom, false)
+      return
+    }
+
+    if (e.isPrimary) {
+      gestureRef.current.mode = "pan"
+      gestureRef.current.startX = e.clientX
+      gestureRef.current.startY = e.clientY
+      gestureRef.current.startScrollLeft = el.scrollLeft
+      gestureRef.current.startScrollTop = el.scrollTop
+      gestureRef.current.downAt = performance.now()
+      gestureRef.current.downX = e.clientX
+      gestureRef.current.downY = e.clientY
+      gestureRef.current.moved = false
+    }
+  }
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!coarse) return
+    const el = parentRef.current
+    if (!el || !gestureRef.current.pointers.has(e.pointerId)) return
+    gestureRef.current.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+    if (gestureRef.current.mode === "pinch" && gestureRef.current.pointers.size === 2) {
+      const [a, b] = Array.from(gestureRef.current.pointers.values())
+      const dist = Math.hypot(a.x - b.x, a.y - b.y)
+      const target = Math.min(
+        Math.max(gestureRef.current.baseZoom * (dist / gestureRef.current.startDist), minZoom),
+        maxZoom,
+      )
+      const s = target / gestureRef.current.baseZoom
+      const midX = (a.x + b.x) / 2 - padRef.current.left
+      const midY = (a.y + b.y) / 2 - padRef.current.top
+      const anchorContentX = gestureRef.current.startScrollLeft + gestureRef.current.anchorX
+      const anchorContentY = gestureRef.current.startScrollTop + gestureRef.current.anchorY
+      el.scrollTo({
+        left: Math.max(0, anchorContentX * s - midX),
+        top: Math.max(0, anchorContentY * s - midY),
+      })
+      onUserScale(s)
+      return
+    }
+
+    if (gestureRef.current.mode === "pan") {
+      const dx = e.clientX - gestureRef.current.startX
+      const dy = e.clientY - gestureRef.current.startY
+      if (!gestureRef.current.moved && Math.abs(dx) + Math.abs(dy) > 8) {
+        gestureRef.current.moved = true
+        lastTapRef.current = null
+      }
+      if (gestureRef.current.moved) {
+        el.scrollTo({
+          left: Math.max(0, gestureRef.current.startScrollLeft - dx),
+          top: Math.max(0, gestureRef.current.startScrollTop - dy),
+        })
+      }
+    }
+  }
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!coarse) return
+    gestureRef.current.pointers.delete(e.pointerId)
+
+    if (gestureRef.current.mode === "pinch") {
+      if (gestureRef.current.pointers.size === 0) {
+        gestureRef.current.mode = "none"
+        onUserGestureEnd()
+        if (pinchTimeoutRef.current) clearTimeout(pinchTimeoutRef.current)
+        pinchTimeoutRef.current = window.setTimeout(() => {
+          setPinching(false)
+        }, 250)
+      }
+      return
+    }
+
+    if (gestureRef.current.mode === "pan" && gestureRef.current.pointers.size === 0) {
+      gestureRef.current.mode = "none"
+      const now = performance.now()
+      const dx = e.clientX - gestureRef.current.downX
+      const dy = e.clientY - gestureRef.current.downY
+      const last = lastTapRef.current
+      if (
+        !gestureRef.current.moved &&
+        now - gestureRef.current.downAt < 300 &&
+        Math.abs(dx) < 12 &&
+        Math.abs(dy) < 12
+      ) {
+        if (
+          last &&
+          now - last.at < 300 &&
+          Math.abs(e.clientX - last.x) < 24 &&
+          Math.abs(e.clientY - last.y) < 24
+        ) {
+          lastTapRef.current = null
+          handleDoubleTap(e.clientX, e.clientY)
+          return
+        }
+        lastTapRef.current = { at: now, x: e.clientX, y: e.clientY }
+      } else {
+        lastTapRef.current = null
+      }
+    }
+  }
+
+  const handlePointerCancel = () => {
+    if (!coarse) return
+    gestureRef.current.pointers.clear()
+    gestureRef.current.mode = "none"
+    if (pinching) {
+      onUserGestureEnd()
+      setPinching(false)
+    }
+    lastTapRef.current = null
+  }
+
   const pageHeight = naturalPageHeight !== null ? naturalPageHeight * zoom + 16 : 842
   const totalHeight = numPages * pageHeight
 
@@ -59,20 +289,21 @@ export default function PdfViewer({
     const el = parentRef.current
     if (!el || naturalPageHeight === null || numPages === 0) return
 
-    const scrollTop = el.scrollTop
-    const viewH = el.clientHeight
+    const scale = cssScale && cssScale !== 1 ? cssScale : 1
+    const layoutTop = el.scrollTop / scale
+    const layoutViewH = el.clientHeight / scale
 
-    const first = Math.floor(scrollTop / pageHeight)
-    const last = Math.ceil((scrollTop + viewH) / pageHeight)
+    const first = Math.floor(layoutTop / pageHeight)
+    const last = Math.ceil((layoutTop + layoutViewH) / pageHeight)
 
     const start = Math.max(0, first - BUFFER)
     const end = Math.min(numPages, last + BUFFER)
 
     setRange({ start, end })
 
-    const mid = Math.round((scrollTop + viewH / 2) / pageHeight)
+    const mid = Math.round((layoutTop + layoutViewH / 2) / pageHeight)
     onPageChange(Math.max(1, Math.min(mid + 1, numPages)))
-  }, [parentRef, naturalPageHeight, numPages, pageHeight, onPageChange])
+  }, [parentRef, naturalPageHeight, numPages, pageHeight, cssScale, onPageChange])
 
   useEffect(() => {
     updateRange()
@@ -89,6 +320,7 @@ export default function PdfViewer({
   useEffect(() => {
     return () => {
       if (rafId.current) cancelAnimationFrame(rafId.current)
+      if (pinchTimeoutRef.current) clearTimeout(pinchTimeoutRef.current)
     }
   }, [])
 
@@ -162,6 +394,13 @@ export default function PdfViewer({
     <div
       ref={parentRef}
       onScroll={handleScroll}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      style={{
+        touchAction: coarse ? (zoomed ? "none" : "pan-y") : undefined,
+      }}
       className={cn(
         "flex-1 overflow-auto md:px-8 px-0 py-6 transition-colors",
         inverted ? "bg-bg-surface" : "bg-pdf-bg",
@@ -173,6 +412,7 @@ export default function PdfViewer({
           setPdfLoading(false)
           const page1 = await pdf.getPage(1)
           const viewport = page1.getViewport({ scale: 1 })
+          setDocWidth({ url, width: viewport.width })
           onLoadSuccess(pdf.numPages, viewport.width, viewport.height)
         }}
         onLoadError={() => {
@@ -196,10 +436,12 @@ export default function PdfViewer({
         <div
           style={{
             height: totalHeight,
+            minWidth: docWidth?.url === url ? docWidth.width * zoom : undefined,
             position: "relative",
             transform: cssScale && cssScale !== 1 ? `scale(${cssScale})` : undefined,
-            transformOrigin: "center top",
-            transition: cssScale && cssScale !== 1 ? "transform 200ms ease-in-out" : undefined,
+            transformOrigin: "left top",
+            transition:
+              cssScale && cssScale !== 1 && !pinching ? "transform 200ms ease-in-out" : undefined,
           }}
         >
           {pages.map((i) => (

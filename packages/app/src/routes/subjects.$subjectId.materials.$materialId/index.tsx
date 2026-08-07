@@ -374,6 +374,28 @@ function ViewerPage() {
     setFitWidthMode(true)
   }
 
+  const handleUserZoom = (zoomValue: number | null, fit: boolean) => {
+    if (fit) {
+      fitWidth()
+    } else if (zoomValue !== null) {
+      setFitWidthMode(false)
+      setZoom(zoomValue)
+    }
+  }
+
+  const handleUserScale = (scale: number) => {
+    setFitWidthMode(false)
+    setCssScale(scale)
+  }
+
+  const handleUserGestureEnd = () => {
+    const s = cssScale
+    if (s !== 1) {
+      setZoom((z) => z * s)
+      setCssScale(1)
+    }
+  }
+
   const goToPage = useCallback(
     (num: number) => {
       if (num < 1 || num > numPages || naturalPageHeight === null) return
@@ -729,6 +751,11 @@ function ViewerPage() {
                 parentRef={parentRef}
                 numPages={numPages}
                 naturalPageHeight={naturalPageHeight}
+                minZoom={MIN_ZOOM}
+                maxZoom={MAX_ZOOM}
+                onUserZoom={handleUserZoom}
+                onUserScale={handleUserScale}
+                onUserGestureEnd={handleUserGestureEnd}
                 onLoadSuccess={(n, w, h) => {
                   setNumPages(n)
                   setNaturalPageWidth(w)
