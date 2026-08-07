@@ -71,6 +71,22 @@ export interface SubjectDetail {
   exams: ExamEvent[]
 }
 
+export interface OfflineSubjectPage {
+  materialId: string
+  pageNumber: number
+  text: string
+}
+
+export interface OfflineSubjectPayload {
+  /** Snapshot id: `${materialCount}:${max(materials.created_at)}` — changes when
+   *  the subject's material set changes (staleness check for offline bundles). */
+  revision: string
+  materialCount: number
+  subject: Subject
+  materials: Material[]
+  pages: OfflineSubjectPage[]
+}
+
 export interface DashboardData {
   subjects: SubjectListItem[]
   materials: Material[]
