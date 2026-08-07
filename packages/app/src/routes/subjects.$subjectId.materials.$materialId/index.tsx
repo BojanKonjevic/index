@@ -619,18 +619,20 @@ function ViewerPage() {
       </div>
 
       {/* ── Top bar (mobile) ── */}
-      <div className="sm:hidden flex h-[3.75rem] shrink-0 items-center border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-3 gap-3">
-        <button
-          onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
-          aria-label={t("viewer.back")}
-          className="flex shrink-0 cursor-pointer items-center justify-center size-10 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
-        >
-          <ArrowLeft className="size-5" />
-        </button>
-        <div className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-primary)]">
-          {material?.title}
+      <div className="sm:hidden shrink-0 bg-[var(--bg-surface)] pt-[env(safe-area-inset-top)]">
+        <div className="flex h-[3.75rem] items-center border-b border-[var(--border-default)] px-3 gap-3">
+          <button
+            onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
+            aria-label={t("viewer.back")}
+            className="flex shrink-0 cursor-pointer items-center justify-center size-10 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+          <div className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-primary)]">
+            {material?.title}
+          </div>
+          {material && <BookmarkButton id={material.id} />}
         </div>
-        {material && <BookmarkButton id={material.id} />}
       </div>
 
       {/* ── Main content area ── */}

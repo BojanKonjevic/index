@@ -534,7 +534,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
         className="palette-backdrop absolute inset-0 bg-black/40 backdrop-blur-[2px]"
         onClick={onClose}
       />
-      <div className="absolute inset-x-0 top-0 flex justify-center md:top-[10vh] md:px-6">
+      <div className="absolute inset-x-0 top-0 flex justify-center pt-[env(safe-area-inset-top)] md:top-[10vh] md:px-6">
         <div
           role="dialog"
           aria-modal="true"
