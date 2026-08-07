@@ -1,10 +1,13 @@
 import type { OfflineSubjectPayload } from "@index/shared"
 
+export type OfflineSubjectStatus = "complete" | "incomplete"
+
 export interface OfflineSubjectRecord {
   subjectId: string
   revision: string
   materialCount: number
   downloadedAt: number
+  status: OfflineSubjectStatus
   payload: OfflineSubjectPayload
 }
 
@@ -81,12 +84,14 @@ export async function saveSubjectBundle(
   subjectId: string,
   payload: OfflineSubjectPayload,
   downloadedAt = Date.now(),
+  status: OfflineSubjectStatus = "complete",
 ): Promise<void> {
   const record: OfflineSubjectRecord = {
     subjectId,
     revision: payload.revision,
     materialCount: payload.materialCount,
     downloadedAt,
+    status,
     payload,
   }
   await withStore("readwrite", (store) => store.put(record))

@@ -5,3 +5,5 @@ allowBuilds:
   msw: true
   sharp: true
   workerd: true
+patchedDependencies:
+  workbox-core@7.4.1: patches/workbox-core@7.4.1.patch

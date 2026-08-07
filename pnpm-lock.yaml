@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  workbox-core@7.4.1: f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a
+
 importers:
 
   .:
@@ -9527,11 +9530,11 @@ snapshots:
   workbox-background-sync@7.4.1:
     dependencies:
       idb: 7.1.1
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
 
   workbox-broadcast-update@7.4.1:
     dependencies:
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
 
   workbox-build@7.4.1(@types/babel__core@7.20.5):
     dependencies:
@@ -9560,7 +9563,7 @@ snapshots:
       workbox-background-sync: 7.4.1
       workbox-broadcast-update: 7.4.1
       workbox-cacheable-response: 7.4.1
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
       workbox-expiration: 7.4.1
       workbox-google-analytics: 7.4.1
       workbox-navigation-preload: 7.4.1
@@ -9578,40 +9581,40 @@ snapshots:
 
   workbox-cacheable-response@7.4.1:
     dependencies:
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
 
-  workbox-core@7.4.1: {}
+  workbox-core@7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a): {}
 
   workbox-expiration@7.4.1:
     dependencies:
       idb: 7.1.1
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
 
   workbox-google-analytics@7.4.1:
     dependencies:
       workbox-background-sync: 7.4.1
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
       workbox-routing: 7.4.1
       workbox-strategies: 7.4.1
 
   workbox-navigation-preload@7.4.1:
     dependencies:
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
 
   workbox-precaching@7.4.1:
     dependencies:
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
       workbox-routing: 7.4.1
       workbox-strategies: 7.4.1
 
   workbox-range-requests@7.4.1:
     dependencies:
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
 
   workbox-recipes@7.4.1:
     dependencies:
       workbox-cacheable-response: 7.4.1
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
       workbox-expiration: 7.4.1
       workbox-precaching: 7.4.1
       workbox-routing: 7.4.1
@@ -9619,15 +9622,15 @@ snapshots:
 
   workbox-routing@7.4.1:
     dependencies:
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
 
   workbox-strategies@7.4.1:
     dependencies:
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
 
   workbox-streams@7.4.1:
     dependencies:
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
       workbox-routing: 7.4.1
 
   workbox-sw@7.4.1: {}
@@ -9635,7 +9638,7 @@ snapshots:
   workbox-window@7.4.1:
     dependencies:
       '@types/trusted-types': 2.0.7
-      workbox-core: 7.4.1
+      workbox-core: 7.4.1(patch_hash=f811f5514cd153ef2c826e5dead8b6d79052f15df254d404ede5fa3ffe217d6a)
 
   workerd@1.20260601.1:
     optionalDependencies:

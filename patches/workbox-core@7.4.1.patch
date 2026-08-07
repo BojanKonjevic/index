@@ -1,0 +1,15 @@
+diff --git a/_private/logger.js b/_private/logger.js
+index 05876ff67194cf1e16992bad31d7c6eb48f6e499..09e4db505b0a14c418d903fa0d80b58856c17168 100644
+--- a/_private/logger.js
++++ b/_private/logger.js
+@@ -11,7 +11,9 @@ const logger = (process.env.NODE_ENV === 'production'
+         // Don't overwrite this value if it's already set.
+         // See https://github.com/GoogleChrome/workbox/pull/2284#issuecomment-560470923
+         if (!('__WB_DISABLE_DEV_LOGS' in globalThis)) {
+-            self.__WB_DISABLE_DEV_LOGS = false;
++            if (typeof self !== 'undefined') {
++                self.__WB_DISABLE_DEV_LOGS = false;
++            }
+         }
+         let inGroup = false;
+         const methodToColorMap = {
