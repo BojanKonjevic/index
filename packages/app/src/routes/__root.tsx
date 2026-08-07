@@ -33,7 +33,7 @@ import { Skeleton } from "@/components/Skeleton"
 import { SearchPaletteProvider, useSearchPalette } from "@/hooks/useSearchPalette"
 import { useOnlineStatus } from "@/hooks/useOnlineStatus"
 import CommandPalette from "@/components/CommandPalette"
-import { OfflineBanner } from "@/components/OfflineBanner"
+import { OfflineBanner, OFFLINE_BANNER_OFFSET_CLASS } from "@/components/OfflineBanner"
 
 const GROUP_NUMBERS = Array.from({ length: 14 }, (_, i) => i + 1)
 const SETTINGS_CLOSE_DELAY_MS = 200
@@ -238,11 +238,13 @@ function Sidebar({
   onToggleTheme,
   collapsed,
   onToggleCollapse,
+  bannerOffset,
 }: {
   theme: "light" | "dark"
   onToggleTheme: () => void
   collapsed: boolean
   onToggleCollapse: () => void
+  bannerOffset: boolean
 }) {
   const { group, setGroup: setGroupPreference } = usePreferences()
   const { user, isGuest, logout } = useAuth()
@@ -270,7 +272,11 @@ function Sidebar({
   )
 
   return (
-    <div className="fixed left-0 top-0 h-screen z-40 hidden md:flex">
+    <div
+      className={`fixed left-0 z-40 hidden md:flex ${
+        bannerOffset ? OFFLINE_BANNER_OFFSET_CLASS : "top-0 h-screen"
+      }`}
+    >
       <aside
         className={`h-screen flex flex-col border-r bg-[var(--bg-surface)] border-[var(--border-default)] transition-[width] duration-200 ease-in-out overflow-hidden ${
           collapsed ? "w-0 border-r-0" : "w-[14rem]"
@@ -476,6 +482,7 @@ function RootContent() {
         onToggleTheme={toggleThemeHandler}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+        bannerOffset={!online && !isViewer}
       />
       {sidebarCollapsed && (
         <button

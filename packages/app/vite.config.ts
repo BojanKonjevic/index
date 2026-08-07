@@ -17,8 +17,11 @@ declare const caches: {
 }
 
 // NetworkFirst with a 3s timeout would wait out the whole timeout on every API
-// call when offline. Skip the network entirely when the device is offline and
-// serve the last-good cached response immediately.
+// call when offline. Serve the last-good cached response immediately when the
+// device reports offline — but navigator.onLine can be stale inside a service
+// worker (evaluated at SW start and not always updated until the SW is
+// destroyed), so it must never be a hard gate: if nothing is cached, fall
+// through to a real fetch attempt, which fails fast when truly offline.
 async function fetchWithTimeout(request: Request, timeoutMs: number) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
@@ -33,9 +36,8 @@ export async function apiStrategyHandler({ request }: { request: Request }): Pro
   const cache = await caches.open("api")
   const cached = await cache.match(request)
   const offline = (navigator as unknown as { onLine?: boolean }).onLine === false
-  if (offline) {
-    if (cached) return cached
-    throw new Error("Offline and request not cached")
+  if (offline && cached) {
+    return cached
   }
   try {
     const response = await fetchWithTimeout(request, 3000)
