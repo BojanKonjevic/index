@@ -109,16 +109,16 @@ describe("SubjectOfflineControls", () => {
 
   it("offers to download when the subject is not downloaded", async () => {
     renderControls()
-    await screen.findByRole("button", { name: "Preuzmi za van mreže" })
+    await screen.findByRole("button", { name: "Preuzmi offline" })
   })
 
   it("downloads on click and shows the offline badge with remove", async () => {
     const user = userEvent.setup()
     renderControls()
-    const download = await screen.findByRole("button", { name: "Preuzmi za van mreže" })
+    const download = await screen.findByRole("button", { name: "Preuzmi offline" })
     await user.click(download)
 
-    await screen.findByText("Van mreže")
+    await screen.findByText("Offline")
     expect(screen.getByRole("button", { name: "Ukloni sa uređaja" })).toBeInTheDocument()
   })
 
@@ -138,10 +138,10 @@ describe("SubjectOfflineControls", () => {
     const user = userEvent.setup()
     await saveSubjectBundle("ma2", makePayload(1))
     renderControls(1)
-    await screen.findByText("Van mreže")
+    await screen.findByText("Offline")
 
     await user.click(screen.getByRole("button", { name: "Ukloni sa uređaja" }))
-    await waitFor(() => expect(screen.queryByText("Van mreže")).not.toBeInTheDocument())
-    await screen.findByRole("button", { name: "Preuzmi za van mreže" })
+    await waitFor(() => expect(screen.queryByText("Offline")).not.toBeInTheDocument())
+    await screen.findByRole("button", { name: "Preuzmi offline" })
   })
 })

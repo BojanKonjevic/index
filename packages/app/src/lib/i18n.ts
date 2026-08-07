@@ -101,11 +101,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "subject.today": "Danas",
 
     // Offline
-    "offline.download": "Preuzmi za van mreže",
+    "offline.download": "Preuzmi offline",
     "offline.resume": "Nastavi preuzimanje",
     "offline.downloading": "Preuzimanje…",
     "offline.progress_fmt": "{done}/{total} fajlova",
-    "offline.available": "Van mreže",
+    "offline.available": "Offline",
     "offline.remove": "Ukloni sa uređaja",
     "offline.update_hint": "Novi materijali — ažuriraj",
     "offline.cancel": "Otkaži",
@@ -214,7 +214,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "palette.section_subjects": "Predmeti",
     "palette.section_materials": "Materijali i ispiti",
     "palette.section_content": "U dokumentima",
-    "palette.section_offline": "Van mreže",
+    "palette.section_offline": "Offline",
     "palette.content_loading": "Pretraga dokumenata…",
     "palette.content_empty": "Nema rezultata u dokumentima.",
     "palette.no_results": "Nema rezultata.",

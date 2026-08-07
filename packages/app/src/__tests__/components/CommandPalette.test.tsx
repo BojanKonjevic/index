@@ -196,7 +196,7 @@ describe("CommandPalette", () => {
     })
     const urls = fetchMock.mock.calls.map((c) => String(c[0]))
     expect(urls.some((u) => u.includes("/search"))).toBe(false)
-    expect(screen.getAllByText("Van mreže").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Offline").length).toBeGreaterThan(0)
     expect(screen.getByText("2 pogodaka")).toBeInTheDocument()
   })
 
@@ -209,6 +209,6 @@ describe("CommandPalette", () => {
     await waitFor(() => {
       expect(screen.getByText("3 pogodaka")).toBeInTheDocument()
     })
-    expect(screen.getAllByText("Van mreže").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Offline").length).toBeGreaterThan(0)
   })
 })
