@@ -1,11 +1,23 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react"
+import { getSubjectBundles, type OfflineSubjectRecord } from "@/lib/offline/db"
 
 interface SearchPaletteContextValue {
   open: boolean
   openPalette: () => void
   closePalette: () => void
   togglePalette: () => void
+  /** Bundles of fully downloaded subjects, refreshed on palette open. */
+  offlineBundles: OfflineSubjectRecord[]
+  refreshOfflineBundles: () => void
 }
 
 const SearchPaletteContext = createContext<SearchPaletteContextValue | null>(null)
@@ -18,6 +30,19 @@ function isEditable(target: EventTarget | null): boolean {
 
 export function SearchPaletteProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
+  const [offlineBundles, setOfflineBundles] = useState<OfflineSubjectRecord[]>([])
+
+  const refreshOfflineBundles = useCallback(() => {
+    getSubjectBundles()
+      .then((bundles) =>
+        setOfflineBundles(bundles.filter((bundle) => bundle.status === "complete")),
+      )
+      .catch(() => setOfflineBundles([]))
+  }, [])
+
+  useEffect(() => {
+    refreshOfflineBundles()
+  }, [refreshOfflineBundles])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -35,12 +60,22 @@ export function SearchPaletteProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("keydown", handler)
   }, [])
 
-  const value: SearchPaletteContextValue = {
-    open,
-    openPalette: () => setOpen(true),
-    closePalette: () => setOpen(false),
-    togglePalette: () => setOpen((v) => !v),
-  }
+  const openPalette = useCallback(() => {
+    refreshOfflineBundles()
+    setOpen(true)
+  }, [refreshOfflineBundles])
+
+  const value = useMemo<SearchPaletteContextValue>(
+    () => ({
+      open,
+      openPalette,
+      closePalette: () => setOpen(false),
+      togglePalette: () => setOpen((v) => !v),
+      offlineBundles,
+      refreshOfflineBundles,
+    }),
+    [open, openPalette, offlineBundles, refreshOfflineBundles],
+  )
 
   return <SearchPaletteContext.Provider value={value}>{children}</SearchPaletteContext.Provider>
 }

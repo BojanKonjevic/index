@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event"
 import { I18nProvider } from "@/hooks/useI18n"
 import { SearchPaletteProvider, useSearchPalette } from "@/hooks/useSearchPalette"
 import CommandPalette from "@/components/CommandPalette"
+import { getSubjectBundles, removeSubjectBundle, saveSubjectBundle } from "@/lib/offline/db"
+import type { OfflineSubjectPayload } from "@index/shared"
 
 vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ pathname: "/" }),
@@ -74,14 +76,61 @@ function renderPalette() {
 
 let fetchMock: ReturnType<typeof vi.fn>
 
+function offlineBundle(): OfflineSubjectPayload {
+  return {
+    revision: "2:2026-08-07T10:00:00Z",
+    materialCount: 1,
+    subject: {
+      id: "ma2",
+      name: "Matematička analiza 2",
+      semester: 4,
+      espb: 8,
+      elective: false,
+      electiveGroup: null,
+      description: "Analiza",
+      professors: [],
+      assistants: [],
+    },
+    materials: [
+      {
+        id: "ma2-vezbe-12",
+        subjectId: "ma2",
+        title: "Loranov red — vežbe",
+        category: "problems",
+        examPart: null,
+        solved: null,
+        fileType: "pdf",
+        url: "/api/file/ma2/vezbe-12.pdf",
+        tags: [],
+        assets: [],
+      },
+    ],
+    pages: [
+      {
+        materialId: "ma2-vezbe-12",
+        pageNumber: 3,
+        text: "Loranov red je tema vežbi, loranov red se ponavlja.",
+      },
+    ],
+  }
+}
+
+function setOnline(onLine: boolean) {
+  Object.defineProperty(navigator, "onLine", { value: onLine, configurable: true })
+}
+
 describe("CommandPalette", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    for (const bundle of await getSubjectBundles()) {
+      await removeSubjectBundle(bundle.subjectId)
+    }
     fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url = String(input)
       if (url.includes("/search")) return ok(contentResponse)
       return ok(dashboard)
     })
     vi.stubGlobal("fetch", fetchMock)
+    setOnline(true)
   })
 
   afterEach(() => {
@@ -133,5 +182,33 @@ describe("CommandPalette", () => {
     await waitFor(() => {
       expect(screen.queryByRole("textbox")).not.toBeInTheDocument()
     })
+  })
+
+  it("searches downloaded bundles locally when offline, without server search", async () => {
+    await saveSubjectBundle("ma2", offlineBundle())
+    const user = userEvent.setup()
+    renderPalette()
+    await user.click(screen.getByRole("button", { name: "Open palette" }))
+    await user.type(screen.getByRole("textbox"), "loran")
+    setOnline(false)
+    await waitFor(() => {
+      expect(document.querySelector(".search-hit-container mark")).toBeTruthy()
+    })
+    const urls = fetchMock.mock.calls.map((c) => String(c[0]))
+    expect(urls.some((u) => u.includes("/search"))).toBe(false)
+    expect(screen.getAllByText("Van mreže").length).toBeGreaterThan(0)
+    expect(screen.getByText("2 pogodaka")).toBeInTheDocument()
+  })
+
+  it("marks server content hits in offline-capable subjects", async () => {
+    await saveSubjectBundle("ma2", offlineBundle())
+    const user = userEvent.setup()
+    renderPalette()
+    await user.click(screen.getByRole("button", { name: "Open palette" }))
+    await user.type(screen.getByRole("textbox"), "loran")
+    await waitFor(() => {
+      expect(screen.getByText("3 pogodaka")).toBeInTheDocument()
+    })
+    expect(screen.getAllByText("Van mreže").length).toBeGreaterThan(0)
   })
 })

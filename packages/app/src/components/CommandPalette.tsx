@@ -15,6 +15,8 @@ import { useDebounce } from "@/hooks/useDebounce"
 import { useFuseSearch } from "@/hooks/useFuseSearch"
 import { fetchDashboard } from "@/lib/api"
 import { SearchAbortedError, SearchSequenceGuard, searchContent } from "@/lib/api"
+import { searchOfflinePages } from "@/lib/offline/search"
+import { OfflineBadge } from "@/components/OfflineBadge"
 import { cn } from "@/lib/utils"
 import { typeIconMap, typeTagStyles } from "@/lib/styles"
 import type {
@@ -31,6 +33,7 @@ type Row =
       kind: "subject"
       name: string
       sub: string
+      offline: boolean
       activate: () => void
     }
   | {
@@ -39,6 +42,7 @@ type Row =
       title: string
       sub: string
       fileType: Material["fileType"]
+      offline: boolean
       activate: () => void
     }
   | { key: string; kind: "exam"; title: string; sub: string; activate: () => void }
@@ -46,6 +50,7 @@ type Row =
       key: string
       kind: "content"
       item: SearchContentItem
+      offline: boolean
       activate: () => void
       openPage: (page: number) => void
     }
@@ -88,6 +93,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { t } = useI18n()
+  const { offlineBundles } = useSearchPalette()
 
   const [query, setQuery] = useState("")
   const debounced = useDebounce(query, 150)
@@ -163,6 +169,22 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
     mode === "subject" && subjectId ? materials.filter((m) => m.subjectId === subjectId) : materials
   const scopeExams =
     mode === "subject" && subjectId ? exams.filter((e) => e.subjectId === subjectId) : exams
+
+  const offlineNow = typeof navigator === "undefined" ? false : navigator.onLine === false
+
+  const downloadedSubjectIds = useMemo(
+    () => new Set(offlineBundles.map((b) => b.subjectId)),
+    [offlineBundles],
+  )
+
+  const offlineResults = useMemo(
+    () =>
+      searchOfflinePages(offlineBundles, cleanQuery, {
+        subjectId: mode === "subject" ? (subjectId ?? undefined) : undefined,
+        materialId: mode === "material" ? (materialId ?? undefined) : undefined,
+      }),
+    [offlineBundles, cleanQuery, mode, subjectId, materialId],
+  )
 
   const subjectResults = useFuseSearch(
     scopeSubjects.map((s) => ({ id: s.id, name: s.name, semester: s.semester, espb: s.espb })),
@@ -244,17 +266,24 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const q = cleanQuery
-    if (q.length < 2 || !resolved || picking) {
+    if (q.length < 2 || !resolved || picking || offlineNow) {
       abortRef.current?.abort()
       return
     }
     runSearch(q, 0, mode, subjectId, materialId)
-  }, [cleanQuery, resolved, picking, mode, subjectId, materialId])
+  }, [cleanQuery, resolved, picking, mode, subjectId, materialId, offlineNow])
 
   const activeSearch = searchState?.q === cleanQuery ? searchState : null
   const content = activeSearch?.content ?? null
   const contentError = activeSearch?.error ?? false
-  const contentLoading = hasQuery && resolved && !picking && searchState?.q !== cleanQuery
+  const contentLoading =
+    hasQuery && resolved && !picking && !offlineNow && searchState?.q !== cleanQuery
+  const contentSource =
+    offlineNow || (contentError && offlineResults.length > 0) ? offlineResults : null
+  const contentItems = useMemo(
+    () => contentSource ?? (content ? content.items : []),
+    [contentSource, content],
+  )
 
   const openSubject = useCallback(
     (id: string) => {
@@ -297,6 +326,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
                 kind: "subject" as const,
                 name: p.name,
                 sub: `${p.semester}. semestar · ${p.espb} ESPB`,
+                offline: downloadedSubjectIds.has(p.id),
                 activate: () => pickSubject(p.id),
               }
             : {
@@ -305,6 +335,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
                 title: p.title,
                 sub: p.subjectName,
                 fileType: p.fileType,
+                offline: downloadedSubjectIds.has(p.subjectId),
                 activate: () => pickMaterial(p.id, p.subjectId),
               },
         ),
@@ -320,6 +351,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
           kind: "subject" as const,
           name: s.name,
           sub: `${s.semester}. semestar · ${s.espb} ESPB`,
+          offline: downloadedSubjectIds.has(s.id),
           activate: () => openSubject(s.id),
         })),
       })
@@ -336,6 +368,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
               title: m.title,
               sub: m.subjectName,
               fileType: m.fileType,
+              offline: downloadedSubjectIds.has(m.subjectId),
               activate: () => {
                 const hit = content ? content.items.find((i) => i.materialId === m.id) : undefined
                 if (hit && (hit.firstPage || hit.pages.length > 0)) {
@@ -362,15 +395,16 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
       })
     }
 
-    if (hasQuery && resolved && content && content.items.length > 0) {
+    if (hasQuery && resolved && contentItems.length > 0) {
       list.push({
-        header: t("palette.section_content"),
-        rows: content.items.map((item): Row => {
+        header: offlineNow ? t("palette.section_offline") : t("palette.section_content"),
+        rows: contentItems.map((item): Row => {
           const page = item.firstPage || item.pages[0]?.page || 1
           return {
             key: `c-${item.materialId}`,
             kind: "content",
             item,
+            offline: downloadedSubjectIds.has(item.subjectId),
             activate: () =>
               openMaterial(item.subjectId, item.materialId, {
                 page,
@@ -394,6 +428,9 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
     mode,
     resolved,
     content,
+    contentItems,
+    offlineNow,
+    downloadedSubjectIds,
     shownPicks,
     shownSubjects,
     shownMaterials,
@@ -526,7 +563,12 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
     : null
   const selectionLabel = mode === "subject" ? selectedSubjectName : selectedMaterialTitle
 
-  const sumHits = content?.items.reduce((acc, item) => acc + item.hits, 0) ?? 0
+  const sumHits = useMemo(
+    () => contentItems.reduce((acc, item) => acc + item.hits, 0),
+    [contentItems],
+  )
+  const shownContentTotal = contentSource ? contentSource.length : (content?.total ?? 0)
+  const hasContent = contentItems.length > 0
 
   return (
     <div className="fixed inset-0 z-[60]">
@@ -657,18 +699,20 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
               )
             })}
 
-            {content && content.items.length > 0 && (
+            {hasContent && (
               <div className="flex items-center justify-between px-3.5 py-2 text-[0.688rem] text-[var(--text-hint)]">
                 <span>
                   {t(
-                    content.total === 1 ? "palette.footer_hits_in_one" : "palette.footer_hits_fmt",
+                    shownContentTotal === 1
+                      ? "palette.footer_hits_in_one"
+                      : "palette.footer_hits_fmt",
                     {
                       hits: sumHits,
-                      materials: content.total,
+                      materials: shownContentTotal,
                     },
                   )}
                 </span>
-                {content.hasMore && (
+                {!offlineNow && content?.hasMore && (
                   <button
                     onClick={loadMore}
                     className="cursor-pointer font-medium text-[var(--accent-strong)] hover:underline"
@@ -688,6 +732,10 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
                   </div>
                 ) : contentError ? (
                   <div className="text-xs text-[var(--status-soon-text)]">{t("palette.error")}</div>
+                ) : contentSource && contentSource.length === 0 ? (
+                  <div className="text-xs text-[var(--text-hint)]">
+                    {t("palette.content_empty")}
+                  </div>
                 ) : content && content.items.length === 0 ? (
                   <div className="text-xs text-[var(--text-hint)]">
                     {t("palette.content_empty")}
@@ -762,6 +810,7 @@ function RowView({
               {row.item.subjectName}
             </div>
           </div>
+          {row.offline && <OfflineBadge size="xs" />}
           <span className="shrink-0 rounded-full bg-[var(--bg-subtle)] px-1.5 py-0.5 text-[0.625rem] font-medium text-[var(--text-secondary)]">
             {hitsLabel}
           </span>
@@ -835,6 +884,7 @@ function RowView({
         </div>
         <div className="truncate text-xs text-[var(--text-secondary)]">{row.sub}</div>
       </div>
+      {row.kind !== "exam" && row.offline && <OfflineBadge size="xs" />}
     </button>
   )
 }
