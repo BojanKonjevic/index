@@ -4,6 +4,7 @@ import babel from "@rolldown/plugin-babel"
 import tailwindcss from "@tailwindcss/vite"
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite"
 import { VitePWA } from "vite-plugin-pwa"
+import { RangeRequestsPlugin } from "workbox-range-requests"
 import path from "path"
 
 export default defineConfig({
@@ -39,6 +40,32 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,mjs,woff2}"],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [
+          {
+            // Files (PDFs/images/videos): cache-first; RangeRequestsPlugin slices
+            // byte ranges from complete cached responses (react-pdf fetches with
+            // Range headers). Entries must be written as full files — ranged reads
+            // then always hit complete entries.
+            urlPattern: ({ url }) => url.pathname.startsWith("/api/file/"),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "files",
+              plugins: [new RangeRequestsPlugin()],
+            },
+          },
+          {
+            // API GETs (dashboard, subjects, bookmarks, search): network-first with
+            // a short timeout, falling back to the last-good cache offline.
+            // Mutations (POST/PUT/DELETE) never match these routes and stay
+            // network-only by default.
+            urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "api",
+              networkTimeoutSeconds: 3,
+            },
+          },
+        ],
       },
     }),
   ],
