@@ -20,6 +20,14 @@ namespace_id = "1001"
 limit = 120
 period = 60
 
+[[ratelimits]]
+name = "AUTH_RATE_LIMITER"
+namespace_id = "1002"
+
+[ratelimits.simple]
+limit = 10
+period = 60
+
 [assets]
 directory = "../app/dist"
 binding = "ASSETS"

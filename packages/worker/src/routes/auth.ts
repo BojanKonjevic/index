@@ -1,6 +1,6 @@
-import { Hono } from "hono"
+import { Hono, type MiddlewareHandler } from "hono"
 import { bodyLimit } from "hono/body-limit"
-import { rateLimit } from "../lib/rate-limit"
+import type { Bindings } from ".."
 import { AppError } from "../lib/error"
 import {
   createSessionCookie,
@@ -93,9 +93,16 @@ async function verifyPassword(password: string, stored: string): Promise<VerifyR
   return { valid: false, needsRehash: false }
 }
 
-const app = new Hono<{ Bindings: { DB: D1Database; SESSION_SECRET: string } }>()
+const app = new Hono<{ Bindings: Bindings }>()
 
-const authLimiter = rateLimit({ maxRequests: 10, windowMs: 60_000 })
+const authLimiter: MiddlewareHandler<{ Bindings: Bindings }> = async (c, next) => {
+  const limiter = c.env.AUTH_RATE_LIMITER
+  if (!limiter) return next()
+  const key = c.req.header("cf-connecting-ip") ?? "unknown"
+  const { success } = await limiter.limit({ key })
+  if (!success) throw new AppError(429, "error.rate_limited")
+  return next()
+}
 
 app.post("/auth/register", authLimiter, bodyLimit({ maxSize: 1024 * 10 }), async (c) => {
   const raw = await c.req.json()

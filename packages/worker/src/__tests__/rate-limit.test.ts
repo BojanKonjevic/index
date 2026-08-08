@@ -20,14 +20,13 @@ describe("auth rate limiter", () => {
     }
   })
 
-  it("rejects requests over the limit with 429 and Retry-After", async () => {
+  it("rejects requests over the limit with 429", async () => {
     const res = await SELF.fetch("http://localhost/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json", "cf-connecting-ip": TEST_IP },
       body: JSON.stringify({ name: "overlimit", password: "wrongpass" }),
     })
     expect(res.status).toBe(429)
-    expect(Number(res.headers.get("Retry-After"))).toBeGreaterThan(0)
     const body = await res.json<{ error: string }>()
     expect(body.error).toContain("Previše zahteva")
   })

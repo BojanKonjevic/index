@@ -16,6 +16,7 @@ export type Bindings = {
   BUCKET: R2Bucket
   SESSION_SECRET: string
   SEARCH_RATE_LIMITER?: RateLimit
+  AUTH_RATE_LIMITER?: RateLimit
 }
 
 const PLACEHOLDER_SECRET = "change-me-to-a-real-secret"
