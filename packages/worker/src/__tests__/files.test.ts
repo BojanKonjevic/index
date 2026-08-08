@@ -65,17 +65,14 @@ describe("GET /api/file/*", () => {
     expect(await res.text()).toBe("6789")
   })
 
-  it("echoes the origin for CORS when present", async () => {
-    const res = await SELF.fetch("http://localhost/api/file/ma2/dir/file.pdf", {
+  it("returns * for CORS regardless of the origin header", async () => {
+    const withOrigin = await SELF.fetch("http://localhost/api/file/ma2/dir/file.pdf", {
       headers: { Origin: "https://example.com" },
     })
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://example.com")
-    expect(res.headers.get("Vary")).toBe("Origin")
-  })
+    expect(withOrigin.headers.get("Access-Control-Allow-Origin")).toBe("*")
 
-  it("returns * for CORS when no origin is sent", async () => {
-    const res = await SELF.fetch("http://localhost/api/file/ma2/dir/file.pdf")
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*")
+    const withoutOrigin = await SELF.fetch("http://localhost/api/file/ma2/dir/file.pdf")
+    expect(withoutOrigin.headers.get("Access-Control-Allow-Origin")).toBe("*")
   })
 
   it("does not serve bucket content on traversal attempts", async () => {

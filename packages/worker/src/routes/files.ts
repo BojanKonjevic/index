@@ -59,13 +59,7 @@ app.get("/file/*", async (c) => {
   const headers = new Headers()
   headers.set("Content-Type", contentType)
   headers.set("Cache-Control", "public, max-age=86400")
-  const origin = c.req.header("Origin")
-  if (origin) {
-    headers.set("Access-Control-Allow-Origin", origin)
-    headers.set("Vary", "Origin")
-  } else {
-    headers.set("Access-Control-Allow-Origin", "*")
-  }
+  headers.set("Access-Control-Allow-Origin", "*")
   headers.set("ETag", object.httpEtag)
   headers.set("Accept-Ranges", "bytes")
   if (object.uploaded) {
