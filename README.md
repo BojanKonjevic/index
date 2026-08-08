@@ -11,6 +11,7 @@
   <img src="https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=000" alt="React">
   <img src="https://img.shields.io/badge/Cloudflare%20Workers-F38020?style=flat-square&logo=cloudflare&logoColor=fff" alt="Cloudflare Workers">
   <img src="https://img.shields.io/badge/License-MIT-3da639?style=flat-square" alt="MIT">
+  <img src="https://github.com/BojanKonjevic/index/actions/workflows/test.yml/badge.svg" alt="CI">
 </p>
 
 <p align="center">
