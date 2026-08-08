@@ -23,7 +23,7 @@ import { ErrorFallback } from "@/components/ErrorFallback"
 import { PdfControls } from "@/components/PdfControls"
 import { SidebarContent } from "@/components/SidebarContent"
 import { BookmarkButton } from "@/components/BookmarkButton"
-import { getOrderedMarks, getTextLayer } from "@/lib/textLayer"
+import { getOrderedHighlights, getTextLayer } from "@/lib/textLayer"
 import type { Material, MaterialAsset } from "@index/shared"
 import { CATEGORY_ORDER } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
@@ -231,8 +231,8 @@ function ViewerPage() {
       setFindIndex(next)
       const root = parentRef.current
       const layer = root ? getTextLayer(root, hlPage) : null
-      const marks = layer ? getOrderedMarks(layer) : []
-      marks[next - 1]?.scrollIntoView({ block: "center", behavior: "smooth" })
+      const highlights = layer ? getOrderedHighlights(layer) : []
+      highlights[next - 1]?.scrollIntoView({ block: "center", behavior: "smooth" })
     },
     [findIndex, matchPages, hlPage, parentRef, navigateToMatchPage],
   )

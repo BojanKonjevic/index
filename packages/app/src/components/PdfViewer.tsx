@@ -5,7 +5,12 @@ import { useI18n } from "@/hooks/useI18n"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useEffect, useRef, useState, useCallback, type RefObject } from "react"
-import { clearHighlights, getOrderedMarks, getTextLayer, highlightMatches } from "@/lib/textLayer"
+import {
+  clearHighlights,
+  getOrderedHighlights,
+  getTextLayer,
+  highlightMatches,
+} from "@/lib/textLayer"
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
 
@@ -370,10 +375,10 @@ export default function PdfViewer({
       done = true
       if (scrolledForRef.current?.hl !== hl || scrolledForRef.current?.page !== page) {
         scrolledForRef.current = { hl, page }
-        const marks = getOrderedMarks(layer)
-        if (marks.length > 0) {
+        const highlights = getOrderedHighlights(layer)
+        if (highlights.length > 0) {
           requestAnimationFrame(() => {
-            marks[0].scrollIntoView({ block: "center", behavior: "smooth" })
+            highlights[0].scrollIntoView({ block: "center", behavior: "smooth" })
           })
         }
       }

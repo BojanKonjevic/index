@@ -353,12 +353,20 @@ html {
   margin-inline: 0.0625rem;
 }
 
-/* Viewer highlight: text in the pdf.js TextLayer is transparent (the canvas
- * draws the real glyphs), so only render a translucent highlight box here:
- * never the UA mark color/text, which would double-print over the canvas. */
-.react-pdf__Page__textContent mark.search-hit {
+/* Viewer highlight overlay: one positioned box per visual line per match,
+ * painted on top of the pdf.js TextLayer instead of styling the per-span
+ * text nodes inside it (whose fragmented geometry would never join into a
+ * clean bar). The text layer itself stays untouched. */
+.search-hit-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.search-hit-overlay .search-hit {
+  position: absolute;
   background: var(--accent-bg);
-  color: transparent;
   border-radius: 0.125rem;
 }
 
