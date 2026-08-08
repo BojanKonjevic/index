@@ -9,7 +9,7 @@ import { FILES_CACHE, API_CACHE } from "./src/lib/offline/cacheNames"
 import path from "path"
 
 // The api route handler runs inside the service worker, but vite.config.ts is
-// typechecked with Node libs — declare the web APIs it touches.
+// typechecked with Node libs, so declare the web APIs it touches.
 declare const caches: {
   open(name: string): Promise<{
     match(request: Request): Promise<Response | undefined>
@@ -19,7 +19,7 @@ declare const caches: {
 
 // NetworkFirst with a 3s timeout would wait out the whole timeout on every API
 // call when offline. Serve the last-good cached response immediately when the
-// device reports offline — but navigator.onLine can be stale inside a service
+// device reports offline, but navigator.onLine can be stale inside a service
 // worker (evaluated at SW start and not always updated until the SW is
 // destroyed), so it must never be a hard gate: if nothing is cached, fall
 // through to a real fetch attempt, which fails fast when truly offline.
@@ -97,7 +97,7 @@ export default defineConfig({
           {
             // Files (PDFs/images/videos): cache-first; RangeRequestsPlugin slices
             // byte ranges from complete cached responses (react-pdf fetches with
-            // Range headers). Entries must be written as full files — ranged reads
+            // Range headers). Entries must be written as full files, so ranged reads
             // then always hit complete entries.
             urlPattern: ({ url }) => url.pathname.startsWith("/api/file/"),
             handler: "CacheFirst",
@@ -108,7 +108,7 @@ export default defineConfig({
           },
           {
             // API GETs (dashboard, subjects, bookmarks, search): network-first
-            // with a 3s timeout, falling back to the last-good cache — except
+            // with a 3s timeout, falling back to the last-good cache, except
             // when the device is offline, where cached responses are served
             // immediately instead of waiting out the timeout.
             // Mutations (POST/PUT/DELETE) never match these routes and stay

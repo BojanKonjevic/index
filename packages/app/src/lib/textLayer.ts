@@ -68,7 +68,7 @@ interface LayerNode {
  *
  *  Adjacent nodes that sit a real horizontal or vertical gap apart are joined
  *  with an implicit separator (a space, or a newline for a line break) in the
- *  concatenated string only — never in the DOM. pdf.js renders visually
+ *  concatenated string only, never in the DOM. pdf.js renders visually
  *  distinct words as separate spans with no literal space character when the
  *  separation comes from positioning, so without this a find pass could fuse
  *  two real words into a false match. Mid-word splits from separate

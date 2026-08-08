@@ -63,7 +63,7 @@ const CYRILLIC_TO_LATIN: Record<string, string> = {
   ш: "š",
 }
 
-// U+02C7 caron, U+00B4 acute accent, U+02CA modifier acute, U+02CB modifier grave —
+// U+02C7 caron, U+00B4 acute accent, U+02CA modifier acute, U+02CB modifier grave:
 // glyph-order-corruption marks found in extracted LaTeX PDF text (§6b of search-plan).
 const REPAIR_MARKS = new Set<string>(["\u02c7", "\u00b4", "\u02ca", "\u02cb"])
 

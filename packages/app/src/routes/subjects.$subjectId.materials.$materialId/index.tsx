@@ -149,7 +149,7 @@ function ViewerPage() {
 
       // The PDF content scales about its top-left corner (the pinch math
       // depends on that origin), so the sidebar toggle must compensate by
-      // re-anchoring the scroll viewport at its own center — this keeps the
+      // re-anchoring the scroll viewport at its own center; this keeps the
       // point that was at the viewport center before the width change at the
       // center of the resized viewport afterwards.
       const { left, top } = sidebarToggleScrollCompensation({

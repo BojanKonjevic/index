@@ -69,7 +69,7 @@ export interface SubjectDetail {
   subject: Subject
   materials: Material[]
   exams: ExamEvent[]
-  /** Snapshot id: `${materialCount}:${max(materials.created_at)}` — the live
+  /** Snapshot id: `${materialCount}:${max(materials.created_at)}`. The live
    *  counterpart of `OfflineSubjectPayload.revision`; the offline bundle is
    *  stale when the two differ. */
   revision: string
@@ -82,7 +82,7 @@ export interface OfflineSubjectPage {
 }
 
 export interface OfflineSubjectPayload {
-  /** Snapshot id: `${materialCount}:${max(materials.created_at)}` — changes when
+  /** Snapshot id: `${materialCount}:${max(materials.created_at)}`; changes when
    *  the subject's material set changes (staleness check for offline bundles). */
   revision: string
   materialCount: number
@@ -133,7 +133,7 @@ export interface SearchContentItem {
   title: string
   fileType: "pdf" | "video" | "image"
   hits: number
-  /** Lowest-numbered page containing the query — the true first occurrence,
+  /** Lowest-numbered page containing the query, i.e. the true first occurrence,
    *  independent of the top-3-by-relevance snippet window. */
   firstPage: number
   pages: SearchContentPage[]

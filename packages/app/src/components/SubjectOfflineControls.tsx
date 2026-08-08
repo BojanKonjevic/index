@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 interface Props {
   subjectId: string
-  /** Live revision of the subject (same format as the offline bundle's) —
+  /** Live revision of the subject (same format as the offline bundle's),
    *  used to detect stale downloads. Count alone cannot: removing one material
    *  and adding another leaves the count unchanged. */
   revision: string
@@ -21,7 +21,7 @@ export function SubjectOfflineControls({ subjectId, revision, className }: Props
   const bundle = bundles.find((b) => b.subjectId === subjectId)
   const stale = bundle !== undefined && bundle.revision !== revision
   // Known gap: a PDF replaced in place (same material row, same created_at)
-  // leaves the revision unchanged, so offline copies can go silently stale —
+  // leaves the revision unchanged, so offline copies can go silently stale;
   // out of scope per the plan (§2.2 "Not offline").
 
   const buttonClass =

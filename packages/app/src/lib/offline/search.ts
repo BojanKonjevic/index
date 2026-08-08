@@ -13,7 +13,7 @@ export interface OfflineSearchOptions {
   materialId?: string
   /**
    * Scan-cost bound: stop starting new subjects once hits were found in more
-   * than this many subjects. Defaults to 2 — a linear scan of a few subjects'
+   * than this many subjects. Defaults to 2: a linear scan of a few subjects'
    * page text per keystroke, never the whole downloaded corpus.
    */
   maxMatchedSubjects?: number

@@ -15,24 +15,24 @@
 </p>
 
 <p align="center">
-  <strong>Study materials, exams, and schedules for Applied Computer Science at FTN Novi Sad — all in one place.</strong>
+  <strong>Study materials, exams, and schedules for Applied Computer Science at FTN Novi Sad, all in one place.</strong>
 </p>
 
-If you've studied at FTN, you know the drill. Materials are scattered across a dozen Google Drive folders, exam dates live on the faculty site (if you can find them), and every subject has its own system. Indeks wraps it all into a single, searchable interface that gets you to the right document in seconds.
+All our FTN study materials are scattered across a dozen Google Drive folders, exam dates live on the faculty site (if you can find them), and every subject has its own system. Indeks wraps it all into a single searchable interface that gets you to the right document in seconds.
 
 ---
 
 ## Features
 
-- **Subject browser** — list of all 3rd-year subjects, filterable by semester and elective group
-- **Material viewer** — PDFs rendered in-app with a virtualized page viewer, keyboard navigation, zoom, fit-width, and dark-mode inversion
-- **Exam schedule** — upcoming exams with urgency indicators
-- **Global search** — fuzzy search across subjects, materials, and exams with Serbian diacritic normalization
-- **Bookmarks** — save materials for quick access, synced to your account (or stored locally as a guest)
-- **Guest mode** — browse everything immediately, no account required
-- **Accounts** — optional registration with password-based auth, syncs bookmarks and preferences across devices
-- **Dark mode** — light/dark theme toggle
-- **Bilingual UI** — Serbian by default, English available via toggle
+- **Subject browser**: list of all 3rd-year subjects, filterable by semester and elective group
+- **Material viewer**: PDFs rendered in-app with a virtualized page viewer, keyboard navigation, zoom, fit-width, and dark-mode inversion
+- **Exam schedule**: upcoming exams with urgency indicators
+- **Global search**: fuzzy search across subjects, materials, and exams with Serbian diacritic normalization
+- **Bookmarks**: save materials for quick access, synced to your account (or stored locally as a guest)
+- **Guest mode**: browse everything immediately, no account required
+- **Accounts**: optional registration with password-based auth, syncs bookmarks and preferences across devices
+- **Dark mode**: light/dark theme toggle
+- **Bilingual UI**: Serbian by default, English available via toggle
 
 ---
 
@@ -46,9 +46,9 @@ pnpm seed:r2
 pnpm dev
 ```
 
-- `SESSION_SECRET` is required — the API throws a 500 without it (the worker ships with a startup guard against missing or placeholder secrets).
+- `SESSION_SECRET` is required: the API throws a 500 without it (the worker ships with a startup guard against missing or placeholder secrets).
 - `pnpm seed:r2` syncs the seeded files into your local R2 dev bucket; `pnpm index:local` / `pnpm index:remote` rebuild the full-text search index via `packages/worker/scripts/index-pdfs.mjs`.
-- Run `pnpm check` before committing — it runs prettier, ESLint, and typechecking across both packages (also enforced locally by husky pre-commit hooks).
+- Run `pnpm check` before committing; it runs prettier, ESLint, and typechecking across both packages (also enforced locally by husky pre-commit hooks).
 - `pnpm test` runs the worker and app test suites.
 
 ---
@@ -60,7 +60,7 @@ pnpm dev
 | **Frontend** | React 19, TanStack Router, Tailwind CSS v4, shadcn/ui, react-pdf |
 | **Backend**  | Cloudflare Workers (Hono), D1 (SQLite), R2 (object storage)      |
 | **Search**   | Client-side Fuse.js with Serbian diacritic normalization         |
-| **Monorepo** | pnpm workspaces — `app/`, `worker/`, `shared/`                   |
+| **Monorepo** | pnpm workspaces: `app/`, `worker/`, `shared/`                    |
 
 Cloudflare is the unified infrastructure layer: Workers serve the SPA + handle the API, D1 stores structured data, and R2 holds all PDFs and files.
 
@@ -86,7 +86,7 @@ All API routes are prefixed with `/api/`. The Worker also serves the SPA as a st
 
 ## Current status
 
-In active development. The dataset currently covers a single subject (Matematička analiza 2) for testing — full 3rd-year coverage is the next milestone. The architecture is designed to scale to the entire faculty.
+In active development. The dataset currently covers a single subject (Matematička analiza 2) for testing; full 3rd-year coverage is the next milestone. The architecture is designed to scale to the entire faculty.
 
 **Live at [app.ftn-index.workers.dev](https://app.ftn-index.workers.dev/).**
 

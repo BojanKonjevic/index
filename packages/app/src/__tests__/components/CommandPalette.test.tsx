@@ -18,7 +18,7 @@ const dashboard = {
     {
       id: "ma2-vezbe-12",
       subjectId: "ma2",
-      title: "Loranov red — vežbe",
+      title: "Loranov red: vežbe",
       category: "problems",
       examPart: null,
       solved: null,
@@ -41,7 +41,7 @@ const contentResponse = {
         materialId: "ma2-vezbe-12",
         subjectId: "ma2",
         subjectName: "Matematička analiza 2",
-        title: "Loranov red — vežbe",
+        title: "Loranov red: vežbe",
         fileType: "pdf",
         hits: 3,
         firstPage: 4,
@@ -95,7 +95,7 @@ function offlineBundle(): OfflineSubjectPayload {
       {
         id: "ma2-vezbe-12",
         subjectId: "ma2",
-        title: "Loranov red — vežbe",
+        title: "Loranov red: vežbe",
         category: "problems",
         examPart: null,
         solved: null,

@@ -4,12 +4,12 @@
 // Mirrors seed-local-r2.mjs: everything goes through the wrangler CLI, so no
 // Cloudflare SDK is needed. Per material the DELETE + INSERTs + page_count
 // UPDATE are sent as ONE multi-statement D1 query, which D1 executes atomically
-// (verified) — a crash mid-material leaves the previous state intact, never a
+// (verified), so a crash mid-material leaves the previous state intact, never a
 // partial page set. A material is appended to .wrangler/index.done only after
 // its batch commits, so interrupted runs are re-picked-up on the next run.
 //
 // Requires Node >= 22.18 (type stripping is default-on): @index/shared has no
-// build step — its exports point at TypeScript source — so this script loads
+// build step (its exports point at TypeScript source), so this script loads
 // the shared normalize helpers as raw .ts, exactly like every other consumer
 // in the repo (Vite and wrangler strip types during bundling; plain Node here
 // does it natively). The import goes through the @index/shared/normalize
@@ -127,8 +127,8 @@ async function extractPages(pdfPath) {
 
 // Deliberately NOT parameterized: the batch is executed via
 // `wrangler d1 execute --file`, which has no support for bound parameters.
-// This is safe because the input is trusted — the script's own PDF corpus —
-// never user-supplied strings; escaping quotes and stripping control chars is
+// This is safe because the input is trusted (the script's own PDF corpus,
+// never user-supplied strings); escaping quotes and stripping control chars is
 // a defensive floor on top of that, not the primary defense.
 function sqlValue(s) {
   return s.replace(/'/g, "''").replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, " ")
@@ -187,7 +187,7 @@ async function main() {
       failed.push({ id: material.id, message })
       const hint =
         envName === "local" && /does not exist|not exist/i.test(message)
-          ? " — run `pnpm seed:r2` first to sync the corpus into the local bucket"
+          ? " (run `pnpm seed:r2` first to sync the corpus into the local bucket)"
           : ""
       console.error(`✗ ${material.id}: ${message}${hint}`)
     }

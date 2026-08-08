@@ -11,7 +11,7 @@ describe("OfflineBanner", () => {
       </I18nProvider>,
     )
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Offline — dostupni su samo preuzeti sadržaji",
+      "Offline: dostupni su samo preuzeti sadržaji",
     )
   })
 })
