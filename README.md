@@ -36,6 +36,23 @@ If you've studied at FTN, you know the drill. Materials are scattered across a d
 
 ---
 
+## Getting Started
+
+```bash
+pnpm install
+cp packages/worker/.dev.vars.example packages/worker/.dev.vars # then set a real SESSION_SECRET
+pnpm db:migrate:local
+pnpm seed:r2
+pnpm dev
+```
+
+- `SESSION_SECRET` is required — the API throws a 500 without it (the worker ships with a startup guard against missing or placeholder secrets).
+- `pnpm seed:r2` syncs the seeded files into your local R2 dev bucket; `pnpm index:local` / `pnpm index:remote` rebuild the full-text search index via `packages/worker/scripts/index-pdfs.mjs`.
+- Run `pnpm check` before committing — it runs prettier, ESLint, and typechecking across both packages (also enforced locally by husky pre-commit hooks).
+- `pnpm test` runs the worker and app test suites.
+
+---
+
 ## Stack
 
 |              |                                                                  |

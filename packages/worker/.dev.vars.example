@@ -1,0 +1,4 @@
+# Copy to .dev.vars and set a strong random secret before running the worker.
+# The app refuses to boot with a missing or placeholder SESSION_SECRET.
+# Generate one with: node -e "console.log(crypto.randomBytes(32).toString('base64'))"
+SESSION_SECRET = "change-me-to-a-long-random-string"
