@@ -81,14 +81,19 @@ describe("GET /api/offline/subject/:id", () => {
     expect(res.status).toBe(404)
   })
 
-  it("serves the bundle as plain json (no content-encoding)", async () => {
+  it("serves the bundle gzip-compressed", async () => {
     const res = await SELF.fetch("http://localhost/api/offline/subject/matematicka-analiza-2", {
       headers: { "Accept-Encoding": "gzip" },
     })
     expect(res.status).toBe(200)
-    expect(res.headers.get("content-encoding")).toBeNull()
+    expect(res.headers.get("content-encoding")).toBe("gzip")
+    expect(res.headers.get("content-type")).toContain("application/json")
 
-    const body = (await res.json()) as OfflineSubjectPayload
+    const stream = new Blob([await res.arrayBuffer()])
+      .stream()
+      .pipeThrough(new DecompressionStream("gzip"))
+    const text = await new Response(stream).text()
+    const body = JSON.parse(text) as OfflineSubjectPayload
     expect(body.subject.id).toBe("matematicka-analiza-2")
     expect(body.pages).toHaveLength(3)
   })

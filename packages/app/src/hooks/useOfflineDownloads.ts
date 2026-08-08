@@ -41,7 +41,7 @@ export function useOfflineDownloads() {
         [subjectId]: {
           subjectId,
           status: "running",
-          progress: { filesDone: 0, filesTotal: 0, bytesDone: 0, bytesTotal: null },
+          progress: { filesDone: 0, filesTotal: 0, bytesDone: 0 },
           error: null,
         },
       }))

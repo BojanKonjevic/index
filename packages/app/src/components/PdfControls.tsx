@@ -1,5 +1,6 @@
-import { ZoomIn, ZoomOut, Maximize, ChevronLeft, ChevronRight } from "lucide-react"
+import { ZoomIn, ZoomOut, Maximize, ChevronLeft, ChevronRight, SunMoon } from "lucide-react"
 import { useI18n } from "@/hooks/useI18n"
+import { cn } from "@/lib/utils"
 
 interface PdfControlsProps {
   pageNum: number
@@ -16,6 +17,8 @@ interface PdfControlsProps {
   atMaxZoom: boolean
   atMinZoom: boolean
   variant?: "desktop" | "mobile"
+  inverted?: boolean
+  onToggleInvert?: () => void
 }
 
 export function PdfControls({
@@ -33,6 +36,8 @@ export function PdfControls({
   atMaxZoom,
   atMinZoom,
   variant = "desktop",
+  inverted = false,
+  onToggleInvert,
 }: PdfControlsProps) {
   const { t } = useI18n()
 
@@ -69,6 +74,29 @@ export function PdfControls({
         >
           <ChevronRight className="size-5" />
         </button>
+
+        <button
+          onClick={onFitWidth}
+          aria-label={t("viewer.fit_width")}
+          className="flex items-center justify-center min-h-[2.75rem] min-w-0 px-2 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+        >
+          <Maximize className="size-5" />
+        </button>
+
+        {onToggleInvert && (
+          <button
+            onClick={onToggleInvert}
+            aria-label={t("viewer.invert")}
+            className={cn(
+              "flex items-center justify-center min-h-[2.75rem] min-w-0 px-2 rounded-[0.438rem] transition-all duration-100",
+              inverted
+                ? "bg-[var(--accent-bg)] text-[var(--accent)]"
+                : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]",
+            )}
+          >
+            <SunMoon className="size-5" />
+          </button>
+        )}
       </>
     )
   }

@@ -69,6 +69,10 @@ export interface SubjectDetail {
   subject: Subject
   materials: Material[]
   exams: ExamEvent[]
+  /** Snapshot id: `${materialCount}:${max(materials.created_at)}` — the live
+   *  counterpart of `OfflineSubjectPayload.revision`; the offline bundle is
+   *  stale when the two differ. */
+  revision: string
 }
 
 export interface OfflineSubjectPage {

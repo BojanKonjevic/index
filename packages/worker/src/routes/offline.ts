@@ -1,10 +1,16 @@
 import { Hono } from "hono"
+import { compress } from "hono/compress"
 import type { Bindings } from ".."
 import type { Material, OfflineSubjectPayload, Subject } from "@index/shared"
 import { mapMaterial, mapAsset } from "../lib/db"
 import { AppError } from "../lib/error"
 
 const app = new Hono<{ Bindings: Bindings }>()
+
+// The export bundle is gzipped here (CompressionStream, no extra deps), not
+// left to edge compression: the plan bounds its size as compressed (~1-5 MB),
+// and app-level compression is independent of the CDN/edge behaviour.
+app.use(compress({ threshold: 0 }))
 
 app.get("/offline/subject/:id", async (c) => {
   const db = c.env.DB

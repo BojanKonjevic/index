@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { OfflineSubjectPayload } from "@index/shared"
-import { getSubjectBundle, getSubjectBundles, removeSubjectBundle } from "@/lib/offline/db"
+import {
+  getSubjectBundle,
+  getSubjectBundles,
+  removeSubjectBundle,
+  saveSubjectBundle,
+} from "@/lib/offline/db"
 import {
   downloadSubjectOffline,
   offlineFileUrls,
@@ -195,7 +200,7 @@ describe("offline downloader", () => {
       return fileResponse(new URL(url).pathname)
     })
 
-    const progress: Array<{ filesDone: number; filesTotal: number; bytesTotal: number | null }> = []
+    const progress: Array<{ filesDone: number; filesTotal: number }> = []
     await downloadSubjectOffline("ma2", (p) => progress.push(p), new AbortController().signal)
 
     const filePaths = Object.keys(FILE_BODIES)
@@ -207,7 +212,6 @@ describe("offline downloader", () => {
     const last = progress[progress.length - 1]
     expect(last.filesDone).toBe(5)
     expect(last.filesTotal).toBe(5)
-    expect(last.bytesTotal).toBe(1500)
 
     const record = await getSubjectBundle("ma2")
     expect(record?.status).toBe("complete")
@@ -274,16 +278,79 @@ describe("offline downloader", () => {
     expect(record?.status).toBe("incomplete")
   })
 
-  it("prunes cached files that are no longer part of the subject", async () => {
-    const payload = makePayload()
-    await cache.put(`${ABS_BASE}/api/file/vezbe.pdf`, fileResponse("/api/file/vezbe.pdf"))
+  it("prunes only files that belonged to the subject's previous download and are gone now", async () => {
+    const previousPayload = makePayload()
+    previousPayload.materials = previousPayload.materials.map((m, i) => ({
+      ...m,
+      url: i === 0 ? "/api/file/removed-exam.pdf" : m.url,
+    }))
+    await saveSubjectBundle("ma2", previousPayload, 1, "complete")
     await cache.put(`${ABS_BASE}/api/file/removed-exam.pdf`, new Response("stale", { status: 200 }))
+    await cache.put(`${ABS_BASE}/api/file/vezbe.pdf`, fileResponse("/api/file/vezbe.pdf"))
+    await cache.put(`${ABS_BASE}/api/file/foreign.pdf`, new Response("other", { status: 200 }))
 
     await downloadSubjectOffline("ma2", () => {}, new AbortController().signal)
 
     expect(cache.entriesForTest()).not.toContain(`${ABS_BASE}/api/file/removed-exam.pdf`)
     expect(cache.entriesForTest()).toContain(`${ABS_BASE}/api/file/vezbe.pdf`)
-    void payload
+    expect(cache.entriesForTest()).toContain(`${ABS_BASE}/api/file/foreign.pdf`)
+  })
+
+  it("never deletes other subjects' cached files when downloading or updating", async () => {
+    const riPayload = makePayload()
+    riPayload.subject.id = "ri"
+    riPayload.subject.name = "Računarska inteligencija"
+    riPayload.materials = riPayload.materials.map((m) => ({
+      ...m,
+      subjectId: "ri",
+      url: m.url.replace("/api/file/vezbe.pdf", "/api/file/ri-vezbe.pdf"),
+      assets: m.assets.map((a) => ({
+        ...a,
+        materialId: m.id,
+        url: a.url.replace("/api/file/vezbe-", "/api/file/ri-vezbe-"),
+      })),
+    }))
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes("/offline/subject/")) {
+        return jsonResponse(url.includes("/ri") ? riPayload : makePayload())
+      }
+      return fileResponse(new URL(url).pathname)
+    })
+
+    await downloadSubjectOffline("ma2", () => {}, new AbortController().signal)
+    await downloadSubjectOffline("ri", () => {}, new AbortController().signal)
+    const riFiles = cache
+      .entriesForTest()
+      .filter((url) => url.includes("/api/file/ri-"))
+      .sort()
+    expect(riFiles.length).toBeGreaterThan(0)
+
+    const updatedMa2 = makePayload()
+    updatedMa2.materials = [updatedMa2.materials[0]]
+    updatedMa2.materialCount = 1
+    updatedMa2.revision = "1:2026-08-08T00:00:00Z"
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes("/offline/subject/ma2")) return jsonResponse(updatedMa2)
+      if (url.includes("/offline/subject/ri")) return jsonResponse(riPayload)
+      return fileResponse(new URL(url).pathname)
+    })
+
+    await downloadSubjectOffline("ma2", () => {}, new AbortController().signal)
+
+    const remaining = cache
+      .entriesForTest()
+      .filter((url) => url.includes("/api/file/"))
+      .sort()
+    expect(remaining).toContain(`${ABS_BASE}/api/file/vezbe.pdf`)
+    expect(remaining).toContain(`${ABS_BASE}/api/file/vezbe-1.jpg`)
+    expect(remaining).toContain(`${ABS_BASE}/api/file/vezbe-2.jpg`)
+    expect(remaining).not.toContain(`${ABS_BASE}/api/file/vezbe-3.jpg`)
+    expect(remaining).not.toContain(`${ABS_BASE}/api/file/vezbe-4.jpg`)
+    for (const url of riFiles) {
+      expect(remaining).toContain(url)
+    }
   })
 
   it("fails when the export bundle cannot be fetched", async () => {

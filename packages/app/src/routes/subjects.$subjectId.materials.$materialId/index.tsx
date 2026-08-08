@@ -27,6 +27,7 @@ import { getOrderedMarks, getTextLayer } from "@/lib/textLayer"
 import type { Material, MaterialAsset } from "@index/shared"
 import { CATEGORY_ORDER } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
+import { sidebarToggleScrollCompensation } from "@/lib/sidebarToggle"
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import VideoViewer from "@/components/VideoViewer"
@@ -142,8 +143,24 @@ function ViewerPage() {
       const currentWidth = el.clientWidth
       const targetWidth = currentWidth + (collapsed ? sidebarPx : -sidebarPx)
       const targetZoom = (targetWidth - 64) / naturalPageWidth
+      const scale = targetZoom / zoom
 
-      setCssScale(targetZoom / zoom)
+      setCssScale(scale)
+
+      // The PDF content scales about its top-left corner (the pinch math
+      // depends on that origin), so the sidebar toggle must compensate by
+      // re-anchoring the scroll viewport at its own center — this keeps the
+      // point that was at the viewport center before the width change at the
+      // center of the resized viewport afterwards.
+      const { left, top } = sidebarToggleScrollCompensation({
+        viewportWidth: currentWidth,
+        viewportHeight: el.clientHeight,
+        scrollLeft: el.scrollLeft,
+        scrollTop: el.scrollTop,
+        scale,
+        targetWidth,
+      })
+      el.scrollTo({ left, top })
 
       transitioningRef.current = true
       clearTimeout(transitionTimeoutRef.current)
@@ -568,42 +585,45 @@ function ViewerPage() {
       : null
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
-      {/* ── Top bar (mobile): back + title + zoom ── */}
-      <div className="sm:hidden flex h-11 shrink-0 items-center gap-1 border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-2">
-        <button
-          onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
-          aria-label={t("viewer.back")}
-          className="flex shrink-0 cursor-pointer items-center justify-center size-9 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
-        >
-          <ArrowLeft className="size-5" />
-        </button>
-        <span className="min-w-0 flex-1 truncate text-[0.813rem] font-medium text-[var(--text-primary)]">
-          {material?.title}
-        </span>
-        {material?.fileType === "pdf" && !showAssetGallery && (
-          <div className="flex shrink-0 items-center gap-0.5">
-            <button
-              onClick={zoomOut}
-              disabled={atMinZoom}
-              aria-label={t("viewer.zoom_out")}
-              className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ZoomOut className="size-4" />
-            </button>
-            <span className="w-9 text-center text-[0.688rem] font-medium text-[var(--text-secondary)] tabular-nums">
-              {Math.round(displayZoom * 100)}%
-            </span>
-            <button
-              onClick={zoomIn}
-              disabled={atMaxZoom}
-              aria-label={t("viewer.zoom_in")}
-              className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ZoomIn className="size-4" />
-            </button>
-          </div>
-        )}
+    <div className="flex h-screen flex-col overflow-hidden">
+      {/* ── Top bar (mobile): back + title + zoom + bookmark ── */}
+      <div className="sm:hidden shrink-0 bg-[var(--bg-surface)] pt-[env(safe-area-inset-top)]">
+        <div className="flex h-11 items-center gap-1 border-b border-[var(--border-default)] px-2">
+          <button
+            onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
+            aria-label={t("viewer.back")}
+            className="flex shrink-0 cursor-pointer items-center justify-center size-9 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+          <span className="min-w-0 flex-1 truncate text-[0.813rem] font-medium text-[var(--text-primary)]">
+            {material?.title}
+          </span>
+          {material?.fileType === "pdf" && !showAssetGallery && (
+            <div className="flex shrink-0 items-center gap-0.5">
+              <button
+                onClick={zoomOut}
+                disabled={atMinZoom}
+                aria-label={t("viewer.zoom_out")}
+                className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <ZoomOut className="size-4" />
+              </button>
+              <span className="w-9 text-center text-[0.688rem] font-medium text-[var(--text-secondary)] tabular-nums">
+                {Math.round(displayZoom * 100)}%
+              </span>
+              <button
+                onClick={zoomIn}
+                disabled={atMaxZoom}
+                aria-label={t("viewer.zoom_in")}
+                className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <ZoomIn className="size-4" />
+              </button>
+            </div>
+          )}
+          {material && <BookmarkButton id={material.id} />}
+        </div>
       </div>
 
       {/* ── Top bar (desktop) ── */}
@@ -687,23 +707,6 @@ function ViewerPage() {
         <span className="h-5 w-px bg-[var(--border-faint)]" />
 
         {material && <BookmarkButton id={material.id} />}
-      </div>
-
-      {/* ── Top bar (mobile) ── */}
-      <div className="sm:hidden shrink-0 bg-[var(--bg-surface)] pt-[env(safe-area-inset-top)]">
-        <div className="flex h-[3.75rem] items-center border-b border-[var(--border-default)] px-3 gap-3">
-          <button
-            onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
-            aria-label={t("viewer.back")}
-            className="flex shrink-0 cursor-pointer items-center justify-center size-10 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
-          >
-            <ArrowLeft className="size-5" />
-          </button>
-          <div className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-primary)]">
-            {material?.title}
-          </div>
-          {material && <BookmarkButton id={material.id} />}
-        </div>
       </div>
 
       {/* ── Main content area ── */}
@@ -802,6 +805,7 @@ function ViewerPage() {
                 naturalPageHeight={naturalPageHeight}
                 minZoom={MIN_ZOOM}
                 maxZoom={MAX_ZOOM}
+                fitWidthZoom={fitWidthZoom}
                 onUserZoom={handleUserZoom}
                 onUserScale={handleUserScale}
                 onUserGestureEnd={handleUserGestureEnd}
@@ -893,6 +897,8 @@ function ViewerPage() {
               atMaxZoom={atMaxZoom}
               atMinZoom={atMinZoom}
               variant="mobile"
+              inverted={inverted}
+              onToggleInvert={() => setInverted((v) => !v)}
             />
           </>
         ) : null}

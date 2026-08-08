@@ -5,6 +5,7 @@ import tailwindcss from "@tailwindcss/vite"
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite"
 import { VitePWA } from "vite-plugin-pwa"
 import { RangeRequestsPlugin } from "workbox-range-requests"
+import { FILES_CACHE, API_CACHE } from "./src/lib/offline/cacheNames"
 import path from "path"
 
 // The api route handler runs inside the service worker, but vite.config.ts is
@@ -24,8 +25,8 @@ declare const caches: {
 // through to a real fetch attempt, which fails fast when truly offline.
 //
 // NOTE: workbox-build inlines this handler into sw.js but drops module-scope
-// helpers it references, so everything it needs must live inside the handler
-// body itself.
+// identifiers it references (they are not defined in the generated SW scope),
+// so everything it needs must live inside the handler body itself.
 export async function apiStrategyHandler({ request }: { request: Request }): Promise<Response> {
   const fetchWithTimeout = async (req: Request, timeoutMs: number) => {
     const controller = new AbortController()
@@ -50,6 +51,13 @@ export async function apiStrategyHandler({ request }: { request: Request }): Pro
     if (cached) return cached
     throw error
   }
+}
+
+// The handler above is serialized into sw.js verbatim, so its cache name must
+// stay a literal inside the body. Fail the build instead of silently letting
+// the two copies drift.
+if (!apiStrategyHandler.toString().includes(`caches.open("${API_CACHE}")`)) {
+  throw new Error(`apiStrategyHandler must reference API_CACHE ("${API_CACHE}") as a literal`)
 }
 
 export default defineConfig({
@@ -94,7 +102,7 @@ export default defineConfig({
             urlPattern: ({ url }) => url.pathname.startsWith("/api/file/"),
             handler: "CacheFirst",
             options: {
-              cacheName: "files",
+              cacheName: FILES_CACHE,
               plugins: [new RangeRequestsPlugin()],
             },
           },

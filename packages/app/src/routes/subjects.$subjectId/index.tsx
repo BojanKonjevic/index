@@ -111,7 +111,7 @@ function MaterialRow({ material, offline }: { material: Material; offline: boole
 
 // eslint-disable-next-line react-refresh/only-export-components
 function SubjectPage() {
-  const { subject, materials, exams } = Route.useLoaderData()
+  const { subject, materials, exams, revision } = Route.useLoaderData()
   const { t, locale } = useI18n()
   const { isDownloaded } = useOfflineDownloads()
   const offline = isDownloaded(subject.id)
@@ -252,11 +252,7 @@ function SubjectPage() {
             </div>
           )}
 
-          <SubjectOfflineControls
-            subjectId={subject.id}
-            materialCount={materials.length}
-            className="mb-4"
-          />
+          <SubjectOfflineControls subjectId={subject.id} revision={revision} className="mb-4" />
         </div>
 
         <div className="border-t border-[var(--border-default)] md:px-9 px-4 py-4">

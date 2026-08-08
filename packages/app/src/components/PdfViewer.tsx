@@ -21,6 +21,9 @@ interface PdfViewerProps {
   naturalPageHeight: number | null
   minZoom: number
   maxZoom: number
+  /** Fit-width zoom as computed by the parent's state machine. Pinch/double-tap
+   *  must land on exactly this value or a double-tap produces a visible jump. */
+  fitWidthZoom: number | null
   onLoadSuccess: (numPages: number, naturalPageWidth: number, naturalPageHeight: number) => void
   onLoadError: (error: string) => void
   setPdfLoading: (loading: boolean) => void
@@ -62,6 +65,7 @@ export default function PdfViewer({
   naturalPageHeight,
   minZoom,
   maxZoom,
+  fitWidthZoom,
   onLoadSuccess,
   onLoadError,
   setPdfLoading,
@@ -131,10 +135,11 @@ export default function PdfViewer({
   const handleDoubleTap = (clientX: number, clientY: number) => {
     const el = parentRef.current
     if (!el || !docWidth || docWidth.url !== url || viewWidth === 0) return
+    if (fitWidthZoom === null) return
     const rect = el.getBoundingClientRect()
     const ax = clientX - rect.left - padRef.current.left
     const ay = clientY - rect.top - padRef.current.top
-    const fitZoom = (viewWidth - 64) / docWidth.width
+    const fitZoom = fitWidthZoom
     if (docWidth.width * zoom > viewWidth) {
       const ratio = fitZoom / zoom
       el.scrollTo({ left: 0, top: Math.max(0, (el.scrollTop + ay) * ratio - ay) })

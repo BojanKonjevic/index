@@ -48,6 +48,15 @@ app.get("/subject/:id", async (c) => {
     else assetsByMaterialId.set(asset.materialId, [asset])
   }
 
+  let maxCreatedAt = ""
+  const materials = materialRows.results.map((r) => {
+    const m = mapMaterial(r)
+    m.assets = assetsByMaterialId.get(m.id) ?? []
+    const created = (r as { created_at?: string }).created_at
+    if (created && created > maxCreatedAt) maxCreatedAt = created
+    return m
+  })
+
   const detail: SubjectDetail = {
     subject: {
       id: subjectRow.id as string,
@@ -60,11 +69,8 @@ app.get("/subject/:id", async (c) => {
       professors: JSON.parse((subjectRow.professors as string) || "[]"),
       assistants: JSON.parse((subjectRow.assistants as string) || "[]"),
     },
-    materials: materialRows.results.map((r) => {
-      const m = mapMaterial(r)
-      m.assets = assetsByMaterialId.get(m.id) ?? []
-      return m
-    }),
+    revision: `${materials.length}:${maxCreatedAt}`,
+    materials,
     exams: examRows.results.map(mapExamEvent),
   }
   return c.json(detail, 200)

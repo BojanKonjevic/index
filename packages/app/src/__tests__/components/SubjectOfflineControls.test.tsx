@@ -60,7 +60,7 @@ function makePayload(materialCount = 2): OfflineSubjectPayload {
     assets: [],
   }))
   return {
-    revision: `2:2026-08-07T10:00:00Z`,
+    revision: `${materialCount}:2026-08-07T10:00:00Z`,
     materialCount,
     subject: {
       id: "ma2",
@@ -78,10 +78,12 @@ function makePayload(materialCount = 2): OfflineSubjectPayload {
   }
 }
 
-function renderControls(materialCount = 2) {
+const LIVE_REVISION = "2:2026-08-07T10:00:00Z"
+
+function renderControls(revision = LIVE_REVISION) {
   return render(
     <I18nProvider>
-      <SubjectOfflineControls subjectId="ma2" materialCount={materialCount} />
+      <SubjectOfflineControls subjectId="ma2" revision={revision} />
     </I18nProvider>,
   )
 }
@@ -122,22 +124,35 @@ describe("SubjectOfflineControls", () => {
     expect(screen.getByRole("button", { name: "Ukloni sa uređaja" })).toBeInTheDocument()
   })
 
-  it("shows an update hint when the material count changed since download", async () => {
+  it("shows an update hint when the material set changed since download", async () => {
     await saveSubjectBundle("ma2", makePayload(1))
-    renderControls(2)
+    renderControls()
     await screen.findByRole("button", { name: /Novi materijali/ })
+  })
+
+  it("shows an update hint when the count is unchanged but the revision moved", async () => {
+    await saveSubjectBundle("ma2", makePayload(2))
+    renderControls("2:2026-08-08T09:00:00Z")
+    await screen.findByRole("button", { name: /Novi materijali/ })
+  })
+
+  it("shows no update hint when bundle and live revisions match", async () => {
+    await saveSubjectBundle("ma2", makePayload(2))
+    renderControls(LIVE_REVISION)
+    await screen.findByText("Offline")
+    expect(screen.queryByRole("button", { name: /Novi materijali/ })).not.toBeInTheDocument()
   })
 
   it("offers resume when a previous download was incomplete", async () => {
     await saveSubjectBundle("ma2", makePayload(1), Date.now(), "incomplete")
-    renderControls(1)
+    renderControls("1:2026-08-07T10:00:00Z")
     await screen.findByRole("button", { name: "Nastavi preuzimanje" })
   })
 
   it("removes offline data on remove", async () => {
     const user = userEvent.setup()
     await saveSubjectBundle("ma2", makePayload(1))
-    renderControls(1)
+    renderControls("1:2026-08-07T10:00:00Z")
     await screen.findByText("Offline")
 
     await user.click(screen.getByRole("button", { name: "Ukloni sa uređaja" }))

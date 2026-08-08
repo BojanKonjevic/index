@@ -117,6 +117,7 @@ function offlineBundle(): OfflineSubjectPayload {
 
 function setOnline(onLine: boolean) {
   Object.defineProperty(navigator, "onLine", { value: onLine, configurable: true })
+  window.dispatchEvent(new Event(onLine ? "online" : "offline"))
 }
 
 describe("CommandPalette", () => {

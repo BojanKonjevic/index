@@ -6,18 +6,23 @@ import { cn } from "@/lib/utils"
 
 interface Props {
   subjectId: string
-  /** Live material count of the subject, used to detect stale downloads. */
-  materialCount: number
+  /** Live revision of the subject (same format as the offline bundle's) —
+   *  used to detect stale downloads. Count alone cannot: removing one material
+   *  and adding another leaves the count unchanged. */
+  revision: string
   className?: string
 }
 
-export function SubjectOfflineControls({ subjectId, materialCount, className }: Props) {
+export function SubjectOfflineControls({ subjectId, revision, className }: Props) {
   const { t } = useI18n()
   const { jobs, bundles, startDownload, cancelDownload, removeOffline } = useOfflineDownloads()
 
   const job = jobs[subjectId]
   const bundle = bundles.find((b) => b.subjectId === subjectId)
-  const stale = bundle !== undefined && bundle.materialCount !== materialCount
+  const stale = bundle !== undefined && bundle.revision !== revision
+  // Known gap: a PDF replaced in place (same material row, same created_at)
+  // leaves the revision unchanged, so offline copies can go silently stale —
+  // out of scope per the plan (§2.2 "Not offline").
 
   const buttonClass =
     "inline-flex items-center gap-1.5 rounded-[0.5rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-[0.813rem] text-[var(--text-secondary)] transition-colors duration-100 hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] cursor-pointer"

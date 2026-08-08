@@ -493,7 +493,7 @@ function RootContent() {
           <PanelLeftOpen className="size-4" />
         </button>
       )}
-      <BottomTabBar theme={theme} onToggleTheme={toggleThemeHandler} />
+      {!isViewer && <BottomTabBar theme={theme} onToggleTheme={toggleThemeHandler} />}
       <main
         className={`min-h-screen transition-[margin] duration-200 ease-in-out ${
           isViewer ? "" : "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"

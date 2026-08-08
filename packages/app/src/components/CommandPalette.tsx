@@ -13,6 +13,7 @@ import { useI18n } from "@/hooks/useI18n"
 import { useSearchPalette } from "@/hooks/useSearchPalette"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useFuseSearch } from "@/hooks/useFuseSearch"
+import { useOnlineStatus } from "@/hooks/useOnlineStatus"
 import { fetchDashboard } from "@/lib/api"
 import { SearchAbortedError, SearchSequenceGuard, searchContent } from "@/lib/api"
 import { searchOfflinePages } from "@/lib/offline/search"
@@ -170,7 +171,8 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
   const scopeExams =
     mode === "subject" && subjectId ? exams.filter((e) => e.subjectId === subjectId) : exams
 
-  const offlineNow = typeof navigator === "undefined" ? false : navigator.onLine === false
+  const online = useOnlineStatus()
+  const offlineNow = !online
 
   const downloadedSubjectIds = useMemo(
     () => new Set(offlineBundles.map((b) => b.subjectId)),

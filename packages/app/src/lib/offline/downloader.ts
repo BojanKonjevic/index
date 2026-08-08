@@ -1,17 +1,17 @@
 import type { OfflineSubjectPayload } from "@index/shared"
 import { fetchApi } from "@/lib/api"
-import { getSubjectBundle, removeSubjectBundle, saveSubjectBundle } from "./db"
-
-/** Must match the Workbox runtime cache names in vite.config.ts. */
-export const FILES_CACHE = "files"
-const API_CACHE = "api"
+import {
+  getSubjectBundle,
+  removeSubjectBundle,
+  saveSubjectBundle,
+  type OfflineSubjectRecord,
+} from "./db"
+import { FILES_CACHE, API_CACHE } from "./cacheNames"
 
 export interface OfflineDownloadProgress {
   filesDone: number
   filesTotal: number
   bytesDone: number
-  /** null when any file lacks a Content-Length header. */
-  bytesTotal: number | null
 }
 
 export type OfflineDownloadStatus = "running" | "done" | "failed" | "cancelled"
@@ -78,17 +78,22 @@ async function byteCount(response: Response): Promise<number | null> {
   return cl !== null ? Number(cl) : null
 }
 
-async function deleteStaleFiles(cache: Cache, keep: string[]): Promise<void> {
+/**
+ * Deletes the cached files that belonged to the subject's previous download
+ * but are no longer part of its current file set. Never touches other
+ * subjects' files: the files cache is shared by all subjects (and by natural
+ * browsing), so a sweep over the whole cache would wipe unrelated data.
+ */
+async function deleteStaleFiles(
+  cache: Cache,
+  previous: OfflineSubjectRecord,
+  keep: string[],
+): Promise<void> {
   const keepSet = new Set(keep.map(toAbsolute))
-  const keys = await cache.keys()
   await Promise.all(
-    keys.map(async (key) => {
-      const url = typeof key === "string" ? key : key.url
-      const pathname = new URL(url, location.origin).pathname
-      if (pathname.startsWith("/api/file/") && !keepSet.has(url)) {
-        await cache.delete(key)
-      }
-    }),
+    offlineFileUrls(previous.payload)
+      .filter((url) => !keepSet.has(toAbsolute(url)))
+      .map((url) => cache.delete(toAbsolute(url))),
   )
 }
 
@@ -106,6 +111,7 @@ export async function downloadSubjectOffline(
 ): Promise<void> {
   const payload = await fetchOfflineSubject(subjectId)
   const urls = offlineFileUrls(payload)
+  const previous = await getSubjectBundle(subjectId)
   const cache = await getFilesCache()
 
   await saveSubjectBundle(subjectId, payload, Date.now(), "incomplete")
@@ -113,14 +119,12 @@ export async function downloadSubjectOffline(
   const filesTotal = urls.length
   let filesDone = 0
   let bytesDone = 0
-  let bytesKnown = true
 
   const report = () =>
     onProgress({
       filesDone,
       filesTotal,
       bytesDone,
-      bytesTotal: bytesKnown ? bytesDone : null,
     })
 
   await mapConcurrent(urls, CONCURRENCY, async (url) => {
@@ -130,7 +134,6 @@ export async function downloadSubjectOffline(
     if (cached) {
       const cl = await byteCount(cached)
       if (cl !== null) bytesDone += cl
-      else bytesKnown = false
       filesDone++
       report()
       return
@@ -143,12 +146,11 @@ export async function downloadSubjectOffline(
     await cache.put(absolute, response)
     const cl = await byteCount(response)
     if (cl !== null) bytesDone += cl
-    else bytesKnown = false
     filesDone++
     report()
   })
 
-  await deleteStaleFiles(cache, urls)
+  if (previous) await deleteStaleFiles(cache, previous, urls)
   await saveSubjectBundle(subjectId, payload, Date.now(), "complete")
 }
 
