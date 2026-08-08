@@ -13,7 +13,7 @@ export async function runMigrations() {
   await db.exec(statements(seedSql))
 }
 
-function statements(sql: string) {
+export function statements(sql: string) {
   return sql
     .split(/;\r?\n/)
     .map((s) => s.replace(/\s*\r?\n\s*/g, " ").trim())
