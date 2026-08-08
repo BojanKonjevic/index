@@ -118,6 +118,8 @@ app.post("/auth/register", authLimiter, bodyLimit({ maxSize: 1024 * 10 }), async
     throw new AppError(400, key)
   }
   const { name, password, bookmarks, group, history } = parsed.data
+  const bookmarkIds = bookmarks ? [...new Set(bookmarks)] : []
+  const historyIds = history ? [...new Set(history)] : []
 
   const existing = await c.env.DB.prepare("SELECT id FROM users WHERE name = ?").bind(name).first()
   if (existing) throw new AppError(409, "auth.username_taken")
@@ -130,8 +132,8 @@ app.post("/auth/register", authLimiter, bodyLimit({ maxSize: 1024 * 10 }), async
 
   const stmts = []
 
-  if (Array.isArray(bookmarks) && bookmarks.length > 0) {
-    for (const materialId of bookmarks) {
+  if (bookmarkIds.length > 0) {
+    for (const materialId of bookmarkIds) {
       stmts.push(
         c.env.DB.prepare(
           "INSERT OR IGNORE INTO bookmarks (id, user_id, material_id) VALUES (?, ?, ?)",
@@ -150,8 +152,8 @@ app.post("/auth/register", authLimiter, bodyLimit({ maxSize: 1024 * 10 }), async
     )
   }
 
-  if (Array.isArray(history) && history.length > 0) {
-    for (const materialId of history) {
+  if (historyIds.length > 0) {
+    for (const materialId of historyIds) {
       stmts.push(
         c.env.DB.prepare(
           `INSERT OR IGNORE INTO visit_history (id, user_id, material_id, visited_at)

@@ -82,6 +82,30 @@ describe("POST /api/auth/register", () => {
     const body = await res.json<{ error: string }>()
     expect(body.error).toContain("Neispravni podaci")
   })
+
+  it("returns 400 for oversized bookmark or history arrays", async () => {
+    const payload = { name: "biglist", password: "test1234", bookmarks: [] as string[] }
+    for (let i = 0; i < 201; i++) payload.bookmarks.push(`material-${i}`)
+    const res = await SELF.fetch("http://localhost/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "cf-connecting-ip": "203.0.113.201" },
+      body: JSON.stringify(payload),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it("returns 400 for overlong bookmark or history ids", async () => {
+    const res = await SELF.fetch("http://localhost/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "cf-connecting-ip": "203.0.113.202" },
+      body: JSON.stringify({
+        name: "longids",
+        password: "test1234",
+        bookmarks: ["x".repeat(65)],
+      }),
+    })
+    expect(res.status).toBe(400)
+  })
 })
 
 describe("POST /api/auth/login", () => {
