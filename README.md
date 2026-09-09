@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://app.ftn-index.workers.dev/">
+  <a href="https://ftn-index.bojan-dev.workers.dev/">
     <img src="https://img.shields.io/badge/Live-DEPLOYED-4f46e5?style=for-the-badge" alt="Live">
     <br>
     <strong>Indeks</strong>
@@ -88,7 +88,7 @@ All API routes are prefixed with `/api/`. The Worker also serves the SPA as a st
 
 In active development. The dataset currently covers a single subject (Matematička analiza 2) for testing; full 3rd-year coverage is the next milestone. The architecture is designed to scale to the entire faculty.
 
-**Live at [app.ftn-index.workers.dev](https://app.ftn-index.workers.dev/).**
+**Live at [ftn-index.bojan-dev.workers.dev](https://ftn-index.bojan-dev.workers.dev/).**
 
 ---
 
