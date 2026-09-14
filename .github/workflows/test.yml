@@ -21,4 +21,11 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm -F app build
+      # The SW handlers are serialized into sw.js; bare module-scope
+      # identifiers (e.g. workbox's createPartialResponse) become
+      # ReferenceErrors in production. Fail here instead.
+      - name: Guard service worker inlining
+        run: |
+          test ! -e packages/app/dist/sw.js || ! grep -q "createPartialResponse" packages/app/dist/sw.js
+          grep -q "Content-Range" packages/app/dist/sw.js
       - run: pnpm prettier --check --ignore-unknown .

@@ -4,8 +4,8 @@ import babel from "@rolldown/plugin-babel"
 import tailwindcss from "@tailwindcss/vite"
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite"
 import { VitePWA } from "vite-plugin-pwa"
-import { RangeRequestsPlugin } from "workbox-range-requests"
 import { FILES_CACHE, API_CACHE } from "./src/lib/offline/cacheNames"
+import { fileStrategyHandler } from "./src/lib/offline/fileRangeHandler"
 import path from "path"
 
 // The api route handler runs inside the service worker, but vite.config.ts is
@@ -53,11 +53,21 @@ export async function apiStrategyHandler({ request }: { request: Request }): Pro
   }
 }
 
-// The handler above is serialized into sw.js verbatim, so its cache name must
-// stay a literal inside the body. Fail the build instead of silently letting
-// the two copies drift.
+// File byte ranges are served by fileStrategyHandler (./src/lib/offline/fileRangeHandler),
+// kept in its own import-free module so tests can import it without dragging
+// Node globals into the app typecheck. Workbox serializes the imported function
+// into sw.js the same as a local one.
+
+// The handlers above are serialized into sw.js verbatim, so their cache names
+// must stay literals inside the bodies. Fail the build instead of silently
+// letting them drift.
 if (!apiStrategyHandler.toString().includes(`caches.open("${API_CACHE}")`)) {
   throw new Error(`apiStrategyHandler must reference API_CACHE ("${API_CACHE}") as a literal`)
+}
+if (!fileStrategyHandler.toString().includes(`caches.open("${FILES_CACHE}")`)) {
+  throw new Error(
+    `fileStrategyHandler must reference the files cache ("${FILES_CACHE}") as a literal`,
+  )
 }
 
 export default defineConfig({
@@ -95,16 +105,11 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
-            // Files (PDFs/images/videos): cache-first; RangeRequestsPlugin slices
-            // byte ranges from complete cached responses (react-pdf fetches with
-            // Range headers). Entries must be written as full files, so ranged reads
-            // then always hit complete entries.
+            // Files (PDFs/images/videos): cache-first with manual range
+            // slicing; see fileStrategyHandler above. Entries are always
+            // written as full files, so ranged reads slice complete entries.
             urlPattern: ({ url }) => url.pathname.startsWith("/api/file/"),
-            handler: "CacheFirst",
-            options: {
-              cacheName: FILES_CACHE,
-              plugins: [new RangeRequestsPlugin()],
-            },
+            handler: fileStrategyHandler,
           },
           {
             // API GETs (dashboard, subjects, bookmarks, search): network-first
