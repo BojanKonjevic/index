@@ -40,3 +40,5 @@ Thumbs.db
 *.swp
 *.swo
 *~
+# Playwright output
+packages/app/test-results/

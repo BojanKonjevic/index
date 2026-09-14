@@ -2,14 +2,29 @@ import { Hono } from "hono"
 import type { Bindings } from ".."
 import type { DashboardData } from "@index/shared"
 import { mapMaterial, mapSubjectListItem, mapExamEvent } from "../lib/db"
-
 const app = new Hono<{ Bindings: Bindings }>()
+
+const DEFAULT_MATERIAL_LIMIT = 50
+const MAX_MATERIAL_LIMIT = 200
+const DEFAULT_EXAM_LIMIT = 20
+const MAX_EXAM_LIMIT = 100
+
+function parseLimit(raw: string | undefined, def: number, max: number): number {
+  if (!raw) return def
+  const v = Number(raw)
+  if (!Number.isFinite(v)) return def
+  return Math.min(Math.max(Math.floor(v), 1), max)
+}
 
 app.get("/dashboard", async (c) => {
   const db = c.env.DB
 
-  const materialLimit = Math.min(Math.max(Number(c.req.query("materialLimit")) || 9999, 1), 9999)
-  const examLimit = Math.min(Math.max(Number(c.req.query("examLimit")) || 9999, 1), 9999)
+  const materialLimit = parseLimit(
+    c.req.query("materialLimit"),
+    DEFAULT_MATERIAL_LIMIT,
+    MAX_MATERIAL_LIMIT,
+  )
+  const examLimit = parseLimit(c.req.query("examLimit"), DEFAULT_EXAM_LIMIT, MAX_EXAM_LIMIT)
 
   const [subjectRows, materialRows, examRows] = await Promise.all([
     db

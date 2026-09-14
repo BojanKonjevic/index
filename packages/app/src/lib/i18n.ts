@@ -99,6 +99,9 @@ const translations: Record<Locale, Record<string, string>> = {
     "subject.unsolved_badge": "Nerešeni",
     "subject.exam_count_fmt": "{n} dana",
     "subject.today": "Danas",
+    "subject.page_prev": "Prethodna",
+    "subject.page_next": "Sledeća",
+    "subject.page_fmt": "Strana {n} od {m}",
 
     // Offline
     "offline.download": "Preuzmi predmet",
@@ -318,6 +321,9 @@ const translations: Record<Locale, Record<string, string>> = {
     "subject.unsolved_badge": "Unsolved",
     "subject.exam_count_fmt": "{n} days",
     "subject.today": "Today",
+    "subject.page_prev": "Previous",
+    "subject.page_next": "Next",
+    "subject.page_fmt": "Page {n} of {m}",
 
     // Offline
     "offline.download": "Download subject",

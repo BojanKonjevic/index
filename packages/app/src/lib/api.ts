@@ -45,8 +45,8 @@ export async function fetchSubjects(): Promise<SubjectListItem[]> {
   return fetchApi("/subjects")
 }
 
-export async function fetchSubject(id: string): Promise<SubjectDetail> {
-  return fetchApi(`/subject/${id}`)
+export async function fetchSubject(id: string, page = 1): Promise<SubjectDetail> {
+  return fetchApi(`/subject/${id}?page=${page}`)
 }
 
 export async function fetchDashboard(): Promise<DashboardData> {

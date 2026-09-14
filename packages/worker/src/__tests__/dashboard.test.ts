@@ -57,4 +57,20 @@ describe("GET /api/dashboard", () => {
     const body = await res.json<Dashboard>()
     expect(body.exams.length).toBe(1)
   })
+
+  it("caps materialLimit and examLimit", async () => {
+    const res = await SELF.fetch("http://localhost/api/dashboard?materialLimit=9999&examLimit=9999")
+    expect(res.status).toBe(200)
+    const body = await res.json<Dashboard>()
+    // defaults are page-sized now; explicit huge values get clamped
+    expect(body.materials.length).toBeLessThanOrEqual(200)
+    expect(body.exams.length).toBeLessThanOrEqual(100)
+  })
+
+  it("falls back to defaults for invalid limits", async () => {
+    const res = await SELF.fetch("http://localhost/api/dashboard?materialLimit=abc&examLimit=-3")
+    expect(res.status).toBe(200)
+    const body = await res.json<Dashboard>()
+    expect(body.materials.length).toBeGreaterThan(0)
+  })
 })

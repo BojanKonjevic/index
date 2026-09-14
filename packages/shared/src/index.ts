@@ -69,11 +69,17 @@ export interface SubjectDetail {
   subject: Subject
   materials: Material[]
   exams: ExamEvent[]
-  /** Snapshot id: `${materialCount}:${max(materials.created_at)}`. The live
+  /** Total material count across all pages. The live counterpart of
+   *  `OfflineSubjectPayload.materialCount`. */
+  totalMaterials: number
+  /** Snapshot id: `${totalMaterials}:${max(materials.created_at)}`. The live
    *  counterpart of `OfflineSubjectPayload.revision`; the offline bundle is
    *  stale when the two differ. */
   revision: string
 }
+
+/** Default page size for the subject detail materials list. */
+export const SUBJECT_MATERIALS_PAGE_SIZE = 50
 
 export interface OfflineSubjectPage {
   materialId: string

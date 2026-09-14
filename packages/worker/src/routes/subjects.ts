@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { AppError } from "../lib/error"
 import type { Bindings } from ".."
 import type { SubjectListItem, SubjectDetail, MaterialAsset } from "@index/shared"
+import { SUBJECT_MATERIALS_PAGE_SIZE } from "@index/shared"
 import { mapMaterial, mapAsset, mapSubjectListItem, mapExamEvent } from "../lib/db"
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -17,19 +18,38 @@ app.get("/subjects", async (c) => {
   return c.json(subjects, 200)
 })
 
+const MAX_MATERIAL_LIMIT = 200
+
+function parsePage(raw: string | undefined): number {
+  if (!raw) return 1
+  const v = Number(raw)
+  if (!Number.isFinite(v)) return 1
+  return Math.max(1, Math.floor(v))
+}
+
+function parseLimit(raw: string | undefined): number {
+  if (!raw) return SUBJECT_MATERIALS_PAGE_SIZE
+  const v = Number(raw)
+  if (!Number.isFinite(v)) return SUBJECT_MATERIALS_PAGE_SIZE
+  return Math.min(Math.max(Math.floor(v), 1), MAX_MATERIAL_LIMIT)
+}
+
 app.get("/subject/:id", async (c) => {
   const db = c.env.DB
   const id = c.req.param("id")
+  const page = parsePage(c.req.query("page"))
+  const limit = parseLimit(c.req.query("limit"))
+  const offset = (page - 1) * limit
 
   const subjectRow = await db.prepare("SELECT * FROM subjects WHERE id = ?").bind(id).first()
   if (!subjectRow) throw new AppError(404, "error.notFound")
 
-  const [materialRows, examRows, assetRows] = await Promise.all([
+  const [materialRows, examRows, assetRows, statsRow] = await Promise.all([
     db
       .prepare(
-        "SELECT *, (SELECT COUNT(*) FROM material_assets WHERE material_id = materials.id) as asset_count FROM materials WHERE subject_id = ? ORDER BY title",
+        "SELECT *, (SELECT COUNT(*) FROM material_assets WHERE material_id = materials.id) as asset_count FROM materials WHERE subject_id = ? ORDER BY title LIMIT ? OFFSET ?",
       )
-      .bind(id)
+      .bind(id, limit, offset)
       .all(),
     db.prepare("SELECT * FROM exams WHERE subject_id = ? ORDER BY date").bind(id).all(),
     db
@@ -38,6 +58,12 @@ app.get("/subject/:id", async (c) => {
       )
       .bind(id)
       .all(),
+    db
+      .prepare(
+        "SELECT COUNT(*) as cnt, MAX(created_at) as max_created FROM materials WHERE subject_id = ?",
+      )
+      .bind(id)
+      .first<{ cnt: number; max_created: string | null }>(),
   ])
 
   const assetsByMaterialId = new Map<string, ReturnType<typeof mapAsset>[]>()
@@ -48,14 +74,13 @@ app.get("/subject/:id", async (c) => {
     else assetsByMaterialId.set(asset.materialId, [asset])
   }
 
-  let maxCreatedAt = ""
   const materials = materialRows.results.map((r) => {
     const m = mapMaterial(r)
     m.assets = assetsByMaterialId.get(m.id) ?? []
-    const created = (r as { created_at?: string }).created_at
-    if (created && created > maxCreatedAt) maxCreatedAt = created
     return m
   })
+  const totalMaterials = (statsRow?.cnt as number) ?? materials.length
+  const maxCreatedAt = (statsRow?.max_created as string | null) ?? ""
 
   const detail: SubjectDetail = {
     subject: {
@@ -69,7 +94,8 @@ app.get("/subject/:id", async (c) => {
       professors: JSON.parse((subjectRow.professors as string) || "[]"),
       assistants: JSON.parse((subjectRow.assistants as string) || "[]"),
     },
-    revision: `${materials.length}:${maxCreatedAt}`,
+    revision: `${totalMaterials}:${maxCreatedAt}`,
+    totalMaterials,
     materials,
     exams: examRows.results.map(mapExamEvent),
   }

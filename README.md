@@ -12,6 +12,7 @@
   <img src="https://img.shields.io/badge/Cloudflare%20Workers-F38020?style=flat-square&logo=cloudflare&logoColor=fff" alt="Cloudflare Workers">
   <img src="https://img.shields.io/badge/License-MIT-3da639?style=flat-square" alt="MIT">
   <img src="https://github.com/BojanKonjevic/index/actions/workflows/test.yml/badge.svg" alt="CI">
+  <img src="https://github.com/BojanKonjevic/index/actions/workflows/e2e.yml/badge.svg" alt="E2E">
 </p>
 
 <p align="center">

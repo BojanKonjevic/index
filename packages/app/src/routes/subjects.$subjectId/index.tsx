@@ -5,10 +5,13 @@ import {
   BookOpen,
   Pencil,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Folder,
   SlidersHorizontal,
 } from "lucide-react"
 import { fetchSubject } from "@/lib/api"
+import { CATEGORY_ORDER, SUBJECT_MATERIALS_PAGE_SIZE } from "@index/shared"
 import { useBookmarks } from "@/hooks/useBookmarks"
 
 import { daysUntil, parseISODate } from "@/lib/utils"
@@ -18,7 +21,6 @@ import { ErrorFallback } from "@/components/ErrorFallback"
 import { MaterialBadges } from "@/components/MaterialBadges"
 import ExpandableAssets from "@/components/ExpandableAssets"
 import { MaterialFilters } from "@/components/MaterialFilters"
-import { CATEGORY_ORDER } from "@index/shared"
 import type { Material } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
 import { useState, useEffect, useMemo } from "react"
@@ -32,7 +34,16 @@ import { OfflineBadge } from "@/components/OfflineBadge"
 const categoryOrder = CATEGORY_ORDER
 
 export const Route = createFileRoute("/subjects/$subjectId/")({
-  loader: ({ params }) => fetchSubject(params.subjectId),
+  validateSearch: (search: Record<string, unknown>) => {
+    const out: { page?: number } = {}
+    if (typeof search.page === "string" || typeof search.page === "number") {
+      const n = Number(search.page)
+      if (Number.isFinite(n) && n >= 1) out.page = Math.floor(n)
+    }
+    return out
+  },
+  loaderDeps: ({ search }) => ({ page: search.page ?? 1 }),
+  loader: ({ params, deps }) => fetchSubject(params.subjectId, deps.page),
   component: SubjectPage,
   errorComponent: ErrorFallback,
 })
@@ -111,7 +122,9 @@ function MaterialRow({ material, offline }: { material: Material; offline: boole
 
 // eslint-disable-next-line react-refresh/only-export-components
 function SubjectPage() {
-  const { subject, materials, exams, revision } = Route.useLoaderData()
+  const { subject, materials, exams, revision, totalMaterials } = Route.useLoaderData()
+  const { page: pageParam } = Route.useSearch()
+  const page = pageParam ?? 1
   const { t, locale } = useI18n()
   const { isDownloaded } = useOfflineDownloads()
   const offline = isDownloaded(subject.id)
@@ -155,6 +168,8 @@ function SubjectPage() {
     else if (m.solved === false) target.unsolved.push(m)
     else target.unknown.push(m)
   })
+
+  const totalPages = Math.max(1, Math.ceil(totalMaterials / SUBJECT_MATERIALS_PAGE_SIZE))
 
   const now = new Date()
   now.setHours(0, 0, 0, 0)
@@ -393,6 +408,48 @@ function SubjectPage() {
               </section>
             )
           })
+        )}
+        {totalPages > 1 && (
+          <nav
+            aria-label={t("subject.page_fmt", { n: page, m: totalPages })}
+            className="mt-2 flex items-center justify-center gap-3 pb-4"
+          >
+            {page > 1 ? (
+              <Link
+                to="/subjects/$subjectId"
+                params={{ subjectId: subject.id }}
+                search={{ page: page - 1 }}
+                className="flex items-center gap-1 rounded-[0.5rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-[0.813rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+              >
+                <ChevronLeft className="size-4" />
+                {t("subject.page_prev")}
+              </Link>
+            ) : (
+              <span className="flex items-center gap-1 rounded-[0.5rem] border border-[var(--border-faint)] px-3 py-2 text-[0.813rem] text-[var(--text-hint)] opacity-50">
+                <ChevronLeft className="size-4" />
+                {t("subject.page_prev")}
+              </span>
+            )}
+            <span className="text-[0.813rem] text-[var(--text-secondary)]">
+              {t("subject.page_fmt", { n: page, m: totalPages })}
+            </span>
+            {page < totalPages ? (
+              <Link
+                to="/subjects/$subjectId"
+                params={{ subjectId: subject.id }}
+                search={{ page: page + 1 }}
+                className="flex items-center gap-1 rounded-[0.5rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-[0.813rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+              >
+                {t("subject.page_next")}
+                <ChevronRight className="size-4" />
+              </Link>
+            ) : (
+              <span className="flex items-center gap-1 rounded-[0.5rem] border border-[var(--border-faint)] px-3 py-2 text-[0.813rem] text-[var(--text-hint)] opacity-50">
+                {t("subject.page_next")}
+                <ChevronRight className="size-4" />
+              </span>
+            )}
+          </nav>
         )}
       </div>
     </div>
