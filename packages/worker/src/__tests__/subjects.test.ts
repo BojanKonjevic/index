@@ -47,56 +47,13 @@ describe("GET /api/subject/:id", () => {
     expect(res.status).toBe(404)
   })
 
-  it("reports totalMaterials independent of the page", async () => {
-    const full = await (
-      await SELF.fetch("http://localhost/api/subject/matematicka-analiza-2")
-    ).json<{ materials: Array<{ id: string }>; totalMaterials: number; revision: string }>()
-    const page = await (
-      await SELF.fetch("http://localhost/api/subject/matematicka-analiza-2?limit=1")
-    ).json<{ materials: Array<{ id: string }>; totalMaterials: number; revision: string }>()
-
-    expect(page.materials).toHaveLength(1)
-    expect(page.totalMaterials).toBe(full.totalMaterials)
-    expect(page.totalMaterials).toBeGreaterThan(full.materials.length)
-    // revision still describes the whole set, so offline staleness checks keep working
-    expect(page.revision).toBe(full.revision)
-    expect(page.revision.startsWith(`${page.totalMaterials}:`)).toBe(true)
-  })
-
-  it("paginates materials with page and limit", async () => {
-    const p1 = await (
-      await SELF.fetch("http://localhost/api/subject/matematicka-analiza-2?limit=1&page=1")
-    ).json<{ materials: Array<{ id: string }> }>()
-    const p2 = await (
-      await SELF.fetch("http://localhost/api/subject/matematicka-analiza-2?limit=1&page=2")
-    ).json<{ materials: Array<{ id: string }> }>()
-
-    expect(p1.materials).toHaveLength(1)
-    expect(p2.materials).toHaveLength(1)
-    expect(p2.materials[0].id).not.toBe(p1.materials[0].id)
-  })
-
-  it("falls back to defaults for invalid page and limit", async () => {
-    const res = await SELF.fetch(
-      "http://localhost/api/subject/matematicka-analiza-2?page=abc&limit=abc",
-    )
-    expect(res.status).toBe(200)
-    const body = await res.json<{ materials: Array<{ id: string }>; totalMaterials: number }>()
-    expect(body.materials.length).toBe(50)
-    expect(body.totalMaterials).toBeGreaterThan(50)
-  })
-
-  it("clamps out of range limit into 1..500", async () => {
-    const low = await (
-      await SELF.fetch("http://localhost/api/subject/matematicka-analiza-2?limit=-5")
-    ).json<{ materials: Array<{ id: string }> }>()
-    expect(low.materials).toHaveLength(1)
-  })
-
-  it("returns the whole subject at the max limit for viewer deep links", async () => {
-    const res = await SELF.fetch("http://localhost/api/subject/matematicka-analiza-2?limit=200")
-    const body = await res.json<{ materials: Array<{ id: string }>; totalMaterials: number }>()
-    expect(body.materials.length).toBe(body.totalMaterials)
-    expect(body.materials.some((m) => m.id === "ma2-vezbe-01")).toBe(true)
+  it("returns all materials unbounded with a revision covering the whole set", async () => {
+    const res = await SELF.fetch("http://localhost/api/subject/matematicka-analiza-2")
+    const body = await res.json<{
+      materials: Array<{ id: string }>
+      revision: string
+    }>()
+    expect(body.materials.length).toBeGreaterThan(50)
+    expect(body.revision.startsWith(`${body.materials.length}:`)).toBe(true)
   })
 })

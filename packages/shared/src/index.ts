@@ -69,22 +69,11 @@ export interface SubjectDetail {
   subject: Subject
   materials: Material[]
   exams: ExamEvent[]
-  /** Total material count across all pages. The live counterpart of
-   *  `OfflineSubjectPayload.materialCount`. */
-  totalMaterials: number
-  /** Snapshot id: `${totalMaterials}:${max(materials.created_at)}`. The live
+  /** Snapshot id: `${materials.length}:${max(materials.created_at)}`. The live
    *  counterpart of `OfflineSubjectPayload.revision`; the offline bundle is
    *  stale when the two differ. */
   revision: string
 }
-
-/** Default page size for the subject detail materials list. */
-export const SUBJECT_MATERIALS_PAGE_SIZE = 50
-
-/** Upper bound for the subject detail materials list. No subject will ever
- *  hold this many files; the cap only guards against abuse. The viewer loads
- *  a full subject (up to this many materials) so deep links never 404. */
-export const SUBJECT_MATERIALS_LIMIT_MAX = 500
 
 export interface OfflineSubjectPage {
   materialId: string
