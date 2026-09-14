@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { AppError } from "../lib/error"
 import type { Bindings } from ".."
 import type { SubjectListItem, SubjectDetail, MaterialAsset } from "@index/shared"
-import { SUBJECT_MATERIALS_PAGE_SIZE } from "@index/shared"
+import { SUBJECT_MATERIALS_PAGE_SIZE, SUBJECT_MATERIALS_LIMIT_MAX } from "@index/shared"
 import { mapMaterial, mapAsset, mapSubjectListItem, mapExamEvent } from "../lib/db"
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -18,7 +18,7 @@ app.get("/subjects", async (c) => {
   return c.json(subjects, 200)
 })
 
-const MAX_MATERIAL_LIMIT = 200
+const MAX_MATERIAL_LIMIT = SUBJECT_MATERIALS_LIMIT_MAX
 
 function parsePage(raw: string | undefined): number {
   if (!raw) return 1

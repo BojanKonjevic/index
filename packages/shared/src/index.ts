@@ -81,6 +81,11 @@ export interface SubjectDetail {
 /** Default page size for the subject detail materials list. */
 export const SUBJECT_MATERIALS_PAGE_SIZE = 50
 
+/** Upper bound for the subject detail materials list. No subject will ever
+ *  hold this many files; the cap only guards against abuse. The viewer loads
+ *  a full subject (up to this many materials) so deep links never 404. */
+export const SUBJECT_MATERIALS_LIMIT_MAX = 500
+
 export interface OfflineSubjectPage {
   materialId: string
   pageNumber: number

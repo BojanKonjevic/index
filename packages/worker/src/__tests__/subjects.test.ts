@@ -86,10 +86,17 @@ describe("GET /api/subject/:id", () => {
     expect(body.totalMaterials).toBeGreaterThan(50)
   })
 
-  it("clamps out of range limit into 1..200", async () => {
+  it("clamps out of range limit into 1..500", async () => {
     const low = await (
       await SELF.fetch("http://localhost/api/subject/matematicka-analiza-2?limit=-5")
     ).json<{ materials: Array<{ id: string }> }>()
     expect(low.materials).toHaveLength(1)
+  })
+
+  it("returns the whole subject at the max limit for viewer deep links", async () => {
+    const res = await SELF.fetch("http://localhost/api/subject/matematicka-analiza-2?limit=200")
+    const body = await res.json<{ materials: Array<{ id: string }>; totalMaterials: number }>()
+    expect(body.materials.length).toBe(body.totalMaterials)
+    expect(body.materials.some((m) => m.id === "ma2-vezbe-01")).toBe(true)
   })
 })

@@ -45,8 +45,10 @@ export async function fetchSubjects(): Promise<SubjectListItem[]> {
   return fetchApi("/subjects")
 }
 
-export async function fetchSubject(id: string, page = 1): Promise<SubjectDetail> {
-  return fetchApi(`/subject/${id}?page=${page}`)
+export async function fetchSubject(id: string, page = 1, limit?: number): Promise<SubjectDetail> {
+  const params = new URLSearchParams({ page: String(page) })
+  if (limit !== undefined) params.set("limit", String(limit))
+  return fetchApi(`/subject/${id}?${params.toString()}`)
 }
 
 export async function fetchDashboard(): Promise<DashboardData> {

@@ -25,7 +25,7 @@ import { SidebarContent } from "@/components/SidebarContent"
 import { BookmarkButton } from "@/components/BookmarkButton"
 import { getOrderedHighlights, getTextLayer } from "@/lib/textLayer"
 import type { Material, MaterialAsset } from "@index/shared"
-import { CATEGORY_ORDER } from "@index/shared"
+import { CATEGORY_ORDER, SUBJECT_MATERIALS_LIMIT_MAX } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
 import { sidebarToggleScrollCompensation } from "@/lib/sidebarToggle"
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react"
@@ -48,7 +48,10 @@ export const Route = createFileRoute("/subjects/$subjectId/materials/$materialId
     }
     return out
   },
-  loader: ({ params }) => fetchSubject(params.subjectId),
+  // The viewer needs the whole subject (sidebar modes, sibling lookup),
+  // so it loads one full page up to the server cap instead of page one.
+  // Deep links to materials past the first 50 would otherwise 404.
+  loader: ({ params }) => fetchSubject(params.subjectId, 1, SUBJECT_MATERIALS_LIMIT_MAX),
   staleTime: 30_000,
   gcTime: 60_000,
   component: ViewerPage,
