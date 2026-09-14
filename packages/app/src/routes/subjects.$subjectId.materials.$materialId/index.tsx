@@ -12,6 +12,8 @@ import {
   X,
   ZoomIn,
   ZoomOut,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react"
 
 import { fetchSearchPages, fetchSubject } from "@/lib/api"
@@ -28,7 +30,14 @@ import type { Material, MaterialAsset } from "@index/shared"
 import { CATEGORY_ORDER, SUBJECT_MATERIALS_LIMIT_MAX } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
 import { sidebarToggleScrollCompensation } from "@/lib/sidebarToggle"
-import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react"
+import {
+  captureZoomAnchor,
+  restoreZoomAnchor,
+  resolveZoomIn,
+  resolveZoomOut,
+  type ZoomAnchor,
+} from "@/lib/zoomAnchor"
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, lazy, Suspense } from "react"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import VideoViewer from "@/components/VideoViewer"
 import AssetGallery from "@/components/AssetGallery"
@@ -111,6 +120,7 @@ function ViewerPage() {
   const offline = isDownloaded(subjectId)
   const { t } = useI18n()
   const [sidebarMode, setSidebarMode] = useState<"category" | "all" | "this">("category")
+  const [rightCollapsed, setRightCollapsed] = useState(false)
   const [materialsSheetOpen, setMaterialsSheetOpen] = useState(false)
 
   const [pageNum, setPageNum] = useState(1)
@@ -129,6 +139,7 @@ function ViewerPage() {
   const [containerWidth, setContainerWidth] = useState(0)
   const [fitWidthMode, setFitWidthMode] = useState(true)
   const parentRef = useRef<HTMLDivElement>(null)
+  const zoomAnchorRef = useRef<ZoomAnchor | null>(null)
   const observerSetupRef = useRef(false)
   const [cssScale, setCssScale] = useState(1)
   const transitioningRef = useRef(false)
@@ -169,6 +180,20 @@ function ViewerPage() {
       clearTimeout(transitionTimeoutRef.current)
       transitionTimeoutRef.current = setTimeout(() => {
         transitioningRef.current = false
+        // The resize observer stays gated during the transition and never
+        // sees the final width, while the cssScale compensation above sticks
+        // forever and bypasses fitWidthMode. Settle both here: the compensated
+        // zoom already equals the new fit, so this is visually a no-op that
+        // restores the clean fit state (collapsing the sidebar refits instead
+        // of freezing the old height).
+        if (fitWidthMode && naturalPageWidth) {
+          const w = Math.round(el.clientWidth)
+          if (w > 0) {
+            setContainerWidth(w)
+            setZoom((w - 64) / naturalPageWidth)
+          }
+          setCssScale(1)
+        }
       }, 200)
     }
 
@@ -372,27 +397,44 @@ function ViewerPage() {
   const canvasZoom = cssScale !== 1 ? zoom : displayZoom
   const atMaxZoom = displayZoom * ZOOM_STEP >= MAX_ZOOM
   const atMinZoom = displayZoom / ZOOM_STEP <= MIN_ZOOM
+  // Page-anchored zoom: snapshot the viewport-center page before a zoom
+  // state commits, re-anchor to it once layout updates. Without this, the
+  // unchanged scroll offset points at a different page at the new scale
+  // (zooming out jumps forward, zooming in jumps back).
+  const captureAnchor = () => {
+    const el = parentRef.current
+    if (!el || naturalPageHeight === null) return
+    const slot = naturalPageHeight * displayZoom + 16
+    zoomAnchorRef.current = captureZoomAnchor(el.scrollTop, el.clientHeight, slot, numPages)
+  }
+
+  useLayoutEffect(() => {
+    const anchor = zoomAnchorRef.current
+    zoomAnchorRef.current = null
+    if (!anchor || naturalPageHeight === null) return
+    const el = parentRef.current
+    if (!el) return
+    const slot = naturalPageHeight * displayZoom + 16
+    el.scrollTo({ top: restoreZoomAnchor(anchor, slot, el.clientHeight) })
+  }, [displayZoom, naturalPageHeight])
+
   const zoomIn = () => {
-    setFitWidthMode(false)
     const s = cssScale
+    const effective = s !== 1 ? zoom * s : zoom
+    const next = resolveZoomIn(effective, ZOOM_STEP, MAX_ZOOM)
+    if (next !== displayZoom) captureAnchor()
+    setFitWidthMode(false)
     if (s !== 1) setCssScale(1)
-    setZoom((z) => {
-      const effective = s !== 1 ? z * s : z
-      return effective * ZOOM_STEP >= MAX_ZOOM
-        ? effective
-        : Math.min(effective * ZOOM_STEP, MAX_ZOOM)
-    })
+    setZoom(next)
   }
   const zoomOut = () => {
-    setFitWidthMode(false)
     const s = cssScale
+    const effective = s !== 1 ? zoom * s : zoom
+    const next = resolveZoomOut(effective, ZOOM_STEP, MIN_ZOOM)
+    if (next !== displayZoom) captureAnchor()
+    setFitWidthMode(false)
     if (s !== 1) setCssScale(1)
-    setZoom((z) => {
-      const effective = s !== 1 ? z * s : z
-      return effective / ZOOM_STEP <= MIN_ZOOM
-        ? effective
-        : Math.max(effective / ZOOM_STEP, MIN_ZOOM)
-    })
+    setZoom(next)
   }
 
   const fitWidth = () => {
@@ -402,6 +444,7 @@ function ViewerPage() {
     const w = parentRef.current?.clientWidth ?? containerWidth
     if (w <= 0) return
     const fit = (w - 64) / naturalPageWidth
+    if (fit !== displayZoom) captureAnchor()
     setZoom(fit)
     setFitWidthMode(true)
   }
@@ -410,6 +453,7 @@ function ViewerPage() {
     if (fit) {
       fitWidth()
     } else if (zoomValue !== null) {
+      if (zoomValue !== displayZoom) captureAnchor()
       setFitWidthMode(false)
       setZoom(zoomValue)
     }
@@ -833,42 +877,71 @@ function ViewerPage() {
           )}
         </div>
 
-        {/* ── Right sidebar (desktop) ── */}
-        <div className="hidden sm:flex w-[17.5rem] shrink-0 flex-col overflow-hidden border-l bg-[var(--bg-surface)] border-[var(--border-default)]">
-          <SidebarContent
-            sidebarMode={sidebarMode}
-            setSidebarMode={setSidebarMode}
-            sidebarMaterials={sidebarMaterials}
-            groupedByExamPart={groupedByExamPart}
-            groupedByCategory={groupedByCategory}
-            categoryName={categoryName}
-            hasAssets={hasAssets}
-            subjectId={subjectId}
-            materialId={materialId}
-            assetFromUrl={assetFromUrl}
-            offline={offline}
-          />
+        {/* ── Right sidebar (desktop, collapsible) ── */}
+        {!rightCollapsed && (
+          <div className="hidden sm:flex w-[17.5rem] shrink-0 flex-col overflow-hidden border-l bg-[var(--bg-surface)] border-[var(--border-default)]">
+            <SidebarContent
+              sidebarMode={sidebarMode}
+              setSidebarMode={setSidebarMode}
+              sidebarMaterials={sidebarMaterials}
+              groupedByExamPart={groupedByExamPart}
+              groupedByCategory={groupedByCategory}
+              categoryName={categoryName}
+              hasAssets={hasAssets}
+              subjectId={subjectId}
+              materialId={materialId}
+              assetFromUrl={assetFromUrl}
+              offline={offline}
+            />
 
-          <div className="flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[var(--border-faint)] px-3 py-2.5 text-[0.688rem] text-[var(--text-hint)]">
-            {hlParam && material?.fileType === "pdf" ? (
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[var(--border-faint)] px-3 py-2.5 text-[0.688rem] text-[var(--text-hint)]">
+              {hlParam && material?.fileType === "pdf" ? (
+                <span>
+                  <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
+                    ↵
+                  </kbd>{" "}
+                  <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
+                    ⇧↵
+                  </kbd>{" "}
+                  <span className="text-[var(--text-secondary)]">{t("viewer.shortcut_find")}</span>
+                </span>
+              ) : null}
               <span>
                 <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
-                  ↵
+                  b
                 </kbd>{" "}
-                <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
-                  ⇧↵
-                </kbd>{" "}
-                <span className="text-[var(--text-secondary)]">{t("viewer.shortcut_find")}</span>
+                <span className="text-[var(--text-secondary)]">
+                  {t("viewer.shortcut_bookmark")}
+                </span>
               </span>
-            ) : null}
-            <span>
-              <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
-                b
-              </kbd>{" "}
-              <span className="text-[var(--text-secondary)]">{t("viewer.shortcut_bookmark")}</span>
-            </span>
+            </div>
           </div>
-        </div>
+        )}
+        {/* Open state: flush inside the panel's left edge, mirroring how
+            the left toggle sits flush inside its panel's right edge.
+            Fixed (not absolute) for two reasons: same viewport height as
+            the left toggle, and immune to the panel's overflow-hidden. The
+            17.5rem matches the panel width. */}
+        {!rightCollapsed && (
+          <button
+            onClick={() => setRightCollapsed(true)}
+            aria-label={t("viewer.sidebar_collapse")}
+            title={t("viewer.sidebar_collapse")}
+            className="fixed top-1/2 right-[calc(17.5rem-1.75rem)] z-50 hidden size-7 -translate-y-1/2 items-center justify-center rounded-r-md bg-[var(--bg-surface)] border border-l-0 border-[var(--border-default)] text-[var(--text-hint)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all duration-100 cursor-pointer shadow-sm sm:flex"
+          >
+            <PanelRightClose className="size-4" />
+          </button>
+        )}
+        {rightCollapsed && (
+          <button
+            onClick={() => setRightCollapsed(false)}
+            aria-label={t("viewer.sidebar_expand")}
+            title={t("viewer.sidebar_expand")}
+            className="fixed right-0 top-1/2 z-50 hidden sm:flex -translate-y-1/2 items-center justify-center size-7 rounded-l-md bg-[var(--bg-surface)] border border-r-0 border-[var(--border-default)] text-[var(--text-hint)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all duration-100 cursor-pointer shadow-sm"
+          >
+            <PanelRightOpen className="size-4" />
+          </button>
+        )}
       </div>
 
       {/* ── Bottom toolbar (mobile) ── */}

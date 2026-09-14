@@ -77,3 +77,26 @@ test("offline banner follows connectivity", async ({ page, context }) => {
   await context.setOffline(false)
   await expect(banner).toBeHidden()
 })
+
+test("fit width keeps the current page", async ({ page }) => {
+  await continueAsGuest(page)
+  // A long document where a zoom change visibly moves the page tracker.
+  await page.goto("/subjects/matematicka-analiza-2/materials/ma2-knjiga-mila-stojakovic")
+  const viewer = page.locator("main")
+  const pageInput = viewer.getByRole("textbox").first()
+  await expect(pageInput).toBeVisible({ timeout: 30_000 })
+  // Gate on the loaded document: total page count rendered next to the input.
+  await expect(viewer.getByText(/\/\s*[12][0-9]{2}/).first()).toBeVisible({ timeout: 60_000 })
+
+  await pageInput.fill("150")
+  await pageInput.press("Enter")
+  await expect(pageInput).toHaveValue("150")
+  // goToPage smooth-scrolls; toggling zoom mid flight would anchor the
+  // transit position instead of page 150. Wait for the scroll to settle.
+  await page.waitForTimeout(2000)
+
+  // Zoom in (leaves fit mode), then fit width again. The page must not move.
+  await page.getByRole("button", { name: /većaj|zoom in/i }).click()
+  await page.locator("button:has(svg.lucide-maximize)").first().click()
+  await expect(pageInput).toHaveValue("150")
+})
