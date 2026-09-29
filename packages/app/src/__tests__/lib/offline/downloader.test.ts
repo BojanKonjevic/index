@@ -101,6 +101,7 @@ function makePayload(): OfflineSubjectPayload {
             url: "/api/file/vezbe-2.jpg",
           },
         ],
+        searchable: true,
       },
       {
         id: "m2",
@@ -130,6 +131,7 @@ function makePayload(): OfflineSubjectPayload {
             url: "/api/file/vezbe-4.jpg",
           },
         ],
+        searchable: true,
       },
     ],
     pages: [{ materialId: "m1", pageNumber: 1, text: "Prvi red" }],

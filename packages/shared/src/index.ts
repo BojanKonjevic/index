@@ -26,7 +26,7 @@ export interface MaterialAsset {
   materialId: string
   pageNumber: number
   name: string
-  fileType: "pdf" | "video" | "image"
+  fileType: "pdf" | "video" | "image" | "text"
   url: string
 }
 
@@ -37,9 +37,11 @@ export interface Material {
   category: MaterialCategory
   examPart: string | null
   solved: boolean | null
-  fileType: "pdf" | "video" | "image"
+  fileType: "pdf" | "video" | "image" | "text"
   url: string
   tags: string[]
+  /** False opts the material out of title and full-text search. */
+  searchable: boolean
   pageCount?: number
   assets: MaterialAsset[]
   assetCount?: number
@@ -131,7 +133,7 @@ export interface SearchContentItem {
   subjectId: string
   subjectName: string
   title: string
-  fileType: "pdf" | "video" | "image"
+  fileType: "pdf" | "video" | "image" | "text"
   hits: number
   /** Lowest-numbered page containing the query, i.e. the true first occurrence,
    *  independent of the top-3-by-relevance snippet window. */

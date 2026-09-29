@@ -17,6 +17,7 @@ const data: GlobalData = {
       url: "/api/file/vezbe.pdf",
       tags: [],
       assets: [],
+      searchable: true,
     },
   ],
   exams: [

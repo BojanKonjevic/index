@@ -1,9 +1,10 @@
-import { FileText, FileVideo, FileImage } from "lucide-react"
+import { FileText, FileVideo, FileImage, FileCode } from "lucide-react"
 
 export const typeBadgeStyles: Record<string, string> = {
   pdf: "bg-[var(--type-pdf-bg)] text-[var(--type-pdf-text)]",
   video: "bg-[var(--type-video-bg)] text-[var(--type-video-text)]",
   image: "bg-[var(--type-image-bg)] text-[var(--type-image-text)]",
+  text: "bg-[var(--type-text-bg)] text-[var(--type-text-text)]",
 }
 
 export const typeTagStyles: Record<string, { container: string; icon: string }> = {
@@ -19,12 +20,17 @@ export const typeTagStyles: Record<string, { container: string; icon: string }> 
     container: "border-[var(--type-image-text)] bg-[var(--type-image-bg)]",
     icon: "text-[var(--type-image-text)]",
   },
+  text: {
+    container: "border-[var(--type-text-text)] bg-[var(--type-text-bg)]",
+    icon: "text-[var(--type-text-text)]",
+  },
 }
 
 export const typeIconMap: Record<string, typeof FileText> = {
   pdf: FileText,
   video: FileVideo,
   image: FileImage,
+  text: FileCode,
 }
 
 export const categoryBadgeStyles: Record<string, string> = {

@@ -53,7 +53,11 @@ function buildFilter(
   materialId: string | undefined,
   includeOcr: boolean,
 ): { sql: string; params: string[] } {
-  const parts: string[] = []
+  // Opt-out is enforced at query time (never by skipping the index), so
+  // toggling `searchable` takes effect without a reindex. The in-material
+  // find endpoint (/search/pages) stays unfiltered: finding text inside an
+  // already open document is explicit navigation, not search pollution.
+  const parts = ["material_id IN (SELECT id FROM materials WHERE searchable = 1)"]
   const params: string[] = []
   if (!includeOcr) parts.push("source = 'pdf'")
   if (scope === "subject") {

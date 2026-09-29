@@ -166,8 +166,9 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
 
   const scopeSubjects =
     mode === "subject" && subjectId ? subjects.filter((s) => s.id === subjectId) : subjects
-  const scopeMaterials =
+  const scopeMaterials = (
     mode === "subject" && subjectId ? materials.filter((m) => m.subjectId === subjectId) : materials
+  ).filter((m) => m.searchable !== false)
   const scopeExams =
     mode === "subject" && subjectId ? exams.filter((e) => e.subjectId === subjectId) : exams
 

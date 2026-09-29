@@ -62,6 +62,8 @@
   --color-type-video-text: var(--type-video-text);
   --color-type-image-bg: var(--type-image-bg);
   --color-type-image-text: var(--type-image-text);
+  --color-type-text-bg: var(--type-text-bg);
+  --color-type-text-text: var(--type-text-text);
   --color-nav-active-bg: var(--nav-active-bg);
   --color-nav-active-text: var(--nav-active-text);
 }
@@ -105,6 +107,8 @@
   --type-video-text: #6b3fa0;
   --type-image-bg: #e0f5f0;
   --type-image-text: #008060;
+  --type-text-bg: #e8f0fe;
+  --type-text-text: #2456c4;
 
   --nav-active-bg: #161617;
   --nav-active-text: #fcfcfc;
@@ -138,6 +142,8 @@
   --type-video-text: #c080e8;
   --type-image-bg: rgba(0, 160, 120, 0.12);
   --type-image-text: #40c0a0;
+  --type-text-bg: rgba(80, 130, 255, 0.12);
+  --type-text-text: #7fa8ff;
 
   --status-soon-bg: rgba(220, 60, 40, 0.12);
   --status-soon-text: #e86060;
@@ -152,6 +158,34 @@
   --nav-active-text: #6b8aff;
 
   --pdf-bg: #1a1a1c;
+}
+
+/* Code viewer token colors, both themes. */
+.codeblock .hljs-keyword,
+.codeblock .hljs-selector-tag,
+.codeblock .hljs-built_in {
+  color: #9a4fd0;
+}
+.codeblock .hljs-string,
+.codeblock .hljs-number {
+  color: #1a7f4b;
+}
+.codeblock .hljs-comment {
+  color: var(--text-hint);
+  font-style: italic;
+}
+.codeblock .hljs-operator,
+.codeblock .hljs-punctuation {
+  color: var(--text-secondary);
+}
+[data-theme="dark"] .codeblock .hljs-keyword,
+[data-theme="dark"] .codeblock .hljs-selector-tag,
+[data-theme="dark"] .codeblock .hljs-built_in {
+  color: #c792ea;
+}
+[data-theme="dark"] .codeblock .hljs-string,
+[data-theme="dark"] .codeblock .hljs-number {
+  color: #7ddba3;
 }
 
 html {

@@ -26,6 +26,7 @@ const dashboard = {
       url: "/api/file/ma2/vezbe-12.pdf",
       tags: [],
       assets: [],
+      searchable: true,
     },
   ],
   exams: [],
@@ -103,6 +104,7 @@ function offlineBundle(): OfflineSubjectPayload {
         url: "/api/file/ma2/vezbe-12.pdf",
         tags: [],
         assets: [],
+        searchable: true,
       },
     ],
     pages: [

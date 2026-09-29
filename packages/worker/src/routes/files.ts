@@ -8,6 +8,9 @@ const mimeTypes: Record<string, string> = {
   png: "image/png",
   mp4: "video/mp4",
   webm: "video/webm",
+  txt: "text/plain; charset=utf-8",
+  sql: "text/plain; charset=utf-8",
+  text: "text/plain; charset=utf-8",
 }
 
 function getMimeType(ext: string): string {
