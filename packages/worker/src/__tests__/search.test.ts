@@ -92,6 +92,7 @@ async function seedSearch() {
     ftsRow(mC, 1, "resenje fizicke", "Rešenje fizicke"),
     ftsRow(mC, 2, "resenje toplotte", "Rešenje toplotte"),
     ftsRow(mC, 3, "resenje mehanike", "Rešenje mehanike"),
+    ftsRow(mC, 4, "tekstualni pojam", "Tekstualni pojam", "text"),
     // mD: the first occurrence is on page 1 but is a weak match buried in
     // filler, so it falls outside the top-3-by-relevance snippet window.
     ftsRow(
@@ -211,6 +212,12 @@ describe("GET /api/search", () => {
       includeOcr: "1",
     })
     expect(withOcr.body.content.items[0].hits).toBe(5) // page 99 becomes visible
+  })
+
+  it("includes text rows by default, without the ocr flag", async () => {
+    const { body } = await search({ q: "tekstualni", scope: "material", materialId: mC })
+    expect(body.content.items).toHaveLength(1)
+    expect(body.content.items[0].materialId).toBe(mC)
   })
 
   it("matches Cyrillic input and highlights matches in snippets", async () => {
