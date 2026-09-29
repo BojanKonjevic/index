@@ -41,6 +41,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback, lazy, Suspen
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import VideoViewer from "@/components/VideoViewer"
 import AssetGallery from "@/components/AssetGallery"
+import TextViewer from "@/components/TextViewer"
 
 const PdfViewer = lazy(() => import("@/components/PdfViewer"))
 
@@ -300,6 +301,10 @@ function ViewerPage() {
   const hasAssets = !!(material && material.assets.length > 0)
   const isContainer = material?.fileType === "image" && hasAssets
   const showAssetGallery = isContainer || viewerTab === "assets"
+  // Code attachments (sql, txt) render in the text viewer, not the gallery.
+  const currentAsset =
+    viewerTab === "assets" && material && !isContainer ? material.assets[assetIndex] : undefined
+  const showTextAsset = currentAsset?.fileType === "text"
 
   useEffect(() => {
     if (!hlParam || material?.fileType !== "pdf" || showAssetGallery) {
@@ -786,6 +791,8 @@ function ViewerPage() {
             <div className="flex-1 flex items-center justify-center pt-20 text-sm text-[var(--text-secondary)]">
               {t("viewer.not_found")}
             </div>
+          ) : showTextAsset && currentAsset ? (
+            <TextViewer url={currentAsset.url} />
           ) : showAssetGallery && material ? (
             <AssetGallery
               assets={
@@ -827,6 +834,8 @@ function ViewerPage() {
             />
           ) : material.fileType === "video" ? (
             <VideoViewer url={material.url} />
+          ) : material.fileType === "text" ? (
+            <TextViewer url={material.url} />
           ) : !material.url ? (
             <div className="flex-1 flex items-center justify-center pt-20 text-sm text-[var(--text-secondary)]">
               {t("viewer.no_url")}

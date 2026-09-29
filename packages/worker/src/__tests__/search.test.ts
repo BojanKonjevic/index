@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest"
 import { env, exports } from "cloudflare:workers"
 import { runMigrations, seedSubject } from "./helpers"
 import searchSql from "../../migrations/0003_search.sql?raw"
+import searchableSql from "../../migrations/0006_searchable.sql?raw"
 
 type Worker = {
   fetch: (url: string | Request, init?: RequestInit) => Promise<Response>
@@ -33,6 +34,7 @@ const mA = "ma2-k1-kolokvijum-2015-11-15"
 const mB = "ma2-vezbe-01"
 const mC = "fizika-skripta"
 const mD = "ma2-definicije"
+const mE = "ma2-skriveni-prilog"
 const SUBJECT_A = "matematicka-analiza-2"
 const SUBJECT_C = "fizika"
 
@@ -61,6 +63,9 @@ async function seedSearch() {
     DB.prepare(
       `INSERT OR IGNORE INTO materials (id, subject_id, title, category, exam_part, solved, file_type, url, page_count, tags) VALUES ('${mD}', '${SUBJECT_A}', 'Definicije', 'theory', NULL, NULL, 'pdf', '/api/file/ma2/definicije.pdf', 0, '[]')`,
     ),
+    DB.prepare(
+      `INSERT OR IGNORE INTO materials (id, subject_id, title, category, exam_part, solved, file_type, url, page_count, tags, searchable) VALUES ('${mE}', '${SUBJECT_A}', 'Skriveni prilog', 'misc', NULL, NULL, 'pdf', '/api/file/ma2/skriveno.pdf', 0, '[]', 0)`,
+    ),
   ])
 
   const rows = [
@@ -87,6 +92,7 @@ async function seedSearch() {
     ftsRow(mC, 1, "resenje fizicke", "Rešenje fizicke"),
     ftsRow(mC, 2, "resenje toplotte", "Rešenje toplotte"),
     ftsRow(mC, 3, "resenje mehanike", "Rešenje mehanike"),
+    ftsRow(mC, 4, "tekstualni pojam", "Tekstualni pojam", "text"),
     // mD: the first occurrence is on page 1 but is a weak match buried in
     // filler, so it falls outside the top-3-by-relevance snippet window.
     ftsRow(
@@ -98,6 +104,7 @@ async function seedSearch() {
     ftsRow(mD, 10, "definicija kontura", "Definicija kontura"),
     ftsRow(mD, 11, "definicija kontura", "Definicija kontura"),
     ftsRow(mD, 12, "definicija kontura", "Definicija kontura"),
+    ftsRow(mE, 1, "sakrivenpojam sakrivenpojam", "Sakrivenpojam sakrivenpojam"),
   ]
   await DB.batch(rows)
 }
@@ -114,6 +121,7 @@ describe("GET /api/search", () => {
   beforeAll(async () => {
     await runMigrations()
     await DB.exec(statements(searchSql))
+    await DB.exec(statements(searchableSql))
     await seedSubject()
     await seedSearch()
   })
@@ -206,6 +214,12 @@ describe("GET /api/search", () => {
     expect(withOcr.body.content.items[0].hits).toBe(5) // page 99 becomes visible
   })
 
+  it("includes text rows by default, without the ocr flag", async () => {
+    const { body } = await search({ q: "tekstualni", scope: "material", materialId: mC })
+    expect(body.content.items).toHaveLength(1)
+    expect(body.content.items[0].materialId).toBe(mC)
+  })
+
   it("matches Cyrillic input and highlights matches in snippets", async () => {
     const { body } = await search({ q: "Лоран", scope: "material", materialId: mB })
     expect(body.content.items).toHaveLength(1)
@@ -233,7 +247,6 @@ describe("GET /api/search", () => {
     const { body } = await search({ q: "resenje", limit: "999" })
     expect(body.content.items.length).toBeLessThanOrEqual(50)
   })
-
   it("keeps every material when a word matches thousands of pages", async () => {
     const values = Array.from({ length: 500 }, (_, i) => {
       const pageNumber = 1000 + i
@@ -250,6 +263,24 @@ describe("GET /api/search", () => {
     expect(ids).toContain(mB)
     expect(ids).toContain(mC)
     expect(body.content.items.find((i) => i.materialId === mA)!.hits).toBeGreaterThanOrEqual(500)
+  })
+
+  it("excludes opted-out materials from every search scope", async () => {
+    const global = await search({ q: "sakrivenpojam" })
+    expect(global.body.content.total).toBe(0)
+    expect(global.body.content.items).toEqual([])
+
+    const scoped = await search({ q: "sakrivenpojam", scope: "material", materialId: mE })
+    expect(scoped.body.content.total).toBe(0)
+  })
+
+  it("still finds text inside an opted-out material once it is open", async () => {
+    const res = await SELF.fetch(
+      `http://localhost/api/search/pages?q=sakrivenpojam&materialId=${mE}`,
+    )
+    const body = (await res.json()) as { total: number }
+    expect(res.status).toBe(200)
+    expect(body.total).toBe(2)
   })
 })
 

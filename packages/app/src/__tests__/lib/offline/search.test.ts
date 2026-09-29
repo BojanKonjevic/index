@@ -34,6 +34,7 @@ function makeBundle(
       url: `/api/file/${id}.pdf`,
       tags: [],
       assets: [],
+      searchable: true,
     })),
     pages,
   }

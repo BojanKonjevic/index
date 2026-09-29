@@ -1,5 +1,5 @@
 import { findAll, makeSnippet, normalizeSr } from "@index/shared"
-import type { SearchContentItem, SearchContentPage } from "@index/shared"
+import type { Material, SearchContentItem, SearchContentPage } from "@index/shared"
 import type { OfflineSubjectRecord } from "./db"
 
 export interface OfflineSearchResult extends SearchContentItem {
@@ -28,7 +28,7 @@ interface MaterialAccumulator {
   subjectId: string
   subjectName: string
   title: string
-  fileType: "pdf" | "video" | "image"
+  fileType: Material["fileType"]
   hits: number
   firstPage: number
   pages: SearchContentPage[]
@@ -67,6 +67,10 @@ export function searchOfflinePages(
 
       const material = materials.find((m) => m.id === page.materialId)
       if (!material) continue
+      // Opted-out materials stay browsable and downloadable, they just never
+      // surface through search. The explicit in-material find passes
+      // materialId, which takes this path too and stays unfiltered.
+      if (!materialId && material.searchable === false) continue
 
       const matches = findAll(page.text, q)
       if (matches.length === 0) continue

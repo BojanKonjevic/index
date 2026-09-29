@@ -36,6 +36,7 @@ function makePayload(overrides: Partial<OfflineSubjectPayload> = {}): OfflineSub
         url: "/api/file/zbirka.pdf",
         tags: [],
         assets: [],
+        searchable: true,
       },
     ],
     pages: [{ materialId: "ma2-zbirka", pageNumber: 1, text: "Prvi red" }],

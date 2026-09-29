@@ -1,0 +1,27 @@
+# Seeding decisions
+
+Precedent log for tough categorical calls. Each entry: the case, the call, the why. Read this before asking about a new borderline file.
+
+## Exam scripts versus theory (Prevodioci, first batch)
+
+Case: two student scripts ("Andjela skripta", "Kucana skripta sa primerima"), full subject summaries with examples. Theory-like content, but authored as study scripts, not lectures.
+Call: misc, following the MA2 precedent where skripte and knjige lived in misc.
+Why: category separates what a thing is from what it teaches. Scripts are reference material students read cover to cover at exam time, not lecture content and not problem sets. Misc is that shelf.
+
+## Timed exam task lists (Prevodioci, first batch)
+
+Case: a txt of numbered tasks from a printed exam ("Zadaci s otiska", timed, negative points), no exam named on the file.
+Call: exam plus final.
+Why: real exam content always lands in exam, never theory, even when it looks like study material. The sitting was inferred from format (30-minute timed test matching the završni description) plus owner confirmation that otisak means the final here. When the sitting cannot be inferred, ask; never guess K1 versus K2 versus final from vibes.
+
+## Exam prep lectures (Prevodioci, first batch)
+
+Case: a lecture titled "Ispit" that teaches how the exam works (rules, format, sample topics) without being an exam paper.
+Call: theory.
+Why: it is a lecture about the exam, not an exam. The test is whether a student would sit down and solve it under time pressure. If yes, exam. If it teaches, theory.
+
+## Category versus exam part (Prevodioci, first batch)
+
+Case: a subject with only one exam type, making exam plus final look redundant.
+Call: keep both. Category says what the thing is, exam part says which sitting it belongs to, and every exam-category material carries an exam part so sidebar grouping never falls into an unlabeled bucket.
+Why: the redundancy is a property of the subject, not a modeling error. Dropping exam part for single-exam subjects would make grouping logic branch on subject shape.

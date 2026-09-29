@@ -31,12 +31,14 @@ import { normalizeSr, repairDiacritics } from "@index/shared/normalize"
 
 const WORKER_DIR = fileURLToPath(new URL("..", import.meta.url))
 const API_PREFIX = "/api/file/"
-const DONE_FILE = join(WORKER_DIR, ".wrangler", "index.done")
 
 const args = process.argv.slice(2)
 const envFlag = args.includes("--remote") ? "--remote" : "--local"
 const envName = envFlag === "--remote" ? "remote" : "local"
 const force = args.includes("--force")
+// Progress is tracked per environment: local and remote runs must not share
+// a done file, or the second env silently skips everything as done.
+const DONE_FILE = join(WORKER_DIR, ".wrangler", `index.${envName}.done`)
 
 function run(cmd, cmdArgs, opts = {}) {
   const res = spawnSync(cmd, cmdArgs, {
@@ -75,11 +77,13 @@ function d1Batch(sql) {
 }
 
 function fetchMaterials() {
-  const parsed = d1Query("SELECT id, url FROM materials WHERE file_type = 'pdf' ORDER BY id")
+  const parsed = d1Query(
+    "SELECT id, url, file_type FROM materials WHERE file_type IN ('pdf', 'text') ORDER BY id",
+  )
   return parsed
     .flatMap((r) => r.results ?? [])
     .filter((r) => typeof r.url === "string" && r.url.startsWith(API_PREFIX))
-    .map((r) => ({ id: r.id, key: r.url.slice(API_PREFIX.length) }))
+    .map((r) => ({ id: r.id, key: r.url.slice(API_PREFIX.length), fileType: r.file_type }))
 }
 
 function doneKeys() {
@@ -134,15 +138,31 @@ function sqlValue(s) {
   return s.replace(/'/g, "''").replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, " ")
 }
 
-function buildBatchSql(id, pages) {
+function buildBatchSql(id, pages, source) {
   const lines = [`DELETE FROM material_pages_fts WHERE material_id = '${id}'`]
   for (const p of pages) {
     lines.push(
-      `INSERT INTO material_pages_fts (text, orig, material_id, page_number, source) VALUES ('${sqlValue(p.text)}', '${sqlValue(p.orig)}', '${id}', ${p.pageNumber}, 'pdf')`,
+      `INSERT INTO material_pages_fts (text, orig, material_id, page_number, source) VALUES ('${sqlValue(p.text)}', '${sqlValue(p.orig)}', '${id}', ${p.pageNumber}, '${source}')`,
     )
   }
   lines.push(`UPDATE materials SET page_count = ${pages.length} WHERE id = '${id}'`)
   return lines.join(";\n") + ";"
+}
+
+// Plain text materials (sql, txt) index as fixed line windows so in-material
+// find can jump to a chunk the same way it jumps to a PDF page.
+const TEXT_LINES_PER_PAGE = 120
+
+function extractTextPages(filePath) {
+  const repaired = repairDiacritics(readFileSync(filePath, "utf8"))
+  const lines = repaired.split("\n")
+  const pages = []
+  for (let i = 0; i < lines.length; i += TEXT_LINES_PER_PAGE) {
+    const orig = lines.slice(i, i + TEXT_LINES_PER_PAGE).join("\n")
+    pages.push({ pageNumber: pages.length + 1, orig, text: normalizeSr(orig) })
+  }
+  if (pages.length === 0) pages.push({ pageNumber: 1, orig: "", text: "" })
+  return pages
 }
 
 async function main() {
@@ -172,15 +192,25 @@ async function main() {
         "-f",
         pdfPath,
       ])
-      const { pages, repairedPages } = await extractPages(pdfPath)
-      d1Batch(buildBatchSql(material.id, pages))
+      let pages
+      let source
+      let repairNote = ""
+      if (material.fileType === "text") {
+        pages = extractTextPages(pdfPath)
+        source = "text"
+      } else {
+        const extracted = await extractPages(pdfPath)
+        pages = extracted.pages
+        source = "pdf"
+        if (extracted.repairedPages > 0) {
+          totalRepairs += extracted.repairedPages
+          repairedMaterials++
+          repairNote = `, repair: ${extracted.repairedPages}/${pages.length}`
+        }
+      }
+      d1Batch(buildBatchSql(material.id, pages, source))
       markDone(material.id)
       indexed++
-      if (repairedPages > 0) {
-        totalRepairs += repairedPages
-        repairedMaterials++
-      }
-      const repairNote = repairedPages > 0 ? `, repair: ${repairedPages}/${pages.length}` : ""
       console.log(`✓ ${material.id} (${pages.length} pages${repairNote})`)
     } catch (err) {
       const message = err.message.split("\n")[0]

@@ -58,6 +58,7 @@ function makePayload(materialCount = 2): OfflineSubjectPayload {
     url: `/api/file/m${i}.pdf`,
     tags: [],
     assets: [],
+    searchable: true,
   }))
   return {
     revision: `${materialCount}:2026-08-07T10:00:00Z`,

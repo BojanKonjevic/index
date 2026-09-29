@@ -159,6 +159,9 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.shortcut_find": "Sledeći / prethodni nalaz",
     "viewer.bookmark_add": "Obeleži",
     "viewer.bookmark_remove": "Ukloni obeleživač",
+    "viewer.code_copy": "Kopiraj kod",
+    "viewer.code_file": "Fajl",
+    "viewer.code_error": "Učitavanje fajla nije uspelo.",
 
     // Assets
     "asset.count": "{n} prilog",
@@ -172,6 +175,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "materialType.pdf": "PDF",
     "materialType.video": "Video",
     "materialType.image": "Slika",
+    "materialType.text": "Tekst",
     "materialType.sem": "sem",
     "materialType.semestar": "semestar",
 
@@ -381,6 +385,9 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.gallery_thumbnail_fmt": "Image {n} of {total}",
     "viewer.bookmark_add": "Bookmark",
     "viewer.bookmark_remove": "Remove bookmark",
+    "viewer.code_copy": "Copy code",
+    "viewer.code_file": "File",
+    "viewer.code_error": "Failed to load file.",
 
     // Assets
     "asset.count": "{n} asset",
@@ -393,6 +400,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "materialType.pdf": "PDF",
     "materialType.video": "Video",
     "materialType.image": "Image",
+    "materialType.text": "Text",
     "materialType.sem": "sem",
     "materialType.semestar": "semester",
 

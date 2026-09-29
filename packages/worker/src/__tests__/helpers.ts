@@ -14,6 +14,9 @@ export async function runMigrations() {
 }
 
 export function statements(sql: string) {
+  // Newlines collapse to spaces below, so migration files applied through
+  // this helper must not contain -- comments: a comment would swallow the
+  // statement that follows it on the joined line.
   return sql
     .split(/;\r?\n/)
     .map((s) => s.replace(/\s*\r?\n\s*/g, " ").trim())

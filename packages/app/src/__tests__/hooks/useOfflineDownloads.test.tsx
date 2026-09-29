@@ -80,6 +80,7 @@ function makePayload(): OfflineSubjectPayload {
             url: "/api/file/vezbe-1.jpg",
           },
         ],
+        searchable: true,
       },
     ],
     pages: [],
