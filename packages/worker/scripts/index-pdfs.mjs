@@ -31,12 +31,14 @@ import { normalizeSr, repairDiacritics } from "@index/shared/normalize"
 
 const WORKER_DIR = fileURLToPath(new URL("..", import.meta.url))
 const API_PREFIX = "/api/file/"
-const DONE_FILE = join(WORKER_DIR, ".wrangler", "index.done")
 
 const args = process.argv.slice(2)
 const envFlag = args.includes("--remote") ? "--remote" : "--local"
 const envName = envFlag === "--remote" ? "remote" : "local"
 const force = args.includes("--force")
+// Progress is tracked per environment: local and remote runs must not share
+// a done file, or the second env silently skips everything as done.
+const DONE_FILE = join(WORKER_DIR, ".wrangler", `index.${envName}.done`)
 
 function run(cmd, cmdArgs, opts = {}) {
   const res = spawnSync(cmd, cmdArgs, {
