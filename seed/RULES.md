@@ -36,3 +36,7 @@ When a content type or structure needs a policy, the agent asks in chat with 2 o
 ## 4. System changes mid batch (from: git workflow call, first batch)
 
 Applied migrations are immutable. A system change discovered while seeding subject N never edits an old migration, it ships as its own PR with three parts: the code change, a new refit migration for subjects 1 through N minus 1, and fresh verify output. Subject PRs stay pure data. Trivial discoveries fold into the system PR only while it is still unmerged, everything after that goes forward as follow-ups.
+
+## 5. Record judgment calls (from: Prevodioci category refit, first batch)
+
+When a categorization decision needs judgment, write it into seed/DECISIONS.md the same turn: a short description of the case (never the file itself), the decision, and the reasoning. Future agents facing a tough categorical call read that file first for precedent before asking.
