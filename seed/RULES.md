@@ -60,3 +60,7 @@ Names, index numbers, and phone numbers visible on solved exams and screenshots 
 ## 10. Planners assert every source path (from: NANS phantom files, second batch)
 
 Seed planners check os.path.exists for every source file before emitting a manifest. Dumps shift, folders get reorganized, and memory lies; the assert is what catches it. A plan that references a missing file fails loudly at plan time, never halfway through an upload.
+
+## 11. Bulk deletes by exact key, never patterns (from: two wildcard deletes, second batch)
+
+Object-store deletions take an explicit key list. LIKE patterns twice deleted live objects alongside the intended ones. The recovery (re-upload) worked both times, which is exactly why the rule exists: never need it.
