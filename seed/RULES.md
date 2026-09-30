@@ -52,3 +52,7 @@ Seed exactly one professor per subject: the best available name, corrected at ye
 ## 5. Record judgment calls (from: Prevodioci category refit, first batch)
 
 When a categorization decision needs judgment, write it into seed/DECISIONS.md the same turn: a short description of the case (never the file itself), the decision, and the reasoning. Future agents facing a tough categorical call read that file first for precedent before asking.
+
+## 9. Personal info on study material stays (from: Metode PII flag, second batch)
+
+Names, index numbers, and phone numbers visible on solved exams and screenshots seed as-is, never scrubbed or cropped. All of this circulates publicly already. No PII review step exists in the pipeline.
