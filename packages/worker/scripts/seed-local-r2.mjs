@@ -4,10 +4,21 @@
 import { spawnSync } from "node:child_process"
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { join, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
 
 const API_PREFIX = "/api/file/"
 const DONE_FILE = ".wrangler/r2-seed.done"
+// Repo-pinned wrangler: system binaries differ in local-state behavior.
+const WRANGLER = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "..",
+  "node_modules",
+  ".bin",
+  "wrangler",
+)
 
 function run(cmd, args, opts = {}) {
   const res = spawnSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...opts })
@@ -18,7 +29,7 @@ function run(cmd, args, opts = {}) {
 }
 
 function localKeys() {
-  const out = run("wrangler", [
+  const out = run(WRANGLER, [
     "d1",
     "execute",
     "index-db",
@@ -60,8 +71,8 @@ try {
     }
     const tmpFile = join(tmpDir, "object.bin")
     try {
-      run("wrangler", ["r2", "object", "get", `index-bucket/${key}`, "--remote", "-f", tmpFile])
-      run("wrangler", ["r2", "object", "put", `index-bucket/${key}`, "--local", "-f", tmpFile])
+      run(WRANGLER, ["r2", "object", "get", `index-bucket/${key}`, "--remote", "-f", tmpFile])
+      run(WRANGLER, ["r2", "object", "put", `index-bucket/${key}`, "--local", "-f", tmpFile])
       writeFileSync(DONE_FILE, `${key}\n`, { flag: "a" })
       synced++
       console.log(`✓ ${key}`)

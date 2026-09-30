@@ -13,6 +13,11 @@ import { dirname, join } from "node:path"
 // every invocation must run from the worker dir. Running from anywhere else
 // silently writes to a stray .wrangler folder and later reads miss.
 const WORKER_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "packages", "worker")
+// The repo-pinned wrangler, never whatever happens to be on PATH: system
+// wranglers differ in version and local-state behavior (4.126 corrupts fresh
+// local D1 state, all tested versions mangle non-ASCII keys in local R2).
+const ROOT_DIR = join(dirname(fileURLToPath(import.meta.url)), "..")
+const WRANGLER = join(ROOT_DIR, "node_modules", ".bin", "wrangler")
 
 const args = process.argv.slice(2)
 const manifestPath = args[0]
@@ -32,7 +37,7 @@ const failed = []
 for (const { file, key } of entries) {
   for (const target of targets) {
     const res = spawnSync(
-      "wrangler",
+      WRANGLER,
       ["r2", "object", "put", `index-bucket/${key}`, target, "-f", file],
       {
         encoding: "utf8",

@@ -37,3 +37,9 @@ Why: folding distinct sittings together destroys information the student uses to
 Case: .txt files whose content is SQL (schema plus solved tasks, reference patterns).
 Call: store under .sql with syntax highlighting, not as plain text.
 Why: the viewer and the indexer key off content type, and the user asked for code editor grade SQL everywhere. Extension follows content, never the other way around. Judge by reading the file, not the suffix.
+
+## Natural R2 keys reverted (Metode, second batch)
+
+Case: 85 objects seeded under cleaned natural keys with diacritics, live serving verified working.
+Call: reverted everything to ascii slug keys, titles keep natural names.
+Why: the local toolchain (wrangler/miniflare, versions 4.97 through 4.143) percent-encodes non-ASCII keys on write and reads them back raw, so every local fetch misses and local verification becomes impossible. Keys never surface in the app or search, only titles do, so slugs lose nothing user-visible. Evidence overrode the earlier approved decision; the rule now bans non-ASCII keys.

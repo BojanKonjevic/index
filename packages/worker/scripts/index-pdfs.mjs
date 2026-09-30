@@ -31,6 +31,8 @@ import { normalizeSr, repairDiacritics } from "@index/shared/normalize"
 
 const WORKER_DIR = fileURLToPath(new URL("..", import.meta.url))
 const API_PREFIX = "/api/file/"
+// Repo-pinned wrangler: system binaries differ in local-state behavior.
+const WRANGLER = join(WORKER_DIR, "..", "..", "node_modules", ".bin", "wrangler")
 
 const args = process.argv.slice(2)
 const envFlag = args.includes("--remote") ? "--remote" : "--local"
@@ -54,7 +56,7 @@ function run(cmd, cmdArgs, opts = {}) {
 }
 
 function d1Query(sql) {
-  const out = run("wrangler", ["d1", "execute", "index-db", envFlag, "--json", "--command", sql])
+  const out = run(WRANGLER, ["d1", "execute", "index-db", envFlag, "--json", "--command", sql])
   return JSON.parse(out.slice(out.indexOf("[")))
 }
 
@@ -62,7 +64,7 @@ function d1Batch(sql) {
   const tmpDir = mkdtempSync(join(tmpdir(), "index-batch-"))
   writeFileSync(join(tmpDir, "batch.sql"), sql)
   try {
-    return run("wrangler", [
+    return run(WRANGLER, [
       "d1",
       "execute",
       "index-db",
@@ -183,15 +185,7 @@ async function main() {
     }
     const pdfPath = join(tmpDir, "material.pdf")
     try {
-      run("wrangler", [
-        "r2",
-        "object",
-        "get",
-        `index-bucket/${material.key}`,
-        envFlag,
-        "-f",
-        pdfPath,
-      ])
+      run(WRANGLER, ["r2", "object", "get", `index-bucket/${material.key}`, envFlag, "-f", pdfPath])
       let pages
       let source
       let repairNote = ""
