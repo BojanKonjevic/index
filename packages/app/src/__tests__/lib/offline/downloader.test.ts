@@ -102,6 +102,7 @@ function makePayload(): OfflineSubjectPayload {
           },
         ],
         searchable: true,
+        description: "",
       },
       {
         id: "m2",
@@ -132,6 +133,7 @@ function makePayload(): OfflineSubjectPayload {
           },
         ],
         searchable: true,
+        description: "",
       },
     ],
     pages: [{ materialId: "m1", pageNumber: 1, text: "Prvi red" }],

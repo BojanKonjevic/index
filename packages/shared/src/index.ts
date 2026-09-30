@@ -40,6 +40,8 @@ export interface Material {
   fileType: "pdf" | "video" | "image" | "text" | "html"
   url: string
   tags: string[]
+  /** Optional free text: fused-set contents, reading guidance. */
+  description: string
   /** False opts the material out of title and full-text search. */
   searchable: boolean
   pageCount?: number

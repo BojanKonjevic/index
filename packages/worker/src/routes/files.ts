@@ -66,6 +66,24 @@ app.get("/file/*", async (c) => {
   headers.set("Access-Control-Allow-Origin", "*")
   headers.set("ETag", object.httpEtag)
   headers.set("Accept-Ranges", "bytes")
+  if (ext.toLowerCase() === "html") {
+    // Stored HTML (notebooks, slides) is a document, not a download: it
+    // needs its images, inline styles, and CDN scripts (MathJax). R2 serves
+    // these responses with a blanket `default-src 'none'`, so state an
+    // explicit policy. Scripts run, but the app embeds these pages in a
+    // sandboxed iframe without same-origin access, so page JS cannot touch
+    // app storage. Keep it tight: no object/embed, no base-uri changes.
+    headers.set(
+      "Content-Security-Policy",
+      "default-src 'self' data: blob: https:; " +
+        "script-src 'self' https: 'unsafe-inline'; " +
+        "style-src 'self' https: 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self' data: https:; " +
+        "connect-src 'self' https:; " +
+        "object-src 'none'; base-uri 'self'",
+    )
+  }
   if (object.uploaded) {
     headers.set("Last-Modified", object.uploaded.toUTCString())
   }

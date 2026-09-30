@@ -61,7 +61,7 @@ function buildFilter(
   const params: string[] = []
   // Text materials (txt, sql) are first-class searchable content, exactly
   // like PDFs. Only auxiliary sources (ocr) stay behind the flag.
-  if (!includeOcr) parts.push("source IN ('pdf', 'text')")
+  if (!includeOcr) parts.push("source IN ('pdf', 'text', 'html')")
   if (scope === "subject") {
     parts.push("material_id IN (SELECT id FROM materials WHERE subject_id = ?)")
     params.push(subjectId!)
@@ -216,7 +216,7 @@ app.get("/search/pages", async (c) => {
     "SELECT page_number, orig\n" +
     "FROM material_pages_fts\n" +
     "WHERE material_pages_fts MATCH ? AND material_id = ?" +
-    (includeOcr ? "" : " AND source IN ('pdf', 'text')") +
+    (includeOcr ? "" : " AND source IN ('pdf', 'text', 'html')") +
     "\nORDER BY page_number"
 
   const rows = await c.env.DB.prepare(sql)

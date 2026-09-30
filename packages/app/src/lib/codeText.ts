@@ -4,12 +4,15 @@ export interface CodeBlock {
   code: string
 }
 
-/** SQL and Python render highlighted, everything else renders as plain text. */
-export function languageForUrl(url: string): "sql" | "python" | "text" {
+/** SQL and Python render highlighted, Markdown renders formatted, CSV
+ *  renders as a table, everything else renders as plain text. */
+export function languageForUrl(url: string): "sql" | "python" | "md" | "csv" | "text" {
   const dot = url.lastIndexOf(".")
   const ext = dot >= 0 ? url.slice(dot + 1).toLowerCase() : ""
   if (ext === "sql") return "sql"
   if (ext === "py") return "python"
+  if (ext === "md" || ext === "markdown") return "md"
+  if (ext === "csv" || ext === "tsv") return "csv"
   return "text"
 }
 
@@ -45,4 +48,45 @@ export function splitSqlBlocks(source: string): CodeBlock[] {
 
 export function escapeHtml(raw: string): string {
   return raw.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
+/** Minimal quote-aware CSV split: handles quoted fields with commas and
+ *  doubled quotes, enough for course datasets. Not a full RFC parser. */
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ""
+  let quoted = false
+  const push = () => {
+    row.push(field)
+    field = ""
+  }
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (quoted) {
+      if (c === '"') {
+        if (text[i + 1] === '"') {
+          field += '"'
+          i++
+        } else {
+          quoted = false
+        }
+      } else {
+        field += c
+      }
+    } else if (c === '"') {
+      quoted = true
+    } else if (c === ",") {
+      push()
+    } else if (c === "\n") {
+      push()
+      if (row.length > 1 || row[0] !== "") rows.push(row)
+      row = []
+    } else if (c !== "\r") {
+      field += c
+    }
+  }
+  push()
+  if (row.length > 1 || row[0] !== "") rows.push(row)
+  return rows
 }

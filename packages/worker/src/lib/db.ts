@@ -20,6 +20,7 @@ export function mapMaterial(row: Record<string, unknown>): Material {
     fileType: row.file_type as Material["fileType"],
     url: row.url as string,
     tags: safeJsonParse<string[]>(row.tags, []),
+    description: (row.description as string) ?? "",
     searchable: ((row.searchable as number | null | undefined) ?? 1) === 1,
     pageCount: row.page_count as number | undefined,
     assets: [],

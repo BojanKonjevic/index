@@ -18,6 +18,7 @@ const data: GlobalData = {
       tags: [],
       assets: [],
       searchable: true,
+      description: "",
     },
   ],
   exams: [

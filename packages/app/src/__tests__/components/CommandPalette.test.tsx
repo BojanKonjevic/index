@@ -27,6 +27,7 @@ const dashboard = {
       tags: [],
       assets: [],
       searchable: true,
+      description: "",
     },
   ],
   exams: [],
@@ -105,6 +106,7 @@ function offlineBundle(): OfflineSubjectPayload {
         tags: [],
         assets: [],
         searchable: true,
+        description: "",
       },
     ],
     pages: [

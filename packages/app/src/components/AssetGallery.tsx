@@ -106,7 +106,7 @@ export default function AssetGallery({
         <img
           ref={imgRef}
           src={current.url}
-          alt=""
+          alt={current.name}
           onLoad={(e) => {
             const img = e.target as HTMLImageElement
             if (containerSize.current.w > 0 && img.naturalWidth > 0) {
@@ -150,6 +150,11 @@ export default function AssetGallery({
           <span className="ml-2 text-[0.688rem] text-[var(--text-hint)]">
             {index + 1}/{assets.length}
           </span>
+          {current.name && (
+            <span className="ml-1 max-w-[12rem] truncate text-[0.688rem] font-medium text-[var(--text-secondary)]">
+              {current.name}
+            </span>
+          )}
         </div>
       </div>
 

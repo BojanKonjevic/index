@@ -188,6 +188,82 @@
   color: #7ddba3;
 }
 
+/* Code line numbers: explicit spans, user selectable code stays clean. */
+.codeblock .codeline {
+  display: flex;
+  min-width: min-content;
+}
+.codeblock .lineno {
+  flex-shrink: 0;
+  width: 2.5rem;
+  padding-right: 0.75rem;
+  text-align: right;
+  user-select: none;
+  color: var(--text-hint);
+}
+
+/* Rendered markdown (seeded .md files, corpus-trusted). */
+.markdown {
+  font-size: 0.813rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+.markdown h1 {
+  font-size: 1.125rem;
+}
+.markdown h2 {
+  font-size: 1rem;
+}
+.markdown p,
+.markdown ul,
+.markdown ol {
+  margin: 0.5rem 0;
+}
+.markdown ul,
+.markdown ol {
+  padding-left: 1.25rem;
+}
+.markdown ul {
+  list-style: disc;
+}
+.markdown ol {
+  list-style: decimal;
+}
+.markdown table {
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.75rem;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid var(--border-default);
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+}
+.markdown th {
+  background: var(--bg-subtle);
+  font-weight: 600;
+}
+.markdown code {
+  font-family: monospace;
+  font-size: 0.75rem;
+  background: var(--bg-subtle);
+  padding: 0.063rem 0.25rem;
+  border-radius: 0.25rem;
+}
+.markdown pre code {
+  display: block;
+  padding: 0.625rem;
+  overflow-x: auto;
+}
+
 html {
   font-size: 125%;
   background: var(--bg-page);

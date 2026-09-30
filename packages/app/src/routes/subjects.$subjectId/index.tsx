@@ -9,7 +9,6 @@ import {
   SlidersHorizontal,
 } from "lucide-react"
 import { fetchSubject } from "@/lib/api"
-import { CATEGORY_ORDER } from "@index/shared"
 import { useBookmarks } from "@/hooks/useBookmarks"
 
 import { daysUntil, parseISODate } from "@/lib/utils"
@@ -20,7 +19,7 @@ import { MaterialBadges } from "@/components/MaterialBadges"
 import ExpandableAssets from "@/components/ExpandableAssets"
 import { MaterialFilters } from "@/components/MaterialFilters"
 import type { Material } from "@index/shared"
-import { getVirtualCategory } from "@/lib/categories"
+import { getVirtualCategory, sortGroupKeys, splitsSolved, groupLabel } from "@/lib/categories"
 import { useState, useEffect, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -28,8 +27,6 @@ import { typeIconMap, typeTagStyles } from "@/lib/styles"
 import { useOfflineDownloads } from "@/hooks/useOfflineDownloads"
 import { SubjectOfflineControls } from "@/components/SubjectOfflineControls"
 import { OfflineBadge } from "@/components/OfflineBadge"
-
-const categoryOrder = CATEGORY_ORDER
 
 export const Route = createFileRoute("/subjects/$subjectId/")({
   loader: ({ params }) => fetchSubject(params.subjectId),
@@ -40,6 +37,7 @@ export const Route = createFileRoute("/subjects/$subjectId/")({
 // eslint-disable-next-line react-refresh/only-export-components
 function MaterialRow({ material, offline }: { material: Material; offline: boolean }) {
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
+  const { t } = useI18n()
   const bookmarked = isBookmarked(material.id)
   const TypeIcon = typeIconMap[material.fileType] || FileText
   const assetCount = material.assets?.length ?? material.assetCount ?? 0
@@ -70,7 +68,17 @@ function MaterialRow({ material, offline }: { material: Material; offline: boole
         <div className="min-w-0 flex-1">
           <div className="truncate text-[0.813rem] font-medium leading-tight text-[var(--text-primary)]">
             {material.title}
+            {material.pageCount != null && material.pageCount > 0 && (
+              <span className="ml-1.5 font-normal text-[var(--text-hint)]">
+                · {t("subject.pages_fmt", { n: material.pageCount })}
+              </span>
+            )}
           </div>
+          {material.description && (
+            <div className="mt-0.5 line-clamp-2 text-[0.688rem] leading-snug text-[var(--text-hint)]">
+              {material.description}
+            </div>
+          )}
           <div className="mt-0.5 flex flex-wrap gap-1.5">
             <MaterialBadges material={material} />
             {offline && <OfflineBadge />}
@@ -141,16 +149,22 @@ function SubjectPage() {
       if (categoryFilter !== "all" && vcat !== categoryFilter) return false
       return true
     })
-    .sort((a, b) => a.title.localeCompare(b.title, "sr"))
+    .sort((a, b) => a.title.localeCompare(b.title, "sr", { numeric: true }))
 
   type GroupedMaterials = { solved: Material[]; unsolved: Material[]; unknown: Material[] }
+  // Dynamic groups: every exam part present becomes its own shelf, so a new
+  // sitting never falls into misc. Unknown future parts sort naturally.
+  const presentGroups = sortGroupKeys([
+    ...new Set(filteredMaterials.map((m) => getVirtualCategory(m))),
+  ])
   const grouped: Record<string, GroupedMaterials> = {}
-  for (const cat of categoryOrder) {
+  for (const cat of presentGroups) {
     grouped[cat] = { solved: [], unsolved: [], unknown: [] }
   }
   filteredMaterials.forEach((m) => {
     const vcat = getVirtualCategory(m)
-    const target = grouped[vcat] || grouped.misc
+    const target = grouped[vcat]
+    if (!target) return
     if (m.solved === true) target.solved.push(m)
     else if (m.solved === false) target.unsolved.push(m)
     else target.unknown.push(m)
@@ -173,18 +187,21 @@ function SubjectPage() {
           : "bg-[var(--status-later-bg)] border-[var(--status-later-text)]/20 text-[var(--status-later-text)]"
       : ""
 
-  const categoryConfig = useMemo(
-    () =>
-      ({
-        theory: { label: t("category.theory"), icon: BookOpen },
-        problems: { label: t("category.problems"), icon: Pencil },
-        k1: { label: t("category.k1"), icon: FileText },
-        k2: { label: t("category.k2"), icon: FileText },
-        final: { label: t("category.exam"), icon: FileText },
-        misc: { label: t("category.misc"), icon: Folder },
-      }) as Record<string, { label: string; icon: typeof BookOpen }>,
-    [t],
-  )
+  const groupIcons: Record<string, typeof BookOpen> = {
+    theory: BookOpen,
+    problems: Pencil,
+    misc: Folder,
+  }
+  const categoryConfig = useMemo(() => {
+    const record: Record<string, { label: string; icon: typeof BookOpen }> = {}
+    for (const key of presentGroups) {
+      record[key] = {
+        label: groupLabel(key, t),
+        icon: groupIcons[key] ?? FileText,
+      }
+    }
+    return record
+  }, [t, presentGroups])
 
   const toggleCollapse = (cat: string) => {
     setCollapsed((prev) => {
@@ -304,14 +321,14 @@ function SubjectPage() {
             {t("subject.empty")}
           </div>
         ) : (
-          categoryOrder.map((cat) => {
+          presentGroups.map((cat) => {
             const { solved, unsolved, unknown } = grouped[cat]
             const total = solved.length + unsolved.length + unknown.length
             if (total === 0) return null
 
             const CatIcon = categoryConfig[cat].icon
             const isCollapsed = collapsed.has(cat)
-            const isExamCat = cat === "k1" || cat === "k2" || cat === "final"
+            const split = splitsSolved(cat)
 
             return (
               <section key={cat} className="mb-8">
@@ -342,7 +359,7 @@ function SubjectPage() {
                   )}
                 >
                   <div className="overflow-hidden min-h-0">
-                    {isExamCat ? (
+                    {split ? (
                       <div className="mt-3">
                         {solved.length > 0 && (
                           <div className="ml-5 mt-3">

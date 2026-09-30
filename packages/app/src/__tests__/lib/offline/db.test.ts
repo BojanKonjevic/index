@@ -37,6 +37,7 @@ function makePayload(overrides: Partial<OfflineSubjectPayload> = {}): OfflineSub
         tags: [],
         assets: [],
         searchable: true,
+        description: "",
       },
     ],
     pages: [{ materialId: "ma2-zbirka", pageNumber: 1, text: "Prvi red" }],
