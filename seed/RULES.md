@@ -41,9 +41,9 @@ Applied migrations are immutable. A system change discovered while seeding subje
 
 After every seeded subject, before reporting done: delete merged branches, leave the worktree clean, and check CI on the pushed main. Done is reported only while CI is green and git is clean. Failing CI blocks the next subject, it never rides along.
 
-## 7. Naming (from: filename standardization, second batch)
+## 7. Naming (from: filename standardization, second batch, corrected third batch)
 
-Three different names serve three different readers. Material and asset IDs stay ascii slugs: routes, bookmarks, and offline keys touch them, and those must never contain spaces or diacritics. R2 keys are cleaned natural names: the original filename, NFC-normalized (the dumps arrive NFD off macOS), copy markers like " (1)" stripped, spaces and diacritics kept, nobody programs against them. Group dirs use the stable vocab: k1 through k4, pz1, pz2, final, teorija, vezbe, predavanja, ispit, knjige, skripte. Titles are display names and follow the file, not the key.
+Three different names serve three different readers. Material and asset IDs stay ascii slugs: routes, bookmarks, and offline keys touch them, and those must never contain spaces or diacritics. R2 keys are ascii slugs too, mirroring the IDs: non-ASCII keys work in production but the local toolchain corrupts them (wrangler/miniflare percent-encodes on write and reads back raw, every version tested), which makes local verification impossible. Group dirs use the stable vocab: k1 through k4, pz1, pz2, final, teorija, vezbe, predavanja, ispit, knjige, skripte, all ascii. Titles are the natural names: cleaned originals with spaces and diacritics, NFC-normalized, copy markers stripped. Extension follows content (see misleading extensions).
 
 ## 8. One professor per subject (from: BP1 professor list, second batch)
 

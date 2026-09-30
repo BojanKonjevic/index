@@ -11,6 +11,7 @@ const mimeTypes: Record<string, string> = {
   txt: "text/plain; charset=utf-8",
   sql: "text/plain; charset=utf-8",
   text: "text/plain; charset=utf-8",
+  html: "text/html; charset=utf-8",
 }
 
 function getMimeType(ext: string): string {

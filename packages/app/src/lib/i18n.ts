@@ -162,6 +162,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.code_copy": "Kopiraj kod",
     "viewer.code_file": "Fajl",
     "viewer.code_error": "Učitavanje fajla nije uspelo.",
+    "viewer.html_open": "Otvori u novoj kartici",
+    "viewer.html_note": "Beležnica se otvara u novoj kartici, onako kako je napisana.",
 
     // Assets
     "asset.count": "{n} prilog",
@@ -176,6 +178,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "materialType.video": "Video",
     "materialType.image": "Slika",
     "materialType.text": "Tekst",
+    "materialType.html": "HTML",
     "materialType.sem": "sem",
     "materialType.semestar": "semestar",
 
@@ -388,6 +391,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "viewer.code_copy": "Copy code",
     "viewer.code_file": "File",
     "viewer.code_error": "Failed to load file.",
+    "viewer.html_open": "Open in new tab",
+    "viewer.html_note": "The notebook opens in a new tab, exactly as written.",
 
     // Assets
     "asset.count": "{n} asset",
@@ -401,6 +406,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "materialType.video": "Video",
     "materialType.image": "Image",
     "materialType.text": "Text",
+    "materialType.html": "HTML",
     "materialType.sem": "sem",
     "materialType.semestar": "semester",
 
