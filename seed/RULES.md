@@ -56,3 +56,7 @@ When a categorization decision needs judgment, write it into seed/DECISIONS.md t
 ## 9. Personal info on study material stays (from: Metode PII flag, second batch)
 
 Names, index numbers, and phone numbers visible on solved exams and screenshots seed as-is, never scrubbed or cropped. All of this circulates publicly already. No PII review step exists in the pipeline.
+
+## 10. Planners assert every source path (from: NANS phantom files, second batch)
+
+Seed planners check os.path.exists for every source file before emitting a manifest. Dumps shift, folders get reorganized, and memory lies; the assert is what catches it. A plan that references a missing file fails loudly at plan time, never halfway through an upload.
