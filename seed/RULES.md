@@ -41,6 +41,14 @@ Applied migrations are immutable. A system change discovered while seeding subje
 
 After every seeded subject, before reporting done: delete merged branches, leave the worktree clean, and check CI on the pushed main. Done is reported only while CI is green and git is clean. Failing CI blocks the next subject, it never rides along.
 
+## 7. Naming (from: filename standardization, second batch)
+
+Three different names serve three different readers. Material and asset IDs stay ascii slugs: routes, bookmarks, and offline keys touch them, and those must never contain spaces or diacritics. R2 keys are cleaned natural names: the original filename, NFC-normalized (the dumps arrive NFD off macOS), copy markers like " (1)" stripped, spaces and diacritics kept, nobody programs against them. Group dirs use the stable vocab: k1 through k4, pz1, pz2, final, teorija, vezbe, predavanja, ispit, knjige, skripte. Titles are display names and follow the file, not the key.
+
+## 8. One professor per subject (from: BP1 professor list, second batch)
+
+Seed exactly one professor per subject: the best available name, corrected at year start if the site was stale. Assistants stay plural, groups genuinely have several. The subject card and the subject page must agree, which falls out of singleness for free.
+
 ## 5. Record judgment calls (from: Prevodioci category refit, first batch)
 
 When a categorization decision needs judgment, write it into seed/DECISIONS.md the same turn: a short description of the case (never the file itself), the decision, and the reasoning. Future agents facing a tough categorical call read that file first for precedent before asking.

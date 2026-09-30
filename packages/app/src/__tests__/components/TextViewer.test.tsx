@@ -28,6 +28,10 @@ describe("languageForUrl", () => {
     expect(languageForUrl("/api/file/x/NOTES.SQL")).toBe("sql")
   })
 
+  it("detects python by extension", () => {
+    expect(languageForUrl("/api/file/x/resenje.py")).toBe("python")
+  })
+
   it("falls back to text", () => {
     expect(languageForUrl("/api/file/x/pitanja.txt")).toBe("text")
     expect(languageForUrl("/api/file/x/bez-ekstenzije")).toBe("text")
