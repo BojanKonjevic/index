@@ -25,3 +25,15 @@ Why: it is a lecture about the exam, not an exam. The test is whether a student 
 Case: a subject with only one exam type, making exam plus final look redundant.
 Call: keep both. Category says what the thing is, exam part says which sitting it belongs to, and every exam-category material carries an exam part so sidebar grouping never falls into an unlabeled bucket.
 Why: the redundancy is a property of the subject, not a modeling error. Dropping exam part for single-exam subjects would make grouping logic branch on subject shape.
+
+## Exam parts extend per subject need (BP1, first batch)
+
+Case: a subject with practical K1 through K4 plus separate theory sittings (PZ1, PZ2), where theory PZ1 collides with practical K1.
+Call: keep every sitting as its own exam part (K1, K2, K3, K4, PZ1, PZ2). More groups is fine, missing precision is not.
+Why: folding distinct sittings together destroys information the student uses to pick what to study. The UI renders unknown parts as their own labeled groups, so extension needs no code change.
+
+## Misleading file extensions (BP1, first batch)
+
+Case: .txt files whose content is SQL (schema plus solved tasks, reference patterns).
+Call: store under .sql with syntax highlighting, not as plain text.
+Why: the viewer and the indexer key off content type, and the user asked for code editor grade SQL everywhere. Extension follows content, never the other way around. Judge by reading the file, not the suffix.
