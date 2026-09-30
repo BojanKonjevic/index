@@ -4,7 +4,7 @@ import { formatDate, getRelativeTime, t } from "@/lib/i18n"
 describe("material type labels", () => {
   // A missing materialType key renders as a raw "materialType.text" badge in
   // the UI, so every file type the data model allows must have a label.
-  for (const fileType of ["pdf", "video", "image", "text"]) {
+  for (const fileType of ["pdf", "video", "image", "text", "html"]) {
     it(`labels ${fileType} in both locales`, () => {
       for (const locale of ["sr", "en"] as const) {
         const key = `materialType.${fileType}`

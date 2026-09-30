@@ -42,6 +42,7 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/co
 import VideoViewer from "@/components/VideoViewer"
 import AssetGallery from "@/components/AssetGallery"
 import TextViewer from "@/components/TextViewer"
+import { ExternalLink, Globe } from "lucide-react"
 
 const PdfViewer = lazy(() => import("@/components/PdfViewer"))
 
@@ -834,6 +835,27 @@ function ViewerPage() {
             />
           ) : material.fileType === "video" ? (
             <VideoViewer url={material.url} />
+          ) : material.fileType === "html" ? (
+            <div className="flex flex-1 items-center justify-center px-4">
+              <div className="flex max-w-sm flex-col items-center gap-3 rounded-[0.75rem] border border-[var(--border-default)] bg-[var(--bg-surface)] px-6 py-8 text-center">
+                <Globe className="size-8 text-[var(--text-hint)]" />
+                <p className="text-[0.813rem] font-medium text-[var(--text-primary)]">
+                  {material.title}
+                </p>
+                <p className="text-[0.75rem] text-[var(--text-secondary)]">
+                  {t("viewer.html_note")}
+                </p>
+                <a
+                  href={material.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 flex items-center gap-1.5 rounded-[0.5rem] bg-[var(--nav-active-bg)] px-4 py-2 text-[0.813rem] font-medium text-[var(--nav-active-text)] transition-opacity hover:opacity-90"
+                >
+                  <ExternalLink className="size-4" />
+                  {t("viewer.html_open")}
+                </a>
+              </div>
+            </div>
           ) : material.fileType === "text" ? (
             <TextViewer url={material.url} />
           ) : !material.url ? (
