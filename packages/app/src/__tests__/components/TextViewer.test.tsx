@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest"
 import { render, screen, waitFor } from "@testing-library/react"
 import { I18nProvider } from "@/hooks/useI18n"
 import TextViewer from "@/components/TextViewer"
-import { languageForUrl, splitSqlBlocks } from "@/lib/codeText"
+import { languageForUrl, parseCsv, splitSqlBlocks } from "@/lib/codeText"
 
 const SQL = `//1 Prikazati sve filmove.
 select idf from film;
@@ -32,9 +32,23 @@ describe("languageForUrl", () => {
     expect(languageForUrl("/api/file/x/resenje.py")).toBe("python")
   })
 
+  it("detects markdown and csv by extension", () => {
+    expect(languageForUrl("/api/file/x/pitanja.md")).toBe("md")
+    expect(languageForUrl("/api/file/x/podaci.csv")).toBe("csv")
+  })
+
   it("falls back to text", () => {
     expect(languageForUrl("/api/file/x/pitanja.txt")).toBe("text")
     expect(languageForUrl("/api/file/x/bez-ekstenzije")).toBe("text")
+  })
+})
+
+describe("parseCsv", () => {
+  it("splits quoted fields with commas", () => {
+    expect(parseCsv('a,"b,c"\n1,2')).toEqual([
+      ["a", "b,c"],
+      ["1", "2"],
+    ])
   })
 })
 

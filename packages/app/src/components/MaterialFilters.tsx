@@ -1,5 +1,4 @@
 import { useI18n } from "@/hooks/useI18n"
-import { CATEGORY_ORDER } from "@index/shared"
 import type { FileText } from "lucide-react"
 
 interface MaterialFiltersProps {
@@ -15,6 +14,8 @@ interface MaterialFiltersProps {
 const fileTypeOptions = (t: (key: string) => string): { key: string; label: string }[] => [
   { key: "all", label: t("subject.filter_all") },
   { key: "pdf", label: "PDF" },
+  { key: "text", label: t("materialType.text") },
+  { key: "html", label: "HTML" },
   { key: "video", label: "Video" },
   { key: "image", label: t("materialType.image") },
 ]
@@ -76,7 +77,10 @@ export function MaterialFilters({
           <div className="flex flex-wrap gap-1.5">
             {[
               { key: "all", label: t("subject.filter_all_cat") },
-              ...CATEGORY_ORDER.map((c) => ({ key: c, label: categoryConfig[c].label })),
+              ...Object.keys(categoryConfig).map((c) => ({
+                key: c,
+                label: categoryConfig[c].label,
+              })),
             ].map((opt) => (
               <button
                 key={opt.key}
@@ -118,7 +122,7 @@ export function MaterialFilters({
         <div className="flex flex-wrap gap-1.5">
           {[
             { key: "all", label: t("subject.filter_all_cat") },
-            ...CATEGORY_ORDER.map((c) => ({ key: c, label: categoryConfig[c].label })),
+            ...Object.keys(categoryConfig).map((c) => ({ key: c, label: categoryConfig[c].label })),
           ].map((opt) => (
             <button
               key={opt.key}

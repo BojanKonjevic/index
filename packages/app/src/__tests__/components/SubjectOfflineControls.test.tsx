@@ -59,6 +59,7 @@ function makePayload(materialCount = 2): OfflineSubjectPayload {
     tags: [],
     assets: [],
     searchable: true,
+    description: "",
   }))
   return {
     revision: `${materialCount}:2026-08-07T10:00:00Z`,

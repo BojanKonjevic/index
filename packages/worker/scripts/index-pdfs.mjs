@@ -80,7 +80,7 @@ function d1Batch(sql) {
 
 function fetchMaterials() {
   const parsed = d1Query(
-    "SELECT id, url, file_type FROM materials WHERE file_type IN ('pdf', 'text') ORDER BY id",
+    "SELECT id, url, file_type FROM materials WHERE file_type IN ('pdf', 'text', 'html') ORDER BY id",
   )
   return parsed
     .flatMap((r) => r.results ?? [])
@@ -154,6 +154,40 @@ function buildBatchSql(id, pages, source) {
 // Plain text materials (sql, txt) index as fixed line windows so in-material
 // find can jump to a chunk the same way it jumps to a PDF page.
 const TEXT_LINES_PER_PAGE = 120
+// Stored HTML (notebooks, slides) indexes as character windows of visible
+// text: scripts, styles, and tags stripped, entities decoded. Same chunk
+// shape as everything else, source tells them apart at query time.
+const HTML_CHARS_PER_PAGE = 1500
+
+const HTML_ENTITIES = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+}
+
+function extractHtmlPages(filePath) {
+  const raw = readFileSync(filePath, "utf8")
+  const noScripts = raw
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+  const text = noScripts
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&(amp|lt|gt|quot|apos|nbsp);/g, (_, name) => HTML_ENTITIES[name])
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/\s+/g, " ")
+    .trim()
+  const pages = []
+  for (let i = 0; i < text.length; i += HTML_CHARS_PER_PAGE) {
+    const orig = text.slice(i, i + HTML_CHARS_PER_PAGE)
+    pages.push({ pageNumber: pages.length + 1, orig, text: normalizeSr(orig) })
+  }
+  if (pages.length === 0) pages.push({ pageNumber: 1, orig: "", text: "" })
+  return pages
+}
 
 function extractTextPages(filePath) {
   const repaired = repairDiacritics(readFileSync(filePath, "utf8"))
@@ -192,6 +226,9 @@ async function main() {
       if (material.fileType === "text") {
         pages = extractTextPages(pdfPath)
         source = "text"
+      } else if (material.fileType === "html") {
+        pages = extractHtmlPages(pdfPath)
+        source = "html"
       } else {
         const extracted = await extractPages(pdfPath)
         pages = extracted.pages

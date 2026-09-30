@@ -60,10 +60,13 @@ app.get("/api/health", (c) => c.json({ status: "ok" }))
 
 const SPA_CSP = [
   "default-src 'self'",
-  "script-src 'self'",
+  // cdnjs: MathJax for seeded notebook HTML, which renders inside a
+  // sandboxed blob iframe. Scripts there run without same-origin access,
+  // so CDN code cannot touch app storage. No unsafe-inline, ever.
+  "script-src 'self' https://cdnjs.cloudflare.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
-  "font-src 'self'",
+  "font-src 'self' https://cdnjs.cloudflare.com",
   "media-src 'self' https://www.youtube-nocookie.com",
   "frame-src https://www.youtube-nocookie.com",
   "connect-src 'self'",

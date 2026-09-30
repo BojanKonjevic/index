@@ -220,6 +220,17 @@ describe("GET /api/search", () => {
     expect(body.content.items[0].materialId).toBe(mC)
   })
 
+  it("includes html rows by default, without the ocr flag", async () => {
+    await DB.prepare(
+      "INSERT INTO material_pages_fts (text, orig, material_id, page_number, source) VALUES (?, ?, ?, ?, ?)",
+    )
+      .bind("beleznica neuronske mreze", "Beležnica neuronske mreže", mC, 1, "html")
+      .run()
+    const { body } = await search({ q: "neuronske", scope: "material", materialId: mC })
+    expect(body.content.items).toHaveLength(1)
+    expect(body.content.items[0].materialId).toBe(mC)
+  })
+
   it("matches Cyrillic input and highlights matches in snippets", async () => {
     const { body } = await search({ q: "Лоран", scope: "material", materialId: mB })
     expect(body.content.items).toHaveLength(1)

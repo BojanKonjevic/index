@@ -67,3 +67,21 @@ Why: text plus diagrams in reading order beats text-only and beats dropping the 
 Case: .docx extracts cleanly via markitdown, legacy .doc needs olefile raw stream parsing with run-fragmentation cleanup.
 Call: both land as searchable text materials, quality noted as-is for the legacy one.
 Why: content over fidelity. A choppy but searchable text beats a perfect binary nobody can open in-app.
+
+## Dropped desktop screenshots (Metode, second batch)
+
+Case: a full-desktop Teams/YouTube screenshot with student names and index numbers, content duplicated by cleaner exam photos.
+Call: dropped from the seed, recorded here so nobody re-adds it wondering where it went.
+Why: PII stays per rule 9, but a desktop screenshot is not study material. Same content exists in readable form.
+
+## Headers over filenames (review round, second batch)
+
+Case: photo filenames claiming one sitting while the exam header inside says another (junsko-julski K2 file is kolokvijum 1).
+Call: the header inside the document wins, always.
+Why: filenames are assigned by whoever held the phone. The printed header is the document speaking for itself.
+
+## robotZad.zip is a duplicate (ORI, second batch)
+
+Case: robotZad.zip next to an identical robotZad/ tree.
+Call: skipped, nothing new inside.
+Why: the zip rule says unpack and merge; merging here yields zero new files, so there is nothing to seed.

@@ -35,6 +35,7 @@ function makeBundle(
       tags: [],
       assets: [],
       searchable: true,
+      description: "",
     })),
     pages,
   }

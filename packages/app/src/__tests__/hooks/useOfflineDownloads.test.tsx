@@ -81,6 +81,7 @@ function makePayload(): OfflineSubjectPayload {
           },
         ],
         searchable: true,
+        description: "",
       },
     ],
     pages: [],
