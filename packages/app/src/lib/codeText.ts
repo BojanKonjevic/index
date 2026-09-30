@@ -4,11 +4,13 @@ export interface CodeBlock {
   code: string
 }
 
-/** SQL renders highlighted, everything else renders as plain text. */
-export function languageForUrl(url: string): "sql" | "text" {
+/** SQL and Python render highlighted, everything else renders as plain text. */
+export function languageForUrl(url: string): "sql" | "python" | "text" {
   const dot = url.lastIndexOf(".")
   const ext = dot >= 0 ? url.slice(dot + 1).toLowerCase() : ""
-  return ext === "sql" ? "sql" : "text"
+  if (ext === "sql") return "sql"
+  if (ext === "py") return "python"
+  return "text"
 }
 
 /**

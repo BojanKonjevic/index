@@ -2,15 +2,17 @@ import { useEffect, useState } from "react"
 import { Check, Copy, Loader2 } from "lucide-react"
 import hljs from "highlight.js/lib/core"
 import sql from "highlight.js/lib/languages/sql"
+import python from "highlight.js/lib/languages/python"
 import { useI18n } from "@/hooks/useI18n"
 import { cn } from "@/lib/utils"
 import { escapeHtml, languageForUrl, splitSqlBlocks } from "@/lib/codeText"
 
 hljs.registerLanguage("sql", sql)
+hljs.registerLanguage("python", python)
 
-function highlightBlock(code: string, language: "sql" | "text"): string {
-  if (language === "sql" && code.trim().length > 0) {
-    return hljs.highlight(code, { language: "sql" }).value
+function highlightBlock(code: string, language: "sql" | "python" | "text"): string {
+  if (language !== "text" && code.trim().length > 0) {
+    return hljs.highlight(code, { language }).value
   }
   return escapeHtml(code)
 }
@@ -84,6 +86,7 @@ export default function TextViewer({ url }: { url: string }) {
     language === "sql"
       ? splitSqlBlocks(state.source)
       : [{ id: "block-0", header: null as string | null, code: state.source }]
+  const languageClass = language === "text" ? undefined : `language-${language}`
 
   return (
     <div className="codeblock flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
@@ -104,7 +107,7 @@ export default function TextViewer({ url }: { url: string }) {
             </div>
             <pre className="overflow-x-auto p-3 text-[0.75rem] leading-relaxed">
               <code
-                className={cn("font-mono whitespace-pre", language === "sql" && "language-sql")}
+                className={cn("font-mono whitespace-pre", languageClass)}
                 dangerouslySetInnerHTML={{ __html: highlightBlock(block.code, language) }}
               />
             </pre>
