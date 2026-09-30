@@ -52,7 +52,7 @@ export function escapeHtml(raw: string): string {
 
 /** Minimal quote-aware CSV split: handles quoted fields with commas and
  *  doubled quotes, enough for course datasets. Not a full RFC parser. */
-export function parseCsv(text: string): string[][] {
+export function parseCsv(text: string, delimiter = ","): string[][] {
   const rows: string[][] = []
   let row: string[] = []
   let field = ""
@@ -76,7 +76,7 @@ export function parseCsv(text: string): string[][] {
       }
     } else if (c === '"') {
       quoted = true
-    } else if (c === ",") {
+    } else if (c === delimiter) {
       push()
     } else if (c === "\n") {
       push()

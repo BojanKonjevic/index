@@ -81,7 +81,7 @@ const CSV_PREVIEW_ROWS = 20
 
 function CsvTable({ source, url, name }: { source: string; url: string; name: string }) {
   const { t } = useI18n()
-  const rows = parseCsv(source)
+  const rows = parseCsv(source, url.toLowerCase().endsWith(".tsv") ? "\t" : ",")
   if (rows.length === 0) return null
   const [header, ...body] = rows
   const preview = body.slice(0, CSV_PREVIEW_ROWS)

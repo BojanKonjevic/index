@@ -50,6 +50,13 @@ describe("parseCsv", () => {
       ["1", "2"],
     ])
   })
+
+  it("splits tsv on tabs", () => {
+    expect(parseCsv("a\tb\n1\t2", "\t")).toEqual([
+      ["a", "b"],
+      ["1", "2"],
+    ])
+  })
 })
 
 describe("splitSqlBlocks", () => {
