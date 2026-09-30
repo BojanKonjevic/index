@@ -9,7 +9,7 @@ Right after inventory, before any categorization or review, strip junk from the 
 Junk patterns (match by path segment or suffix):
 
 1. Build output: obj, bin, Debug, Release, plus dll, exe, baml, cache, GeneratedMSBuildEditorConfig, AssemblyInfoInputs, buildwithskipanalyzers
-2. VCS and IDE: .git, .idea, .vs, plus props, targets, sample, bin
+2. VCS and IDE: .git, .idea, .vs, .venv, plus props, targets, sample, bin, exe
 3. Python noise: pycache, pyc
 4. OS noise: DS*Store, Thumbs.db, \_\_MACOSX, AppleDouble .* files
 5. Empty placeholder dirs (record them in the inventory, seed nothing from them)
