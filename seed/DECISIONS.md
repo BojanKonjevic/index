@@ -61,3 +61,9 @@ Why: the oral exam asks about the engine TODOs, so the code is study context, no
 Case: a lone 17-slide pptx, no LibreOffice, no TeX, no browser for print rendering.
 Call: markitdown to markdown, markdown lib to HTML, diagrams extracted per slide, seeded as an html material with images alongside.
 Why: text plus diagrams in reading order beats text-only and beats dropping the only theory source for the unit. Record the exact tool chain; it will recur.
+
+## Legacy office formats (WEB, second batch)
+
+Case: .docx extracts cleanly via markitdown, legacy .doc needs olefile raw stream parsing with run-fragmentation cleanup.
+Call: both land as searchable text materials, quality noted as-is for the legacy one.
+Why: content over fidelity. A choppy but searchable text beats a perfect binary nobody can open in-app.
