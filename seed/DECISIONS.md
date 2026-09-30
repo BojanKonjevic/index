@@ -49,3 +49,15 @@ Why: the local toolchain (wrangler/miniflare, versions 4.97 through 4.143) perce
 Case: requirements.txt files inside course exercise folders.
 Call: dropped, never seeded.
 Why: dependency lists tell pip what to install, nothing a student opens to study. Same shelf as build output and IDE folders, handled by the junk rule in spirit.
+
+## Course engine code seeds as text (ORI, second batch)
+
+Case: robot/chess/maze game engine .py files duplicated across five project trees, plus game sprites, board files, IDE folders.
+Call: master copies of the .py files seed as text materials, everything else (sprites, boards, IDE, venv, exe) dropped.
+Why: the oral exam asks about the engine TODOs, so the code is study context, not bare coursework. One canonical copy kills the duplication.
+
+## Slides without a converter (ORI, second batch)
+
+Case: a lone 17-slide pptx, no LibreOffice, no TeX, no browser for print rendering.
+Call: markitdown to markdown, markdown lib to HTML, diagrams extracted per slide, seeded as an html material with images alongside.
+Why: text plus diagrams in reading order beats text-only and beats dropping the only theory source for the unit. Record the exact tool chain; it will recur.
