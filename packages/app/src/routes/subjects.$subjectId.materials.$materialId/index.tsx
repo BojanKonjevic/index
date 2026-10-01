@@ -9,6 +9,8 @@ import {
   Layers as LayersIcon,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   X,
   ZoomIn,
   ZoomOut,
@@ -40,7 +42,8 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback, lazy, Suspen
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import VideoViewer from "@/components/VideoViewer"
 import AssetGallery from "@/components/AssetGallery"
-import TextViewer, { HtmlViewer } from "@/components/TextViewer"
+import TextViewer from "@/components/TextViewer"
+import HtmlViewer from "@/components/HtmlViewer"
 
 const PdfViewer = lazy(() => import("@/components/PdfViewer"))
 
@@ -300,6 +303,23 @@ function ViewerPage() {
   const hasAssets = !!(material && material.assets.length > 0)
   const isContainer = material?.fileType === "image" && hasAssets
   const showAssetGallery = isContainer || viewerTab === "assets"
+  // Prev/next within the study unit (V2, V3...), so zadatak/resenje/kod
+  // read as one path instead of scattered rows.
+  const unitSiblings =
+    material?.unit != null
+      ? materials
+          .filter((m) => m.unit === material.unit)
+          .sort((a, b) => a.title.localeCompare(b.title, "sr", { numeric: true }))
+      : []
+  const unitIndex = unitSiblings.findIndex((m) => m.id === materialId)
+  const prevUnit = unitIndex > 0 ? unitSiblings[unitIndex - 1] : null
+  const nextUnit =
+    unitIndex >= 0 && unitIndex < unitSiblings.length - 1 ? unitSiblings[unitIndex + 1] : null
+  const goUnit = (id: string) =>
+    navigate({
+      to: "/subjects/$subjectId/materials/$materialId",
+      params: { subjectId, materialId: id },
+    })
   // Code attachments (sql, txt) render in the text viewer, not the gallery.
   const currentAsset =
     viewerTab === "assets" && material && !isContainer ? material.assets[assetIndex] : undefined
@@ -751,6 +771,29 @@ function ViewerPage() {
 
         <span className="h-5 w-px bg-[var(--border-faint)]" />
 
+        {(prevUnit || nextUnit) && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              onClick={() => prevUnit && goUnit(prevUnit.id)}
+              disabled={!prevUnit}
+              aria-label={t("viewer.unit_prev")}
+              title={prevUnit?.title ?? t("viewer.unit_prev")}
+              className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <button
+              onClick={() => nextUnit && goUnit(nextUnit.id)}
+              disabled={!nextUnit}
+              aria-label={t("viewer.unit_next")}
+              title={nextUnit?.title ?? t("viewer.unit_next")}
+              className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+        )}
+
         {material && <BookmarkButton id={material.id} />}
       </div>
 
@@ -984,6 +1027,26 @@ function ViewerPage() {
         ) : null}
 
         <div className="flex-1" />
+        {(prevUnit || nextUnit) && (
+          <div className="flex shrink-0 items-center gap-0.5">
+            <button
+              onClick={() => prevUnit && goUnit(prevUnit.id)}
+              disabled={!prevUnit}
+              aria-label={t("viewer.unit_prev")}
+              className="flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <button
+              onClick={() => nextUnit && goUnit(nextUnit.id)}
+              disabled={!nextUnit}
+              aria-label={t("viewer.unit_next")}
+              className="flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </div>
+        )}
         <Sheet open={materialsSheetOpen} onOpenChange={setMaterialsSheetOpen}>
           <SheetTrigger
             aria-label={t("viewer.sidebar_all")}

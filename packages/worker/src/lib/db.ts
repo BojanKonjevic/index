@@ -1,5 +1,8 @@
 import type { Material, MaterialAsset, SubjectListItem, ExamEvent } from "@index/shared"
 
+/** FTS sources readable without special tooling. OCR stays behind its flag. */
+export const FTS_SOURCES = "('pdf', 'text', 'html')"
+
 function safeJsonParse<T>(raw: unknown, fallback: T): T {
   if (typeof raw !== "string") return fallback
   try {
@@ -21,6 +24,7 @@ export function mapMaterial(row: Record<string, unknown>): Material {
     url: row.url as string,
     tags: safeJsonParse<string[]>(row.tags, []),
     description: (row.description as string) ?? "",
+    unit: (row.unit as string | null) ?? null,
     searchable: ((row.searchable as number | null | undefined) ?? 1) === 1,
     pageCount: row.page_count as number | undefined,
     assets: [],

@@ -1,13 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import {
-  Star,
-  FileText,
-  BookOpen,
-  Pencil,
-  ChevronDown,
-  Folder,
-  SlidersHorizontal,
-} from "lucide-react"
+import { Star, FileText, BookOpen, ChevronDown, SlidersHorizontal } from "lucide-react"
 import { fetchSubject } from "@/lib/api"
 import { useBookmarks } from "@/hooks/useBookmarks"
 
@@ -19,7 +11,7 @@ import { MaterialBadges } from "@/components/MaterialBadges"
 import ExpandableAssets from "@/components/ExpandableAssets"
 import { MaterialFilters } from "@/components/MaterialFilters"
 import type { Material } from "@index/shared"
-import { getVirtualCategory, sortGroupKeys, splitsSolved, groupLabel } from "@/lib/categories"
+import { describeGroup, getVirtualCategory, sortGroupKeys } from "@/lib/categories"
 import { useState, useEffect, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -81,6 +73,19 @@ function MaterialRow({ material, offline }: { material: Material; offline: boole
           )}
           <div className="mt-0.5 flex flex-wrap gap-1.5">
             <MaterialBadges material={material} />
+            {material.category === "exam" && assetCount === 0 && (
+              <span className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-hint)]">
+                {t("subject.no_solution")}
+              </span>
+            )}
+            {(material.tags ?? []).map((tag) => (
+              <span
+                key={tag}
+                className="inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.688rem] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)]"
+              >
+                {tag}
+              </span>
+            ))}
             {offline && <OfflineBadge />}
           </div>
         </div>
@@ -142,21 +147,26 @@ function SubjectPage() {
 
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
 
-  const filteredMaterials = materials
-    .filter((m) => {
-      if (fileTypeFilter !== "all" && m.fileType !== fileTypeFilter) return false
-      const vcat = getVirtualCategory(m)
-      if (categoryFilter !== "all" && vcat !== categoryFilter) return false
-      return true
-    })
-    .sort((a, b) => a.title.localeCompare(b.title, "sr", { numeric: true }))
+  const filteredMaterials = useMemo(
+    () =>
+      materials
+        .filter((m) => {
+          if (fileTypeFilter !== "all" && m.fileType !== fileTypeFilter) return false
+          const vcat = getVirtualCategory(m)
+          if (categoryFilter !== "all" && vcat !== categoryFilter) return false
+          return true
+        })
+        .sort((a, b) => a.title.localeCompare(b.title, "sr", { numeric: true })),
+    [materials, fileTypeFilter, categoryFilter],
+  )
 
   type GroupedMaterials = { solved: Material[]; unsolved: Material[]; unknown: Material[] }
   // Dynamic groups: every exam part present becomes its own shelf, so a new
   // sitting never falls into misc. Unknown future parts sort naturally.
-  const presentGroups = sortGroupKeys([
-    ...new Set(filteredMaterials.map((m) => getVirtualCategory(m))),
-  ])
+  const presentGroups = useMemo(
+    () => sortGroupKeys([...new Set(filteredMaterials.map((m) => getVirtualCategory(m)))]),
+    [filteredMaterials],
+  )
   const grouped: Record<string, GroupedMaterials> = {}
   for (const cat of presentGroups) {
     grouped[cat] = { solved: [], unsolved: [], unknown: [] }
@@ -187,18 +197,11 @@ function SubjectPage() {
           : "bg-[var(--status-later-bg)] border-[var(--status-later-text)]/20 text-[var(--status-later-text)]"
       : ""
 
-  const groupIcons: Record<string, typeof BookOpen> = {
-    theory: BookOpen,
-    problems: Pencil,
-    misc: Folder,
-  }
   const categoryConfig = useMemo(() => {
     const record: Record<string, { label: string; icon: typeof BookOpen }> = {}
     for (const key of presentGroups) {
-      record[key] = {
-        label: groupLabel(key, t),
-        icon: groupIcons[key] ?? FileText,
-      }
+      const def = describeGroup(key, t)
+      record[key] = { label: def.label, icon: def.icon }
     }
     return record
   }, [t, presentGroups])
@@ -328,7 +331,29 @@ function SubjectPage() {
 
             const CatIcon = categoryConfig[cat].icon
             const isCollapsed = collapsed.has(cat)
-            const split = splitsSolved(cat)
+            const split = describeGroup(cat, t).split
+            // Problems with a study unit render in vezba subsections so one
+            // vezba reads as one block: zadatak, rešenje, kod, podaci.
+            const units =
+              cat === "problems"
+                ? [
+                    ...new Set(
+                      [...solved, ...unsolved, ...unknown].flatMap((m) => (m.unit ? [m.unit] : [])),
+                    ),
+                  ].sort((a, b) => a.localeCompare(b, "sr", { numeric: true }))
+                : []
+            const inUnit = (m: Material) => units.includes(m.unit ?? "")
+            const flat = (list: Material[]) => list.filter((m) => !inUnit(m))
+            const sections: { label: string | null; mats: Material[] }[] =
+              units.length === 0
+                ? [{ label: null, mats: [...solved, ...unsolved, ...unknown] }]
+                : [
+                    { label: null, mats: [...flat(solved), ...flat(unsolved), ...flat(unknown)] },
+                    ...units.map((u) => ({
+                      label: t("subject.unit_fmt", { n: u }),
+                      mats: [...solved, ...unsolved, ...unknown].filter((m) => m.unit === u),
+                    })),
+                  ]
 
             return (
               <section key={cat} className="mb-8">
@@ -359,52 +384,73 @@ function SubjectPage() {
                   )}
                 >
                   <div className="overflow-hidden min-h-0">
-                    {split ? (
-                      <div className="mt-3">
-                        {solved.length > 0 && (
-                          <div className="ml-5 mt-3">
-                            <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
-                              {t("subject.solved_label_fmt", { n: solved.length })}
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              {solved.map((m) => (
-                                <MaterialRow key={m.id} material={m} offline={offline} />
-                              ))}
-                            </div>
+                    {sections.map((section) => (
+                      <div key={section.label ?? "__all"} className="mt-3">
+                        {section.label && (
+                          <div className="mb-1.5 ml-5 border-l-2 border-[var(--accent)] py-1 pl-3 text-xs font-semibold text-[var(--text-primary)]">
+                            {section.label}
                           </div>
                         )}
-                        {unsolved.length > 0 && (
-                          <div className="ml-5 mt-3">
-                            <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
-                              {t("subject.unsolved_label_fmt", { n: unsolved.length })}
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              {unsolved.map((m) => (
-                                <MaterialRow key={m.id} material={m} offline={offline} />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {unknown.length > 0 && (
-                          <div className="ml-5 mt-3">
-                            <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
-                              {t("subject.other_label_fmt", { n: unknown.length })}
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              {unknown.map((m) => (
-                                <MaterialRow key={m.id} material={m} offline={offline} />
-                              ))}
-                            </div>
+                        {split ? (
+                          <>
+                            {section.mats.filter((m) => m.solved === true).length > 0 && (
+                              <div className="ml-5 mt-3">
+                                <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
+                                  {t("subject.solved_label_fmt", {
+                                    n: section.mats.filter((m) => m.solved === true).length,
+                                  })}
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  {section.mats
+                                    .filter((m) => m.solved === true)
+                                    .map((m) => (
+                                      <MaterialRow key={m.id} material={m} offline={offline} />
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+                            {section.mats.filter((m) => m.solved === false).length > 0 && (
+                              <div className="ml-5 mt-3">
+                                <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
+                                  {t("subject.unsolved_label_fmt", {
+                                    n: section.mats.filter((m) => m.solved === false).length,
+                                  })}
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  {section.mats
+                                    .filter((m) => m.solved === false)
+                                    .map((m) => (
+                                      <MaterialRow key={m.id} material={m} offline={offline} />
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+                            {section.mats.filter((m) => m.solved == null).length > 0 && (
+                              <div className="ml-5 mt-3">
+                                <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
+                                  {t("subject.other_label_fmt", {
+                                    n: section.mats.filter((m) => m.solved == null).length,
+                                  })}
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  {section.mats
+                                    .filter((m) => m.solved == null)
+                                    .map((m) => (
+                                      <MaterialRow key={m.id} material={m} offline={offline} />
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="flex flex-col gap-1 mt-3">
+                            {section.mats.map((m) => (
+                              <MaterialRow key={m.id} material={m} offline={offline} />
+                            ))}
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <div className="flex flex-col gap-1 mt-3">
-                        {[...solved, ...unsolved, ...unknown].map((m) => (
-                          <MaterialRow key={m.id} material={m} offline={offline} />
-                        ))}
-                      </div>
-                    )}
+                    ))}
                   </div>
                 </div>
               </section>

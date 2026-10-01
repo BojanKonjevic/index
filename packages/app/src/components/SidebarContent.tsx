@@ -5,7 +5,7 @@ import ExpandableAssets from "@/components/ExpandableAssets"
 import { BookmarkButton } from "./BookmarkButton"
 import { OfflineBadge } from "./OfflineBadge"
 import { typeIconMap, typeTagStyles, typeBadgeStyles } from "@/lib/styles"
-import { sortGroupKeys, groupLabel } from "@/lib/categories"
+import { sortGroupKeys, describeGroup } from "@/lib/categories"
 import type { Material } from "@index/shared"
 
 interface SidebarContentProps {
@@ -155,7 +155,7 @@ export function SidebarContent({
               sortGroupKeys(Object.keys(groupedByCategory)).map((cat) => (
                 <div key={cat}>
                   <div className="px-2.5 pb-1 pt-2.5 text-[0.688rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                    {groupLabel(cat, t)}
+                    {describeGroup(cat, t).label}
                   </div>
                   {groupedByCategory[cat].map((m) => (
                     <div key={m.id}>

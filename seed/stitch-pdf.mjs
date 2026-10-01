@@ -5,7 +5,7 @@
 // rotate is optional clockwise degrees (0, 90, 180, 270). Each PDF page is
 // sized to its image. JPEG bytes embed as-is, PNGs embed directly.
 import { readFileSync, writeFileSync } from "node:fs"
-import { PDFDocument, degrees } from "pdf-lib"
+import { PDFDocument, StandardFonts, degrees, rgb } from "pdf-lib"
 
 const [manifestPath, outPath] = process.argv.slice(2)
 if (!manifestPath || !outPath) {
@@ -15,6 +15,21 @@ if (!manifestPath || !outPath) {
 
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"))
 const doc = await PDFDocument.create()
+
+// Optional cover page listing the fused set contents, so nobody opens the
+// PDF just to learn what is inside it. Cover text must stay ASCII: pdf-lib
+// standard fonts have no central-european glyphs, diacritics break.
+if (manifest.cover) {
+  const font = await doc.embedFont(StandardFonts.Helvetica)
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold)
+  const page = doc.addPage([595, 842])
+  page.drawText(manifest.cover.title, { x: 56, y: 770, size: 22, font: bold, color: rgb(0, 0, 0) })
+  let y = 730
+  for (const line of manifest.cover.lines) {
+    page.drawText(line, { x: 56, y, size: 12, font, color: rgb(0.2, 0.2, 0.2) })
+    y -= 22
+  }
+}
 for (const page of manifest.pages) {
   const bytes = readFileSync(page.file)
   // Sniff magic bytes: extensions lie (phone screenshots saved as .png
@@ -26,4 +41,4 @@ for (const page of manifest.pages) {
   if (page.rotate) p.setRotation(degrees(page.rotate))
 }
 writeFileSync(outPath, await doc.save())
-console.log(`wrote ${outPath} (${manifest.pages.length} pages)`)
+console.log(`wrote ${outPath} (${doc.getPageCount()} pages)`)
