@@ -340,7 +340,7 @@ function SubjectPage() {
             const CatIcon = categoryConfig[cat].icon
             const isCollapsed = collapsed.has(cat)
             const split = describeGroup(cat, t).split
-            // Problems with a study unit render in vezba subsections so one
+            // Materials with a study unit render in vezba subsections so one
             // vezba reads as one block: zadatak, rešenje, kod, podaci.
             const units = [
               ...new Set(
