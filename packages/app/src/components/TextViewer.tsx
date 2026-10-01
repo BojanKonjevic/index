@@ -6,7 +6,8 @@ import { marked } from "marked"
 import { useI18n } from "@/hooks/useI18n"
 import { escapeHtml, languageForUrl, splitSqlBlocks } from "@/lib/codeText"
 import { useFetchBytes } from "@/lib/useFetchBytes"
-import CsvTable, { Section } from "@/components/CsvTable"
+import CsvTable from "@/components/CsvTable"
+import { Section } from "@/components/Section"
 
 hljs.registerLanguage("sql", sql)
 hljs.registerLanguage("python", python)

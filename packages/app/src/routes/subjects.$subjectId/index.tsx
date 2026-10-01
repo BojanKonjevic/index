@@ -26,6 +26,14 @@ export const Route = createFileRoute("/subjects/$subjectId/")({
   errorComponent: ErrorFallback,
 })
 
+function splitSolved(mats: Material[]) {
+  return {
+    solved: mats.filter((m) => m.solved === true),
+    unsolved: mats.filter((m) => m.solved === false),
+    unknown: mats.filter((m) => m.solved == null),
+  }
+}
+
 // eslint-disable-next-line react-refresh/only-export-components
 function MaterialRow({ material, offline }: { material: Material; offline: boolean }) {
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks()
@@ -384,73 +392,57 @@ function SubjectPage() {
                   )}
                 >
                   <div className="overflow-hidden min-h-0">
-                    {sections.map((section) => (
-                      <div key={section.label ?? "__all"} className="mt-3">
-                        {section.label && (
-                          <div className="mb-1.5 ml-5 border-l-2 border-[var(--accent)] py-1 pl-3 text-xs font-semibold text-[var(--text-primary)]">
-                            {section.label}
-                          </div>
-                        )}
-                        {split ? (
-                          <>
-                            {section.mats.filter((m) => m.solved === true).length > 0 && (
-                              <div className="ml-5 mt-3">
-                                <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
-                                  {t("subject.solved_label_fmt", {
-                                    n: section.mats.filter((m) => m.solved === true).length,
-                                  })}
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                  {section.mats
-                                    .filter((m) => m.solved === true)
-                                    .map((m) => (
-                                      <MaterialRow key={m.id} material={m} offline={offline} />
-                                    ))}
-                                </div>
-                              </div>
-                            )}
-                            {section.mats.filter((m) => m.solved === false).length > 0 && (
-                              <div className="ml-5 mt-3">
-                                <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
-                                  {t("subject.unsolved_label_fmt", {
-                                    n: section.mats.filter((m) => m.solved === false).length,
-                                  })}
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                  {section.mats
-                                    .filter((m) => m.solved === false)
-                                    .map((m) => (
-                                      <MaterialRow key={m.id} material={m} offline={offline} />
-                                    ))}
-                                </div>
-                              </div>
-                            )}
-                            {section.mats.filter((m) => m.solved == null).length > 0 && (
-                              <div className="ml-5 mt-3">
-                                <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
-                                  {t("subject.other_label_fmt", {
-                                    n: section.mats.filter((m) => m.solved == null).length,
-                                  })}
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                  {section.mats
-                                    .filter((m) => m.solved == null)
-                                    .map((m) => (
-                                      <MaterialRow key={m.id} material={m} offline={offline} />
-                                    ))}
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className="flex flex-col gap-1 mt-3">
-                            {section.mats.map((m) => (
-                              <MaterialRow key={m.id} material={m} offline={offline} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    {sections.map((section) => {
+                      const part = splitSolved(section.mats)
+                      const blocks = [
+                        {
+                          list: part.solved,
+                          label: t("subject.solved_label_fmt", { n: part.solved.length }),
+                        },
+                        {
+                          list: part.unsolved,
+                          label: t("subject.unsolved_label_fmt", { n: part.unsolved.length }),
+                        },
+                        {
+                          list: part.unknown,
+                          label: t("subject.other_label_fmt", { n: part.unknown.length }),
+                        },
+                      ]
+                      return (
+                        <div key={section.label ?? "__all"} className="mt-3">
+                          {section.label && (
+                            <div className="mb-1.5 ml-5 border-l-2 border-[var(--accent)] py-1 pl-3 text-xs font-semibold text-[var(--text-primary)]">
+                              {section.label}
+                            </div>
+                          )}
+                          {split ? (
+                            <>
+                              {blocks.map(
+                                (block) =>
+                                  block.list.length > 0 && (
+                                    <div key={block.label} className="ml-5 mt-3">
+                                      <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
+                                        {block.label}
+                                      </div>
+                                      <div className="flex flex-col gap-1">
+                                        {block.list.map((m) => (
+                                          <MaterialRow key={m.id} material={m} offline={offline} />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ),
+                              )}
+                            </>
+                          ) : (
+                            <div className="flex flex-col gap-1 mt-3">
+                              {section.mats.map((m) => (
+                                <MaterialRow key={m.id} material={m} offline={offline} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               </section>

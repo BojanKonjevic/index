@@ -67,6 +67,48 @@ export const Route = createFileRoute("/subjects/$subjectId/materials/$materialId
   errorComponent: ErrorFallback,
 })
 
+function UnitNav({
+  prev,
+  next,
+  onGo,
+  variant,
+}: {
+  prev: { id: string; title: string } | null
+  next: { id: string; title: string } | null
+  onGo: (id: string) => void
+  variant: "desktop" | "mobile"
+}) {
+  const { t } = useI18n()
+  if (!prev && !next) return null
+  const btn =
+    variant === "desktop"
+      ? "flex size-9 items-center justify-center rounded-[0.438rem]"
+      : "flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-[0.438rem]"
+  const icon = variant === "desktop" ? "size-4" : "size-5"
+  return (
+    <div className="flex shrink-0 items-center gap-0.5">
+      <button
+        onClick={() => prev && onGo(prev.id)}
+        disabled={!prev}
+        aria-label={t("viewer.unit_prev")}
+        title={prev?.title ?? t("viewer.unit_prev")}
+        className={`${btn} text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none`}
+      >
+        <ChevronLeft className={icon} />
+      </button>
+      <button
+        onClick={() => next && onGo(next.id)}
+        disabled={!next}
+        aria-label={t("viewer.unit_next")}
+        title={next?.title ?? t("viewer.unit_next")}
+        className={`${btn} text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none`}
+      >
+        <ChevronRight className={icon} />
+      </button>
+    </div>
+  )
+}
+
 function FindChip({
   count,
   index,
@@ -320,6 +362,7 @@ function ViewerPage() {
       to: "/subjects/$subjectId/materials/$materialId",
       params: { subjectId, materialId: id },
     })
+
   // Code attachments (sql, txt) render in the text viewer, not the gallery.
   const currentAsset =
     viewerTab === "assets" && material && !isContainer ? material.assets[assetIndex] : undefined
@@ -771,28 +814,7 @@ function ViewerPage() {
 
         <span className="h-5 w-px bg-[var(--border-faint)]" />
 
-        {(prevUnit || nextUnit) && (
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              onClick={() => prevUnit && goUnit(prevUnit.id)}
-              disabled={!prevUnit}
-              aria-label={t("viewer.unit_prev")}
-              title={prevUnit?.title ?? t("viewer.unit_prev")}
-              className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <button
-              onClick={() => nextUnit && goUnit(nextUnit.id)}
-              disabled={!nextUnit}
-              aria-label={t("viewer.unit_next")}
-              title={nextUnit?.title ?? t("viewer.unit_next")}
-              className="flex size-9 items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
-        )}
+        <UnitNav prev={prevUnit} next={nextUnit} onGo={goUnit} variant="desktop" />
 
         {material && <BookmarkButton id={material.id} />}
       </div>
@@ -1027,26 +1049,7 @@ function ViewerPage() {
         ) : null}
 
         <div className="flex-1" />
-        {(prevUnit || nextUnit) && (
-          <div className="flex shrink-0 items-center gap-0.5">
-            <button
-              onClick={() => prevUnit && goUnit(prevUnit.id)}
-              disabled={!prevUnit}
-              aria-label={t("viewer.unit_prev")}
-              className="flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ChevronLeft className="size-5" />
-            </button>
-            <button
-              onClick={() => nextUnit && goUnit(nextUnit.id)}
-              disabled={!nextUnit}
-              aria-label={t("viewer.unit_next")}
-              className="flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none"
-            >
-              <ChevronRight className="size-5" />
-            </button>
-          </div>
-        )}
+        <UnitNav prev={prevUnit} next={nextUnit} onGo={goUnit} variant="mobile" />
         <Sheet open={materialsSheetOpen} onOpenChange={setMaterialsSheetOpen}>
           <SheetTrigger
             aria-label={t("viewer.sidebar_all")}

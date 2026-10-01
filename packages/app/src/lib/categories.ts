@@ -22,45 +22,62 @@ export interface GroupDef {
 
 /** One descriptor per subject-page group. Exam sittings share one shape
  *  (translated label when known, raw part fallback, split on); only the
- *  fixed shelves differ. */
+ *  fixed shelves differ. Order comes from GROUP_ORDER. */
 export function describeGroup(key: string, t: (k: string) => string): GroupDef {
   switch (key) {
     case "misc":
-      return { label: t("category.misc"), icon: Folder, split: false, order: 0 }
+      return { label: t("category.misc"), icon: Folder, split: false, order: GROUP_ORDER.misc }
     case "theory":
-      return { label: t("category.theory"), icon: BookOpen, split: false, order: 1 }
+      return {
+        label: t("category.theory"),
+        icon: BookOpen,
+        split: false,
+        order: GROUP_ORDER.theory,
+      }
     case "problems":
-      return { label: t("category.problems"), icon: Pencil, split: true, order: 2 }
+      return {
+        label: t("category.problems"),
+        icon: Pencil,
+        split: true,
+        order: GROUP_ORDER.problems,
+      }
     case "exam":
-      return { label: t("category.exam"), icon: FileText, split: true, order: 3 }
+      return { label: t("category.exam"), icon: FileText, split: true, order: GROUP_ORDER.exam }
     case "final":
-      return { label: t("category.exam"), icon: FileText, split: true, order: 5 }
+      return { label: t("category.exam"), icon: FileText, split: true, order: GROUP_ORDER.final }
     default: {
       const v = t(`category.${key}`)
       return {
         label: v === `category.${key}` ? key.toUpperCase() : v,
         icon: FileText,
         split: true,
-        order: 4,
+        order: SITTING_ORDER,
       }
     }
   }
 }
 
-/** Display order for subject page groups. Unknown future parts sort
- *  naturally among the sittings. */
+/** Display order for subject page groups. Skripte first (cover to cover
+ *  exam reading), then theory and problems, then sittings in study order
+ *  with the generic exam pile on top and the final last. Unknown future
+ *  parts sort naturally among the sittings. */
+const GROUP_ORDER: Record<string, number> = {
+  misc: 0,
+  theory: 1,
+  problems: 2,
+  exam: 3,
+  final: 5,
+}
+
+/** Rank for exam sittings and any future part. */
+const SITTING_ORDER = 4
+
 export function sortGroupKeys(keys: string[]): string[] {
-  const orderOf = (k: string): [number, string] => {
-    if (k === "misc") return [0, ""]
-    if (k === "theory") return [1, ""]
-    if (k === "problems") return [2, ""]
-    if (k === "exam") return [3, ""]
-    if (k === "final") return [5, ""]
-    return [4, k]
-  }
+  const rank = (k: string): [number, string] =>
+    k in GROUP_ORDER ? [GROUP_ORDER[k], ""] : [SITTING_ORDER, k]
   return [...keys].sort((a, b) => {
-    const [ra, sa] = orderOf(a)
-    const [rb, sb] = orderOf(b)
+    const [ra, sa] = rank(a)
+    const [rb, sb] = rank(b)
     if (ra !== rb) return ra - rb
     return sa.localeCompare(sb, "sr", { numeric: true })
   })
