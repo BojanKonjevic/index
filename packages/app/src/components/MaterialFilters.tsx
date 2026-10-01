@@ -20,6 +20,14 @@ const fileTypeOptions = (t: (key: string) => string): { key: string; label: stri
   { key: "image", label: t("materialType.image") },
 ]
 
+const categoryOptions = (
+  t: (key: string) => string,
+  categoryConfig: Record<string, { label: string; icon: typeof FileText }>,
+): { key: string; label: string }[] => [
+  { key: "all", label: t("subject.filter_all_cat") },
+  ...Object.keys(categoryConfig).map((c) => ({ key: c, label: categoryConfig[c].label })),
+]
+
 export function MaterialFilters({
   fileTypeFilter,
   setFileTypeFilter,
@@ -75,13 +83,7 @@ export function MaterialFilters({
             {t("subject.filter_category")}
           </span>
           <div className="flex flex-wrap gap-1.5">
-            {[
-              { key: "all", label: t("subject.filter_all_cat") },
-              ...Object.keys(categoryConfig).map((c) => ({
-                key: c,
-                label: categoryConfig[c].label,
-              })),
-            ].map((opt) => (
+            {categoryOptions(t, categoryConfig).map((opt) => (
               <button
                 key={opt.key}
                 onClick={() => handleCategory(opt.key)}
@@ -120,10 +122,7 @@ export function MaterialFilters({
           {t("subject.filter_category")}
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {[
-            { key: "all", label: t("subject.filter_all_cat") },
-            ...Object.keys(categoryConfig).map((c) => ({ key: c, label: categoryConfig[c].label })),
-          ].map((opt) => (
+          {categoryOptions(t, categoryConfig).map((opt) => (
             <button
               key={opt.key}
               onClick={() => handleCategory(opt.key)}

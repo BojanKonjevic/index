@@ -41,7 +41,9 @@ export interface Material {
   url: string
   tags: string[]
   /** Optional free text: fused-set contents, reading guidance. */
-  description: string
+  description?: string
+  /** Study unit grouping (V2, V3): zadatak, rešenje, kod, and podaci belong together. */
+  unit?: string | null
   /** False opts the material out of title and full-text search. */
   searchable: boolean
   pageCount?: number

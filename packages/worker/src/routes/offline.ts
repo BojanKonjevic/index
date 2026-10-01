@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { compress } from "hono/compress"
 import type { Bindings } from ".."
 import type { Material, OfflineSubjectPayload, Subject } from "@index/shared"
-import { mapMaterial, mapAsset } from "../lib/db"
+import { mapMaterial, mapAsset, FTS_SOURCES } from "../lib/db"
 import { AppError } from "../lib/error"
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -29,7 +29,7 @@ app.get("/offline/subject/:id", async (c) => {
       .all(),
     db
       .prepare(
-        "SELECT material_id, page_number, orig FROM material_pages_fts WHERE source IN ('pdf', 'text', 'html') AND material_id IN (SELECT id FROM materials WHERE subject_id = ?) ORDER BY material_id, page_number",
+        `SELECT material_id, page_number, orig FROM material_pages_fts WHERE source IN ${FTS_SOURCES} AND material_id IN (SELECT id FROM materials WHERE subject_id = ?) ORDER BY material_id, page_number`,
       )
       .bind(id)
       .all(),
