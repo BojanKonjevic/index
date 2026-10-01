@@ -64,3 +64,7 @@ Seed planners check os.path.exists for every source file before emitting a manif
 ## 11. Bulk deletes by exact key, never patterns (from: two wildcard deletes, second batch)
 
 Object-store deletions take an explicit key list. LIKE patterns twice deleted live objects alongside the intended ones. The recovery (re-upload) worked both times, which is exactly why the rule exists: never need it.
+
+## 12. Reindex after content changes (from: stale page counts, review loop)
+
+Re-uploading a file never invalidates the indexer's done files. After any content change (covers, transcript rewrites), remove the material ids from index.local.done and index.remote.done and rerun. Stale page counts and search rows are silent until someone looks.

@@ -342,14 +342,11 @@ function SubjectPage() {
             const split = describeGroup(cat, t).split
             // Problems with a study unit render in vezba subsections so one
             // vezba reads as one block: zadatak, rešenje, kod, podaci.
-            const units =
-              cat === "problems"
-                ? [
-                    ...new Set(
-                      [...solved, ...unsolved, ...unknown].flatMap((m) => (m.unit ? [m.unit] : [])),
-                    ),
-                  ].sort((a, b) => a.localeCompare(b, "sr", { numeric: true }))
-                : []
+            const units = [
+              ...new Set(
+                [...solved, ...unsolved, ...unknown].flatMap((m) => (m.unit ? [m.unit] : [])),
+              ),
+            ].sort((a, b) => a.localeCompare(b, "sr", { numeric: true }))
             const inUnit = (m: Material) => units.includes(m.unit ?? "")
             const flat = (list: Material[]) => list.filter((m) => !inUnit(m))
             const sections: { label: string | null; mats: Material[] }[] =
@@ -396,20 +393,23 @@ function SubjectPage() {
                       const part = splitSolved(section.mats)
                       const blocks = [
                         {
+                          key: "solved",
                           list: part.solved,
                           label: t("subject.solved_label_fmt", { n: part.solved.length }),
                         },
                         {
+                          key: "unsolved",
                           list: part.unsolved,
                           label: t("subject.unsolved_label_fmt", { n: part.unsolved.length }),
                         },
                         {
+                          key: "unknown",
                           list: part.unknown,
                           label: t("subject.other_label_fmt", { n: part.unknown.length }),
                         },
                       ]
                       return (
-                        <div key={section.label ?? "__all"} className="mt-3">
+                        <div key={section.label ?? "all"} className="mt-3">
                           {section.label && (
                             <div className="mb-1.5 ml-5 border-l-2 border-[var(--accent)] py-1 pl-3 text-xs font-semibold text-[var(--text-primary)]">
                               {section.label}
@@ -420,7 +420,7 @@ function SubjectPage() {
                               {blocks.map(
                                 (block) =>
                                   block.list.length > 0 && (
-                                    <div key={block.label} className="ml-5 mt-3">
+                                    <div key={block.key} className="ml-5 mt-3">
                                       <div className="mb-1.5 border-l-2 border-[var(--border-default)] py-1 pl-3 text-xs font-medium text-[var(--text-secondary)]">
                                         {block.label}
                                       </div>

@@ -78,37 +78,43 @@ function UnitNav({
   onGo: (id: string) => void
   variant: "desktop" | "mobile"
 }) {
-  const { t } = useI18n()
   if (!prev && !next) return null
-  const btn =
-    variant === "desktop"
-      ? "flex size-9 items-center justify-center rounded-[0.438rem]"
-      : "flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-[0.438rem]"
-  const icon = variant === "desktop" ? "size-4" : "size-5"
   return (
     <div className="flex shrink-0 items-center gap-0.5">
-      <button
-        onClick={() => prev && onGo(prev.id)}
-        disabled={!prev}
-        aria-label={t("viewer.unit_prev")}
-        title={prev?.title ?? t("viewer.unit_prev")}
-        className={`${btn} text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none`}
-      >
-        <ChevronLeft className={icon} />
-      </button>
-      <button
-        onClick={() => next && onGo(next.id)}
-        disabled={!next}
-        aria-label={t("viewer.unit_next")}
-        title={next?.title ?? t("viewer.unit_next")}
-        className={`${btn} text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none`}
-      >
-        <ChevronRight className={icon} />
-      </button>
+      <UnitButton item={prev} onGo={onGo} direction="prev" variant={variant} />
+      <UnitButton item={next} onGo={onGo} direction="next" variant={variant} />
     </div>
   )
 }
 
+function UnitButton({
+  item,
+  onGo,
+  direction,
+  variant,
+}: {
+  item: { id: string; title: string } | null
+  onGo: (id: string) => void
+  direction: "prev" | "next"
+  variant: "desktop" | "mobile"
+}) {
+  const { t } = useI18n()
+  const Icon = direction === "prev" ? ChevronLeft : ChevronRight
+  const key = direction === "prev" ? "viewer.unit_prev" : "viewer.unit_next"
+  const size = variant === "desktop" ? "size-9" : "min-h-[2.75rem] min-w-[2.75rem]"
+  const iconSize = variant === "desktop" ? "size-4" : "size-5"
+  return (
+    <button
+      onClick={() => item && onGo(item.id)}
+      disabled={!item}
+      aria-label={t(key)}
+      title={item?.title ?? t(key)}
+      className={`flex ${size} items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none`}
+    >
+      <Icon className={iconSize} />
+    </button>
+  )
+}
 function FindChip({
   count,
   index,

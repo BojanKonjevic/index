@@ -35,6 +35,19 @@ const entries = JSON.parse(readFileSync(manifestPath, "utf8"))
 let ok = 0
 const failed = []
 for (const { file, key } of entries) {
+  // Keys are backend identifiers: ascii slugs only. Non-ASCII or spaced
+  // keys corrupt the local toolchain (percent-encoded on write, read back
+  // raw) and fail local verification. Natural names belong in titles.
+  if (/[^\x20-\x7e]/.test(key) || key !== key.normalize("NFC")) {
+    failed.push(`(rejected) ${key}`)
+    console.error(`X (rejected, non-ascii key) ${key}`)
+    continue
+  }
+  if (/\s/.test(key)) {
+    failed.push(`(rejected) ${key}`)
+    console.error(`X (rejected, whitespace in key) ${key}`)
+    continue
+  }
   for (const target of targets) {
     const res = spawnSync(
       WRANGLER,
