@@ -89,4 +89,46 @@ app.get("/material/:id/assets", async (c) => {
   return c.json(assets, 200)
 })
 
+const MAX_BY_IDS = 200
+const MAX_BIND_PARAMS = 100
+
+app.get("/materials/by-ids", async (c) => {
+  const db = c.env.DB
+  const raw = c.req.query("ids") ?? ""
+  const ids = [
+    ...new Set(
+      raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  ].slice(0, MAX_BY_IDS)
+  if (ids.length === 0) return c.json({ materials: [], subjectNameMap: {} }, 200)
+
+  const chunks: string[][] = []
+  for (let i = 0; i < ids.length; i += MAX_BIND_PARAMS)
+    chunks.push(ids.slice(i, i + MAX_BIND_PARAMS))
+  const results = await db.batch(
+    chunks.map((chunk) => {
+      const placeholders = chunk.map(() => "?").join(",")
+      return db
+        .prepare(
+          `SELECT m.*, s.name as subject_name, (SELECT COUNT(*) FROM material_assets WHERE material_id = m.id) as asset_count FROM materials m JOIN subjects s ON s.id = m.subject_id WHERE m.id IN (${placeholders}) ORDER BY m.title`,
+        )
+        .bind(...chunk)
+    }),
+  )
+
+  const materials = results.flatMap((r) =>
+    (r.results as Record<string, unknown>[]).map(mapMaterial),
+  )
+  const subjectNameMap: Record<string, string> = {}
+  for (const r of results) {
+    for (const row of r.results as Record<string, unknown>[]) {
+      subjectNameMap[row.subject_id as string] = row.subject_name as string
+    }
+  }
+  return c.json({ materials, subjectNameMap }, 200)
+})
+
 export default app
