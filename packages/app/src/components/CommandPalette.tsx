@@ -19,7 +19,7 @@ import { SearchAbortedError, SearchSequenceGuard, searchContent } from "@/lib/ap
 import { searchOfflinePages } from "@/lib/offline/search"
 import { OfflineBadge } from "@/components/OfflineBadge"
 import { cn } from "@/lib/utils"
-import { typeIconMap, typeTagStyles } from "@/lib/styles"
+import { formatVisual } from "@/lib/styles"
 import type {
   DashboardData,
   Material,
@@ -43,6 +43,7 @@ type Row =
       title: string
       sub: string
       fileType: Material["fileType"]
+      url: string
       offline: boolean
       activate: () => void
     }
@@ -51,6 +52,7 @@ type Row =
       key: string
       kind: "content"
       item: SearchContentItem
+      url?: string
       offline: boolean
       activate: () => void
       openPage: (page: number) => void
@@ -160,7 +162,11 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
   const hasQuery = cleanQuery.length > 0
 
   const subjects = data?.subjects ?? []
-  const materials = data?.materials ?? []
+  const materials = useMemo(() => data?.materials ?? [], [data])
+  const materialUrlById = useMemo(
+    () => new Map(materials.map((m) => [m.id, m.url] as const)),
+    [materials],
+  )
   const exams = data?.exams ?? []
   const subjectNameMap = data?.subjectNameMap ?? {}
 
@@ -338,6 +344,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
                 title: p.title,
                 sub: p.subjectName,
                 fileType: p.fileType,
+                url: p.url,
                 offline: downloadedSubjectIds.has(p.subjectId),
                 activate: () => pickMaterial(p.id, p.subjectId),
               },
@@ -371,6 +378,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
               title: m.title,
               sub: m.subjectName,
               fileType: m.fileType,
+              url: m.url,
               offline: downloadedSubjectIds.has(m.subjectId),
               activate: () => {
                 const hit = content ? content.items.find((i) => i.materialId === m.id) : undefined
@@ -407,6 +415,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
             key: `c-${item.materialId}`,
             kind: "content",
             item,
+            url: materialUrlById.get(item.materialId),
             offline: downloadedSubjectIds.has(item.subjectId),
             activate: () =>
               openMaterial(item.subjectId, item.materialId, {
@@ -438,6 +447,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
     shownSubjects,
     shownMaterials,
     shownExams,
+    materialUrlById,
     openMaterial,
     openSubject,
     pickMaterial,
@@ -787,8 +797,7 @@ function RowView({
   const { t } = useI18n()
 
   if (row.kind === "content") {
-    const Icon = typeIconMap[row.item.fileType] ?? null
-    const ts = typeTagStyles[row.item.fileType]
+    const { Icon, tag } = formatVisual(row.item.fileType, row.url)
     return (
       <div
         data-palette-row
@@ -804,12 +813,10 @@ function RowView({
           <div
             className={cn(
               "flex size-7 shrink-0 items-center justify-center rounded border",
-              ts?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]",
+              tag.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]",
             )}
           >
-            {Icon ? (
-              <Icon className={cn("size-3.5", ts?.icon || "text-[var(--text-secondary)]")} />
-            ) : null}
+            <Icon className={cn("size-3.5", tag.icon || "text-[var(--text-secondary)]")} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate font-medium text-[var(--text-primary)]">{row.item.title}</div>
@@ -862,8 +869,9 @@ function RowView({
 
   const isSubject = row.kind === "subject"
   const isExam = row.kind === "exam"
-  const Icon = isSubject ? BookOpen : isExam ? Calendar : (typeIconMap[row.fileType] ?? null)
-  const ts = !isSubject && !isExam ? typeTagStyles[row.fileType] : undefined
+  const visual = row.kind === "material" ? formatVisual(row.fileType, row.url) : null
+  const Icon = isSubject ? BookOpen : isExam ? Calendar : (visual?.Icon ?? null)
+  const tag = visual?.tag
 
   return (
     <button
@@ -878,11 +886,11 @@ function RowView({
       <div
         className={cn(
           "flex size-7 shrink-0 items-center justify-center rounded border",
-          ts?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]",
+          tag?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]",
         )}
       >
         {Icon ? (
-          <Icon className={cn("size-3.5", ts?.icon || "text-[var(--text-secondary)]")} />
+          <Icon className={cn("size-3.5", tag?.icon || "text-[var(--text-secondary)]")} />
         ) : null}
       </div>
       <div className="min-w-0 flex-1">

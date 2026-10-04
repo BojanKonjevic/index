@@ -103,6 +103,7 @@ app.get("/history", requireAuth, async (c) => {
       solved: m.solved,
       assetCount: m.assetCount ?? 0,
       timestamp: new Date(r.visited_at as string).getTime(),
+      url: m.url,
     }
   })
 

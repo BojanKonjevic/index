@@ -76,7 +76,7 @@ describe("splitSqlBlocks", () => {
 })
 
 describe("TextViewer", () => {
-  it("renders one section per task with its own copy button", async () => {
+  it("renders one section per task with copy, run and reset buttons", async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(SQL))
     renderViewer("/api/file/x/resenja.sql")
 
@@ -84,9 +84,11 @@ describe("TextViewer", () => {
       expect(screen.getByText("//1 Prikazati sve filmove.")).toBeInTheDocument()
     })
     expect(screen.getByText("//2 Prikazati zanrove.")).toBeInTheDocument()
-    expect(screen.getAllByRole("button").filter((b) => b.getAttribute("aria-label"))).toHaveLength(
-      2,
-    )
+    // Two task sections, each with copy + run-selected + run-all + reset.
+    expect(screen.getAllByRole("button", { name: "Kopiraj kod" })).toHaveLength(2)
+    expect(screen.getAllByRole("button", { name: "Pokreni izbor" })).toHaveLength(2)
+    expect(screen.getAllByRole("button", { name: "Pokreni sve" })).toHaveLength(2)
+    expect(screen.getAllByRole("button", { name: "Resetuj sesiju" })).toHaveLength(2)
   })
 
   it("highlights sql keywords and escapes plain text", async () => {

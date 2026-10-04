@@ -6,16 +6,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import {
   ArrowLeft,
   SunMoon,
+  GraduationCap,
   Layers as LayersIcon,
   ChevronUp,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   X,
   ZoomIn,
   ZoomOut,
   PanelRightClose,
-  PanelRightOpen,
 } from "lucide-react"
 
 import { fetchSearchPages, fetchSubject } from "@/lib/api"
@@ -27,6 +25,8 @@ import { ErrorFallback } from "@/components/ErrorFallback"
 import { PdfControls } from "@/components/PdfControls"
 import { SidebarContent } from "@/components/SidebarContent"
 import { BookmarkButton } from "@/components/BookmarkButton"
+import { HeaderSettingsButton } from "@/components/HeaderSettingsButton"
+import { HeaderSearchButton } from "@/components/HeaderSearchButton"
 import { getOrderedHighlights, getTextLayer } from "@/lib/textLayer"
 import type { Material, MaterialAsset } from "@index/shared"
 import { getVirtualCategory } from "@/lib/categories"
@@ -67,54 +67,6 @@ export const Route = createFileRoute("/subjects/$subjectId/materials/$materialId
   errorComponent: ErrorFallback,
 })
 
-function UnitNav({
-  prev,
-  next,
-  onGo,
-  variant,
-}: {
-  prev: { id: string; title: string } | null
-  next: { id: string; title: string } | null
-  onGo: (id: string) => void
-  variant: "desktop" | "mobile"
-}) {
-  if (!prev && !next) return null
-  return (
-    <div className="flex shrink-0 items-center gap-0.5">
-      <UnitButton item={prev} onGo={onGo} direction="prev" variant={variant} />
-      <UnitButton item={next} onGo={onGo} direction="next" variant={variant} />
-    </div>
-  )
-}
-
-function UnitButton({
-  item,
-  onGo,
-  direction,
-  variant,
-}: {
-  item: { id: string; title: string } | null
-  onGo: (id: string) => void
-  direction: "prev" | "next"
-  variant: "desktop" | "mobile"
-}) {
-  const { t } = useI18n()
-  const Icon = direction === "prev" ? ChevronLeft : ChevronRight
-  const key = direction === "prev" ? "viewer.unit_prev" : "viewer.unit_next"
-  const size = variant === "desktop" ? "size-9" : "min-h-[2.75rem] min-w-[2.75rem]"
-  const iconSize = variant === "desktop" ? "size-4" : "size-5"
-  return (
-    <button
-      onClick={() => item && onGo(item.id)}
-      disabled={!item}
-      aria-label={t(key)}
-      title={item?.title ?? t(key)}
-      className={`flex ${size} items-center justify-center rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:pointer-events-none`}
-    >
-      <Icon className={iconSize} />
-    </button>
-  )
-}
 function FindChip({
   count,
   index,
@@ -351,28 +303,20 @@ function ViewerPage() {
   const hasAssets = !!(material && material.assets.length > 0)
   const isContainer = material?.fileType === "image" && hasAssets
   const showAssetGallery = isContainer || viewerTab === "assets"
-  // Prev/next within the study unit (V2, V3...), so zadatak/resenje/kod
-  // read as one path instead of scattered rows.
-  const unitSiblings =
-    material?.unit != null
-      ? materials
-          .filter((m) => m.unit === material.unit)
-          .sort((a, b) => a.title.localeCompare(b.title, "sr", { numeric: true }))
-      : []
-  const unitIndex = unitSiblings.findIndex((m) => m.id === materialId)
-  const prevUnit = unitIndex > 0 ? unitSiblings[unitIndex - 1] : null
-  const nextUnit =
-    unitIndex >= 0 && unitIndex < unitSiblings.length - 1 ? unitSiblings[unitIndex + 1] : null
-  const goUnit = (id: string) =>
-    navigate({
-      to: "/subjects/$subjectId/materials/$materialId",
-      params: { subjectId, materialId: id },
-    })
-
   // Code attachments (sql, txt) render in the text viewer, not the gallery.
   const currentAsset =
     viewerTab === "assets" && material && !isContainer ? material.assets[assetIndex] : undefined
   const showTextAsset = currentAsset?.fileType === "text"
+  // Sibling .sql data scripts (insert/podaci companions) preload into the
+  // runner database so query blocks execute against real tables.
+  const sqlDataUrls = (material?.assets ?? [])
+    .filter(
+      (a) =>
+        a.fileType === "text" &&
+        a.url.toLowerCase().endsWith(".sql") &&
+        a.url !== currentAsset?.url,
+    )
+    .map((a) => a.url)
 
   useEffect(() => {
     if (!hlParam || material?.fileType !== "pdf" || showAssetGallery) {
@@ -400,9 +344,15 @@ function ViewerPage() {
   }, [hlParam, materialId, material?.url, material?.fileType, showAssetGallery])
 
   const { addRecent } = useRecentlyOpened()
+  const lastRecentRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!material) return
+    // One write per material view: flipping assets or tabs must not reorder
+    // the list or sync to the server again.
+    const key = `${material.id}|${material.url}`
+    if (lastRecentRef.current === key) return
+    lastRecentRef.current = key
     addRecent({
       materialId: material.id,
       subjectId,
@@ -414,6 +364,7 @@ function ViewerPage() {
       solved: material.solved,
       assetCount: material.assets?.length ?? material.assetCount ?? 0,
       timestamp: Date.now(),
+      url: material.url,
     })
   }, [material, materialId, subjectId, subject?.name, addRecent])
 
@@ -740,89 +691,90 @@ function ViewerPage() {
         </div>
       </div>
 
-      {/* ── Top bar (desktop) ── */}
-      <div className="hidden sm:flex h-11 items-center gap-3 shrink-0 border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-3">
-        <button
-          onClick={() => navigate({ to: "/subjects/$subjectId", params: { subjectId } })}
-          aria-label={t("viewer.back")}
-          className="flex shrink-0 cursor-pointer items-center justify-center size-9 rounded-[0.438rem] text-[var(--text-secondary)] transition-all duration-100 hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+      {/* ── Top bar (desktop): logo + subject + doc controls + search/bookmark/settings ── */}
+      <div className="hidden sm:flex h-14 items-center gap-1.5 shrink-0 border-b bg-[var(--bg-surface)] border-[var(--border-default)] px-4">
+        <Link to="/" className="flex shrink-0 items-center gap-2">
+          <div className="flex h-[1.875rem] w-[1.875rem] items-center justify-center rounded-[0.5rem] bg-[var(--text-primary)]">
+            <GraduationCap className="size-[0.938rem] text-[var(--bg-surface)]" />
+          </div>
+          <span className="hidden font-serif text-[1.125rem] font-semibold tracking-[-0.3px] text-[var(--text-primary)] lg:inline">
+            Indeks
+          </span>
+        </Link>
+
+        <span
+          className="ml-1 h-5 w-px shrink-0 self-center bg-[var(--border-strong)]"
+          aria-hidden
+        />
+        <Link
+          to="/subjects/$subjectId"
+          params={{ subjectId }}
+          className="min-w-0 max-w-[12rem] shrink truncate font-serif text-[1rem] font-semibold text-[var(--text-primary)] transition-colors hover:underline lg:max-w-xs"
         >
-          <ArrowLeft className="size-4" />
-        </button>
+          {subject.name}
+        </Link>
 
-        <div className="flex items-center gap-1.5 text-[0.75rem] text-[var(--text-hint)] min-w-0 overflow-hidden">
-          <Link
-            to="/subjects"
-            className="shrink-0 hover:text-[var(--text-primary)] transition-colors duration-100"
-          >
-            {t("viewer.breadcrumb_subjects")}
-          </Link>
-          <span className="shrink-0">›</span>
-          <Link
-            to="/subjects/$subjectId"
-            params={{ subjectId }}
-            className="truncate hover:text-[var(--text-primary)] transition-colors duration-100"
-          >
-            {subject.name}
-          </Link>
-          <span className="shrink-0">›</span>
-          <span className="shrink-0 text-[var(--text-secondary)]">{categoryName}</span>
-          <span className="shrink-0">›</span>
-          <span className="truncate font-medium text-[var(--text-primary)]">{material?.title}</span>
-        </div>
+        <HeaderSearchButton className="mx-auto w-full max-w-[28rem] min-w-0 flex-1" />
 
-        <div className="flex-1" />
-
-        <div className="flex items-center gap-1 shrink-0">
-          {material?.fileType === "pdf" && !showAssetGallery && (
-            <>
-              {hlParam && (
-                <FindChip
-                  count={displayCount}
-                  index={displayIndex}
-                  page={hlPage}
-                  onPrev={() => stepMatch(-1)}
-                  onNext={() => stepMatch(1)}
-                  onClear={clearFind}
-                />
-              )}
-              <PdfControls
-                pageNum={pageNum}
-                numPages={numPages}
-                pageInput={pageInput}
-                zoom={displayZoom}
-                onPageInputChange={handlePageInputChange}
-                onPageInputCommit={handlePageInputCommit}
-                onPageInputKeyDown={handlePageInputKeyDown}
-                onZoomIn={zoomIn}
-                onZoomOut={zoomOut}
-                onFitWidth={fitWidth}
-                onGoToPage={goToPage}
-                atMaxZoom={atMaxZoom}
-                atMinZoom={atMinZoom}
+        {material?.fileType === "pdf" && !showAssetGallery && (
+          <div className="flex items-center gap-1 shrink-0">
+            {hlParam && (
+              <FindChip
+                count={displayCount}
+                index={displayIndex}
+                page={hlPage}
+                onPrev={() => stepMatch(-1)}
+                onNext={() => stepMatch(1)}
+                onClear={clearFind}
               />
+            )}
+            <PdfControls
+              pageNum={pageNum}
+              numPages={numPages}
+              pageInput={pageInput}
+              zoom={displayZoom}
+              onPageInputChange={handlePageInputChange}
+              onPageInputCommit={handlePageInputCommit}
+              onPageInputKeyDown={handlePageInputKeyDown}
+              onZoomIn={zoomIn}
+              onZoomOut={zoomOut}
+              onFitWidth={fitWidth}
+              onGoToPage={goToPage}
+              atMaxZoom={atMaxZoom}
+              atMinZoom={atMinZoom}
+            />
 
-              <button
-                onClick={() => setInverted((v) => !v)}
-                aria-label={t("viewer.invert")}
-                className={`flex size-9 items-center justify-center rounded-[0.438rem] transition-all duration-100 ${
-                  inverted
-                    ? "bg-[var(--accent-bg)] text-[var(--accent)]"
-                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
-                }`}
-                title={t("viewer.invert")}
-              >
-                <SunMoon className="size-4" />
-              </button>
-            </>
-          )}
-        </div>
+            <button
+              onClick={() => setInverted((v) => !v)}
+              aria-label={t("viewer.invert")}
+              className={`flex size-9 items-center justify-center rounded-[0.438rem] transition-all duration-100 ${
+                inverted
+                  ? "bg-[var(--accent-bg)] text-[var(--accent)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+              }`}
+              title={t("viewer.invert")}
+            >
+              <SunMoon className="size-4" />
+            </button>
+          </div>
+        )}
 
-        <span className="h-5 w-px bg-[var(--border-faint)]" />
-
-        <UnitNav prev={prevUnit} next={nextUnit} onGo={goUnit} variant="desktop" />
+        <span className="h-5 w-px shrink-0 bg-[var(--border-faint)]" />
 
         {material && <BookmarkButton id={material.id} />}
+
+        <button
+          onClick={() => setRightCollapsed((v) => !v)}
+          aria-label={rightCollapsed ? t("viewer.sidebar_expand") : t("viewer.sidebar_collapse")}
+          title={rightCollapsed ? t("viewer.sidebar_expand") : t("viewer.sidebar_collapse")}
+          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-[0.5rem] border border-[var(--border-default)] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+        >
+          <PanelRightClose
+            className={`size-4 transition-transform duration-200 ease-out ${rightCollapsed ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        <HeaderSettingsButton />
       </div>
 
       {/* ── Main content area ── */}
@@ -859,7 +811,7 @@ function ViewerPage() {
               {t("viewer.not_found")}
             </div>
           ) : showTextAsset && currentAsset ? (
-            <TextViewer url={currentAsset.url} />
+            <TextViewer url={currentAsset.url} dataUrls={sqlDataUrls} />
           ) : showAssetGallery && material ? (
             <AssetGallery
               assets={
@@ -904,7 +856,7 @@ function ViewerPage() {
           ) : material.fileType === "html" ? (
             <HtmlViewer url={material.url} title={material.title} />
           ) : material.fileType === "text" ? (
-            <TextViewer url={material.url} />
+            <TextViewer url={material.url} dataUrls={sqlDataUrls} />
           ) : !material.url ? (
             <div className="flex-1 flex items-center justify-center pt-20 text-sm text-[var(--text-secondary)]">
               {t("viewer.no_url")}
@@ -952,9 +904,15 @@ function ViewerPage() {
           )}
         </div>
 
-        {/* ── Right sidebar (desktop, collapsible) ── */}
-        {!rightCollapsed && (
-          <div className="hidden sm:flex w-[17.5rem] shrink-0 flex-col overflow-hidden border-l bg-[var(--bg-surface)] border-[var(--border-default)]">
+        {/* ── Right sidebar (desktop, animated collapse) ── */}
+        <div
+          className={`hidden sm:flex shrink-0 flex-col overflow-hidden border-l bg-[var(--bg-surface)] transition-[width,opacity,border-color] duration-200 ease-out ${
+            rightCollapsed
+              ? "w-0 border-transparent opacity-0"
+              : "w-[17.5rem] border-[var(--border-default)] opacity-100"
+          }`}
+        >
+          <div className="flex h-full w-[17.5rem] shrink-0 flex-col overflow-hidden">
             <SidebarContent
               sidebarMode={sidebarMode}
               setSidebarMode={setSidebarMode}
@@ -969,8 +927,8 @@ function ViewerPage() {
               offline={offline}
             />
 
-            <div className="flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[var(--border-faint)] px-3 py-2.5 text-[0.688rem] text-[var(--text-hint)]">
-              {hlParam && material?.fileType === "pdf" ? (
+            {hlParam && material?.fileType === "pdf" && (
+              <div className="flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[var(--border-faint)] px-3 py-2.5 text-[0.688rem] text-[var(--text-hint)]">
                 <span>
                   <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
                     ↵
@@ -980,43 +938,10 @@ function ViewerPage() {
                   </kbd>{" "}
                   <span className="text-[var(--text-secondary)]">{t("viewer.shortcut_find")}</span>
                 </span>
-              ) : null}
-              <span>
-                <kbd className="rounded border border-[var(--border-strong)] bg-[var(--bg-subtle)] px-1.5 text-[0.625rem] font-medium text-[var(--text-primary)]">
-                  b
-                </kbd>{" "}
-                <span className="text-[var(--text-secondary)]">
-                  {t("viewer.shortcut_bookmark")}
-                </span>
-              </span>
-            </div>
+              </div>
+            )}
           </div>
-        )}
-        {/* Open state: flush inside the panel's left edge, mirroring how
-            the left toggle sits flush inside its panel's right edge.
-            Fixed (not absolute) for two reasons: same viewport height as
-            the left toggle, and immune to the panel's overflow-hidden. The
-            17.5rem matches the panel width. */}
-        {!rightCollapsed && (
-          <button
-            onClick={() => setRightCollapsed(true)}
-            aria-label={t("viewer.sidebar_collapse")}
-            title={t("viewer.sidebar_collapse")}
-            className="fixed top-1/2 right-[calc(17.5rem-1.75rem)] z-50 hidden size-7 -translate-y-1/2 items-center justify-center rounded-r-md bg-[var(--bg-surface)] border border-l-0 border-[var(--border-default)] text-[var(--text-hint)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all duration-100 cursor-pointer shadow-sm sm:flex"
-          >
-            <PanelRightClose className="size-4" />
-          </button>
-        )}
-        {rightCollapsed && (
-          <button
-            onClick={() => setRightCollapsed(false)}
-            aria-label={t("viewer.sidebar_expand")}
-            title={t("viewer.sidebar_expand")}
-            className="fixed right-0 top-1/2 z-50 hidden sm:flex -translate-y-1/2 items-center justify-center size-7 rounded-l-md bg-[var(--bg-surface)] border border-r-0 border-[var(--border-default)] text-[var(--text-hint)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all duration-100 cursor-pointer shadow-sm"
-          >
-            <PanelRightOpen className="size-4" />
-          </button>
-        )}
+        </div>
       </div>
 
       {/* ── Bottom toolbar (mobile) ── */}
@@ -1055,7 +980,6 @@ function ViewerPage() {
         ) : null}
 
         <div className="flex-1" />
-        <UnitNav prev={prevUnit} next={nextUnit} onGo={goUnit} variant="mobile" />
         <Sheet open={materialsSheetOpen} onOpenChange={setMaterialsSheetOpen}>
           <SheetTrigger
             aria-label={t("viewer.sidebar_all")}

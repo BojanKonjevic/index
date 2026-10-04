@@ -1,30 +1,14 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createRootRoute, Outlet, Link, useLocation } from "@tanstack/react-router"
-import {
-  Home,
-  BookOpen,
-  Bookmark,
-  LogOut,
-  Sun,
-  Moon,
-  Languages,
-  GraduationCap,
-  User,
-  LogIn,
-  ChevronDown,
-  SlidersHorizontal,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { toggleTheme, getInitialTheme } from "@/lib/theme"
+import { Home, Bookmark, GraduationCap, SlidersHorizontal } from "lucide-react"
 import { Search } from "lucide-react"
 
-import { useState, useMemo, useRef, useLayoutEffect } from "react"
+import { useState, useMemo } from "react"
 import { AuthProvider, useAuth } from "@/hooks/useAuth"
 import { BookmarkProvider } from "@/hooks/useBookmarks"
 import { ErrorFallback } from "@/components/ErrorFallback"
-import { PreferencesProvider, usePreferences } from "@/hooks/usePreferences"
+import { PreferencesProvider } from "@/hooks/usePreferences"
+import { ThemeProvider, useTheme } from "@/hooks/useTheme"
 import { AuthModal } from "@/components/AuthModal"
 import { WelcomeScreen } from "@/components/WelcomeScreen"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -33,31 +17,29 @@ import { Skeleton } from "@/components/Skeleton"
 import { SearchPaletteProvider, useSearchPalette } from "@/hooks/useSearchPalette"
 import { useOnlineStatus } from "@/hooks/useOnlineStatus"
 import CommandPalette from "@/components/CommandPalette"
-import { OfflineBanner, OFFLINE_BANNER_OFFSET_CLASS } from "@/components/OfflineBanner"
+import { OfflineBanner } from "@/components/OfflineBanner"
+import { SettingsContent } from "@/components/SettingsContent"
+import { HeaderSettingsButton } from "@/components/HeaderSettingsButton"
+import { HeaderSearchButton } from "@/components/HeaderSearchButton"
 
-const GROUP_NUMBERS = Array.from({ length: 14 }, (_, i) => i + 1)
 const SETTINGS_CLOSE_DELAY_MS = 200
 const VIEWER_PATH_RE = /^\/subjects\/[^/]+\/materials\/[^/]+/
 const isViewerPath = (pathname: string) => VIEWER_PATH_RE.test(pathname)
 
-function NavItem({ to, icon: Icon, label }: { to: string; icon: typeof Home; label: string }) {
+function HeaderBookmarksButton() {
   const location = useLocation()
-  const isActive = to === "/" ? location.pathname === "/" : location.pathname.startsWith(to)
+  const { t } = useI18n()
+  const isActive = location.pathname.startsWith("/bookmarks")
 
   return (
     <Link
-      to={to}
-      className={cn(
-        "flex items-center gap-[0.563rem] rounded-[0.438rem] px-[0.563rem] py-[0.438rem] text-[0.813rem] transition-colors duration-100 mb-[0.063rem]",
-        isActive
-          ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)] font-medium"
-          : "text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]",
-      )}
+      to="/bookmarks"
+      aria-label={t("nav.bookmarks")}
+      className="relative flex size-9 items-center justify-center rounded-[0.5rem] border border-[var(--border-default)] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
     >
-      <Icon
-        className={cn("size-[0.938rem]", isActive ? "opacity-90" : "text-[var(--text-hint)]")}
+      <Bookmark
+        className={`size-4 ${isActive ? "fill-[var(--bookmark)] text-[var(--bookmark)]" : ""}`}
       />
-      {label}
     </Link>
   )
 }
@@ -70,17 +52,14 @@ function BottomTabBar({
   onToggleTheme: () => void
 }) {
   const location = useLocation()
-  const { t, toggleLocale, locale } = useI18n()
-  const { user, isGuest, logout } = useAuth()
-  const { group, setGroup: setGroupPreference } = usePreferences()
-  const { openPalette } = useSearchPalette()
+  const { t } = useI18n()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
+  const { openPalette } = useSearchPalette()
 
   const tabs = useMemo(
     () => [
       { to: "/", label: t("nav.home"), icon: Home },
-      { to: "/subjects", label: t("nav.subjects"), icon: BookOpen },
       { to: "/bookmarks", label: t("nav.bookmarks"), icon: Bookmark },
       {
         to: "#search",
@@ -130,81 +109,14 @@ function BottomTabBar({
                     <SheetTitle className="text-left">{t("sidebar.settings")}</SheetTitle>
                   </SheetHeader>
                   <div className="flex-1 overflow-y-auto px-4 pb-6">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                          {t("sidebar.group_label")}
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {GROUP_NUMBERS.map((g) => (
-                            <button
-                              key={g}
-                              onClick={() => setGroupPreference(String(g))}
-                              className={`rounded-full border px-3 py-1.5 text-[0.75rem] transition-all duration-100 ${
-                                group === String(g)
-                                  ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-                                  : "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
-                              }`}
-                            >
-                              {t("sidebar.group_fmt", { g })}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="h-px bg-[var(--border-faint)]" />
-
-                      {user && (
-                        <div className="flex items-center justify-between rounded-[0.438rem] bg-[var(--bg-subtle)] px-3 py-2.5">
-                          <span className="text-[0.813rem] font-medium text-[var(--text-primary)] truncate">
-                            {user.name}
-                          </span>
-                          <button
-                            onClick={logout}
-                            aria-label={t("nav.logout")}
-                            className="shrink-0 cursor-pointer text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
-                          >
-                            <LogOut className="size-4" />
-                            <span className="text-xs">{t("nav.logout")}</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {!user && isGuest && (
-                        <button
-                          onClick={() => {
-                            setSettingsOpen(false)
-                            setTimeout(() => setAuthOpen(true), SETTINGS_CLOSE_DELAY_MS)
-                          }}
-                          className="flex w-full cursor-pointer items-center gap-2 rounded-[0.438rem] px-3 py-2.5 text-[0.813rem] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-subtle)]"
-                        >
-                          <LogIn className="size-4" />
-                          {t("nav.login_register")}
-                        </button>
-                      )}
-
-                      <div className="h-px bg-[var(--border-faint)]" />
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={toggleLocale}
-                          className="flex items-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-3 py-2 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-                        >
-                          <Languages className="size-4" />
-                          <span>{locale === "sr" ? "English" : "Srpski"}</span>
-                        </button>
-                        <button
-                          onClick={onToggleTheme}
-                          className="flex items-center justify-center rounded-[0.438rem] border border-[var(--border-default)] px-3 py-2 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-                        >
-                          {theme === "dark" ? (
-                            <Sun className="size-4" />
-                          ) : (
-                            <Moon className="size-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
+                    <SettingsContent
+                      theme={theme}
+                      onToggleTheme={onToggleTheme}
+                      onAuthClick={() => {
+                        setSettingsOpen(false)
+                        setTimeout(() => setAuthOpen(true), SETTINGS_CLOSE_DELAY_MS)
+                      }}
+                    />
                   </div>
                 </SheetContent>
               </Sheet>
@@ -233,195 +145,26 @@ function BottomTabBar({
   )
 }
 
-function Sidebar({
-  theme,
-  onToggleTheme,
-  collapsed,
-  onToggleCollapse,
-  bannerOffset,
-}: {
-  theme: "light" | "dark"
-  onToggleTheme: () => void
-  collapsed: boolean
-  onToggleCollapse: () => void
-  bannerOffset: boolean
-}) {
-  const { group, setGroup: setGroupPreference } = usePreferences()
-  const { user, isGuest, logout } = useAuth()
-  const { openPalette } = useSearchPalette()
-  const [authOpen, setAuthOpen] = useState(false)
-  const [groupOpen, setGroupOpen] = useState(false)
-  const groupRef = useRef<HTMLDivElement>(null)
-  const { t, toggleLocale, locale } = useI18n()
-
-  const navItems = useMemo(
-    () => [
-      {
-        section: t("nav.navigation"),
-        items: [
-          { to: "/", label: t("nav.home"), icon: Home },
-          { to: "/subjects", label: t("nav.subjects"), icon: BookOpen },
-        ],
-      },
-      {
-        section: t("nav.personal"),
-        items: [{ to: "/bookmarks", label: t("nav.bookmarks"), icon: Bookmark }],
-      },
-    ],
-    [t],
-  )
-
+function TopHeader() {
   return (
-    <div
-      className={`fixed left-0 z-40 hidden md:flex ${
-        bannerOffset ? OFFLINE_BANNER_OFFSET_CLASS : "top-0 h-screen"
-      }`}
-    >
-      <aside
-        className={`h-screen flex flex-col border-r bg-[var(--bg-surface)] border-[var(--border-default)] transition-[width] duration-200 ease-in-out overflow-hidden ${
-          collapsed ? "w-0 border-r-0" : "w-[14rem]"
-        }`}
-      >
-        <div className="w-[14rem] shrink-0 flex flex-col h-full">
-          <div className="flex items-center gap-2.5 px-4 py-[1.125rem] pb-3.5 border-b border-[var(--border-faint)]">
-            <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-[1.875rem] h-[1.875rem] rounded-[0.5rem] bg-[var(--text-primary)] flex items-center justify-center">
-                <GraduationCap className="size-[0.938rem] text-[var(--bg-surface)]" />
-              </div>
-              <span className="text-[1.063rem] font-semibold tracking-[-0.3px] text-[var(--text-primary)]">
-                Indeks
-              </span>
-            </Link>
+    <header className="sticky top-0 z-40 border-b bg-[var(--bg-surface)] border-[var(--border-default)]">
+      <div className="mx-auto flex h-14 w-full max-w-[72rem] items-center gap-1.5 px-4 md:px-8">
+        <Link to="/" className="flex shrink-0 items-center gap-2">
+          <div className="flex h-[1.875rem] w-[1.875rem] items-center justify-center rounded-[0.5rem] bg-[var(--text-primary)]">
+            <GraduationCap className="size-[0.938rem] text-[var(--bg-surface)]" />
           </div>
+          <span className="font-serif text-[1.125rem] font-semibold tracking-[-0.3px] text-[var(--text-primary)]">
+            Indeks
+          </span>
+        </Link>
 
-          <nav className="flex-1 flex flex-col gap-0.5 px-2 pt-[0.875rem] pb-3">
-            <button
-              onClick={openPalette}
-              className="mb-2 flex w-full cursor-pointer items-center gap-2 rounded-[0.438rem] border border-[var(--border-default)] bg-[var(--bg-subtle)] px-[0.563rem] py-[0.438rem] text-[0.75rem] text-[var(--text-hint)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-            >
-              <Search className="size-3.5 shrink-0" />
-              <span className="flex-1 truncate text-left">{t("nav.search")}</span>
-              <kbd className="rounded border border-[var(--border-faint)] px-1 font-sans text-[0.625rem]">
-                ⌘K
-              </kbd>
-            </button>
-            {navItems.map((section) => (
-              <div key={section.section}>
-                <div className="px-2 pb-[0.375rem] pt-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-                  {section.section}
-                </div>
-                {section.items.map((item) => (
-                  <NavItem key={item.to} to={item.to} icon={item.icon} label={item.label} />
-                ))}
-              </div>
-            ))}
-          </nav>
+        <HeaderSearchButton hideOnMobile className="mx-auto w-full max-w-[32rem] flex-1" />
 
-          <div className="mt-auto border-t border-[var(--border-faint)] px-2 py-3 flex flex-col gap-1">
-            <div className="relative" ref={groupRef}>
-              <button
-                onClick={() => setGroupOpen(!groupOpen)}
-                className="flex w-full items-center gap-2 rounded-[0.438rem] bg-[var(--bg-subtle)] px-[0.563rem] py-[0.438rem] text-xs transition-colors hover:bg-[var(--bg-inset)] cursor-pointer"
-              >
-                <User className="size-[0.875rem] text-[var(--text-hint)] shrink-0" />
-                <div className="flex flex-col flex-1 min-w-0 text-left">
-                  <span className="text-[0.625rem] text-[var(--text-hint)]">
-                    {t("sidebar.group_label")}
-                  </span>
-                  <span className="text-[0.75rem] font-medium text-[var(--text-primary)] truncate">
-                    {group ? t("sidebar.group_fmt", { g: group }) : t("sidebar.group_placeholder")}
-                  </span>
-                </div>
-                <ChevronDown className="size-[0.813rem] text-[var(--text-hint)] shrink-0" />
-              </button>
-              {groupOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setGroupOpen(false)} />
-                  <div className="absolute bottom-full left-0 right-0 z-50 mb-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-md overflow-y-auto max-h-[18.75rem] dropdown-enter">
-                    {GROUP_NUMBERS.map((g) => (
-                      <button
-                        key={g}
-                        onClick={() => {
-                          setGroupPreference(String(g))
-                          setGroupOpen(false)
-                        }}
-                        className={`w-full cursor-pointer px-3 py-2 text-left text-[0.813rem] transition-colors duration-100 hover:bg-[var(--bg-subtle)] ${
-                          group === String(g)
-                            ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]"
-                            : "text-[var(--text-primary)]"
-                        }`}
-                      >
-                        {t("sidebar.group_fmt", { g })}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+        <HeaderBookmarksButton />
 
-            {user && (
-              <div className="flex items-center justify-between rounded-[0.438rem] bg-[var(--bg-subtle)] px-[0.563rem] py-[0.438rem]">
-                <span className="text-[0.813rem] font-medium text-[var(--text-primary)] truncate">
-                  {user.name}
-                </span>
-                <button
-                  onClick={logout}
-                  aria-label={t("nav.logout")}
-                  className="shrink-0 cursor-pointer text-[var(--text-hint)] hover:text-[var(--text-primary)] transition-colors"
-                  title={t("nav.logout")}
-                >
-                  <LogOut className="size-[0.875rem]" />
-                </button>
-              </div>
-            )}
-
-            {!user && isGuest && (
-              <button
-                onClick={() => setAuthOpen(true)}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-[0.438rem] px-[0.563rem] py-[0.438rem] text-[0.813rem] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-subtle)]"
-              >
-                <LogIn className="size-[0.875rem]" />
-                {t("nav.login_register")}
-              </button>
-            )}
-
-            <div className="h-px bg-[var(--border-faint)] my-1.5" />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleLocale}
-                aria-label={locale === "sr" ? "Switch to English" : "Prebaci na srpski"}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-2 py-1.5 text-[0.688rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-                title={locale === "sr" ? "Switch to English" : "Prebaci na srpski"}
-              >
-                <Languages className="size-[0.875rem]" />
-                <span>{locale === "sr" ? "EN" : "SR"}</span>
-              </button>
-              <button
-                onClick={onToggleTheme}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-[0.438rem] border border-[var(--border-default)] px-2 py-1.5 text-[0.688rem] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-              >
-                {theme === "dark" ? (
-                  <Sun className="size-[0.875rem]" />
-                ) : (
-                  <Moon className="size-[0.875rem]" />
-                )}
-                <span>{theme === "dark" ? "Light" : "Dark"}</span>
-              </button>
-            </div>
-            <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
-          </div>
-        </div>
-      </aside>
-      {!collapsed && (
-        <button
-          onClick={onToggleCollapse}
-          aria-label={t("sidebar.collapse")}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-50 flex items-center justify-center size-7 rounded-l-md bg-[var(--bg-surface)] border border-r-0 border-[var(--border-default)] text-[var(--text-hint)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all duration-100 cursor-pointer"
-        >
-          <PanelLeftClose className="size-4" />
-        </button>
-      )}
-    </div>
+        <HeaderSettingsButton hideOnMobile />
+      </div>
+    </header>
   )
 }
 
@@ -444,7 +187,9 @@ function RootLayout() {
       <BookmarkProvider>
         <PreferencesProvider>
           <SearchPaletteProvider>
-            <RootContent />
+            <ThemeProvider>
+              <RootContent />
+            </ThemeProvider>
           </SearchPaletteProvider>
         </PreferencesProvider>
       </BookmarkProvider>
@@ -454,19 +199,10 @@ function RootLayout() {
 
 function RootContent() {
   const { user, isGuest, loading } = useAuth()
-  const { t } = useI18n()
   const location = useLocation()
   const isViewer = isViewerPath(location.pathname)
   const online = useOnlineStatus()
-  const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const toggleThemeHandler = () => setTheme((prev) => toggleTheme(prev))
-
-  useLayoutEffect(() => {
-    window.dispatchEvent(
-      new CustomEvent("sidebar-toggling", { detail: { collapsed: sidebarCollapsed } }),
-    )
-  }, [sidebarCollapsed])
+  const { theme, toggleTheme } = useTheme()
 
   if (loading) return <Skeleton />
 
@@ -476,28 +212,14 @@ function RootContent() {
 
   return (
     <div className="min-h-screen bg-bg-page">
+      {!isViewer && <div className="grain-overlay" aria-hidden />}
       {!online && !isViewer && <OfflineBanner />}
-      <Sidebar
-        theme={theme}
-        onToggleTheme={toggleThemeHandler}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
-        bannerOffset={!online && !isViewer}
-      />
-      {sidebarCollapsed && (
-        <button
-          onClick={() => setSidebarCollapsed(false)}
-          aria-label={t("sidebar.expand")}
-          className="fixed left-0 top-1/2 -translate-y-1/2 z-50 hidden md:flex items-center justify-center size-7 rounded-r-md bg-[var(--bg-surface)] border border-l-0 border-[var(--border-default)] text-[var(--text-hint)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all duration-100 cursor-pointer shadow-sm"
-        >
-          <PanelLeftOpen className="size-4" />
-        </button>
-      )}
-      {!isViewer && <BottomTabBar theme={theme} onToggleTheme={toggleThemeHandler} />}
+      {!isViewer && <TopHeader />}
+      {!isViewer && <BottomTabBar theme={theme} onToggleTheme={toggleTheme} />}
       <main
-        className={`min-h-screen transition-[margin] duration-200 ease-in-out ${
+        className={`min-h-screen ${
           isViewer ? "" : "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"
-        } ${sidebarCollapsed ? "ml-0" : "ml-0 md:ml-[14rem]"}`}
+        }`}
       >
         <AnimatedOutlet />
       </main>

@@ -68,3 +68,7 @@ Object-store deletions take an explicit key list. LIKE patterns twice deleted li
 ## 12. Reindex after content changes (from: stale page counts, review loop)
 
 Re-uploading a file never invalidates the indexer's done files. After any content change (covers, transcript rewrites), remove the material ids from index.local.done and index.remote.done and rerun. Stale page counts and search rows are silent until someone looks.
+
+## 13. Tag units and parts by exact ID, then prove coverage (from: unit/part audit, third batch)
+
+`unit` and `exam_part` are set by exact material IDs, never LIKE patterns (a `mo-v3-%` pattern tagged every companion and missed the bare `mo-v3` main PDF). After tagging, run the three coverage queries in seed/UNITS_AND_PARTS.md: V-titled problems without units, exams without sittings, misc carrying parts. Judgment calls and deliberate exceptions go in that file, not in chat.

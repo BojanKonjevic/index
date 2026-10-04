@@ -60,6 +60,16 @@ export async function fetchBookmarkedMaterials(): Promise<{
   return fetchApi("/bookmarks/materials")
 }
 
+export async function fetchMaterialsByIds(ids: string[]): Promise<{
+  materials: Material[]
+  subjectNameMap: Record<string, string>
+}> {
+  if (ids.length === 0) return { materials: [], subjectNameMap: {} }
+  const query = new URLSearchParams()
+  query.set("ids", ids.join(","))
+  return fetchApi(`/materials/by-ids?${query.toString()}`)
+}
+
 export async function fetchMaterialAssets(id: string): Promise<MaterialAsset[]> {
   return fetchApi(`/material/${id}/assets`)
 }

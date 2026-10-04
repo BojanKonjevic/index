@@ -9,20 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SubjectsRouteImport } from './routes/subjects'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SubjectsIndexRouteImport } from './routes/subjects/index'
 import { Route as BookmarksIndexRouteImport } from './routes/bookmarks/index'
 import { Route as SubjectsSubjectIdIndexRouteImport } from './routes/subjects.$subjectId/index'
 import { Route as SubjectsSubjectIdMaterialsMaterialIdIndexRouteImport } from './routes/subjects.$subjectId.materials.$materialId/index'
 
+const SubjectsRoute = SubjectsRouteImport.update({
+  id: '/subjects',
+  path: '/subjects',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SubjectsIndexRoute = SubjectsIndexRouteImport.update({
-  id: '/subjects/',
-  path: '/subjects/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookmarksIndexRoute = BookmarksIndexRouteImport.update({
@@ -31,36 +31,36 @@ const BookmarksIndexRoute = BookmarksIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const SubjectsSubjectIdIndexRoute = SubjectsSubjectIdIndexRouteImport.update({
-  id: '/subjects/$subjectId/',
-  path: '/subjects/$subjectId/',
-  getParentRoute: () => rootRouteImport,
+  id: '/$subjectId/',
+  path: '/$subjectId/',
+  getParentRoute: () => SubjectsRoute,
 } as any)
 const SubjectsSubjectIdMaterialsMaterialIdIndexRoute =
   SubjectsSubjectIdMaterialsMaterialIdIndexRouteImport.update({
-    id: '/subjects/$subjectId/materials/$materialId/',
-    path: '/subjects/$subjectId/materials/$materialId/',
-    getParentRoute: () => rootRouteImport,
+    id: '/$subjectId/materials/$materialId/',
+    path: '/$subjectId/materials/$materialId/',
+    getParentRoute: () => SubjectsRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/subjects': typeof SubjectsRouteWithChildren
   '/bookmarks/': typeof BookmarksIndexRoute
-  '/subjects/': typeof SubjectsIndexRoute
   '/subjects/$subjectId/': typeof SubjectsSubjectIdIndexRoute
   '/subjects/$subjectId/materials/$materialId/': typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/subjects': typeof SubjectsRouteWithChildren
   '/bookmarks': typeof BookmarksIndexRoute
-  '/subjects': typeof SubjectsIndexRoute
   '/subjects/$subjectId': typeof SubjectsSubjectIdIndexRoute
   '/subjects/$subjectId/materials/$materialId': typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/subjects': typeof SubjectsRouteWithChildren
   '/bookmarks/': typeof BookmarksIndexRoute
-  '/subjects/': typeof SubjectsIndexRoute
   '/subjects/$subjectId/': typeof SubjectsSubjectIdIndexRoute
   '/subjects/$subjectId/materials/$materialId/': typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
 }
@@ -68,48 +68,46 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/subjects'
     | '/bookmarks/'
-    | '/subjects/'
     | '/subjects/$subjectId/'
     | '/subjects/$subjectId/materials/$materialId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/bookmarks'
     | '/subjects'
+    | '/bookmarks'
     | '/subjects/$subjectId'
     | '/subjects/$subjectId/materials/$materialId'
   id:
     | '__root__'
     | '/'
+    | '/subjects'
     | '/bookmarks/'
-    | '/subjects/'
     | '/subjects/$subjectId/'
     | '/subjects/$subjectId/materials/$materialId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SubjectsRoute: typeof SubjectsRouteWithChildren
   BookmarksIndexRoute: typeof BookmarksIndexRoute
-  SubjectsIndexRoute: typeof SubjectsIndexRoute
-  SubjectsSubjectIdIndexRoute: typeof SubjectsSubjectIdIndexRoute
-  SubjectsSubjectIdMaterialsMaterialIdIndexRoute: typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/subjects': {
+      id: '/subjects'
+      path: '/subjects'
+      fullPath: '/subjects'
+      preLoaderRoute: typeof SubjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/subjects/': {
-      id: '/subjects/'
-      path: '/subjects'
-      fullPath: '/subjects/'
-      preLoaderRoute: typeof SubjectsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bookmarks/': {
@@ -121,28 +119,40 @@ declare module '@tanstack/react-router' {
     }
     '/subjects/$subjectId/': {
       id: '/subjects/$subjectId/'
-      path: '/subjects/$subjectId'
+      path: '/$subjectId'
       fullPath: '/subjects/$subjectId/'
       preLoaderRoute: typeof SubjectsSubjectIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SubjectsRoute
     }
     '/subjects/$subjectId/materials/$materialId/': {
       id: '/subjects/$subjectId/materials/$materialId/'
-      path: '/subjects/$subjectId/materials/$materialId'
+      path: '/$subjectId/materials/$materialId'
       fullPath: '/subjects/$subjectId/materials/$materialId/'
       preLoaderRoute: typeof SubjectsSubjectIdMaterialsMaterialIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SubjectsRoute
     }
   }
 }
 
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  BookmarksIndexRoute: BookmarksIndexRoute,
-  SubjectsIndexRoute: SubjectsIndexRoute,
+interface SubjectsRouteChildren {
+  SubjectsSubjectIdIndexRoute: typeof SubjectsSubjectIdIndexRoute
+  SubjectsSubjectIdMaterialsMaterialIdIndexRoute: typeof SubjectsSubjectIdMaterialsMaterialIdIndexRoute
+}
+
+const SubjectsRouteChildren: SubjectsRouteChildren = {
   SubjectsSubjectIdIndexRoute: SubjectsSubjectIdIndexRoute,
   SubjectsSubjectIdMaterialsMaterialIdIndexRoute:
     SubjectsSubjectIdMaterialsMaterialIdIndexRoute,
+}
+
+const SubjectsRouteWithChildren = SubjectsRoute._addFileChildren(
+  SubjectsRouteChildren,
+)
+
+const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
+  SubjectsRoute: SubjectsRouteWithChildren,
+  BookmarksIndexRoute: BookmarksIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

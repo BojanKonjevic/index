@@ -57,3 +57,47 @@ describe("GET /api/subject/:id", () => {
     expect(body.revision.startsWith(`${body.materials.length}:`)).toBe(true)
   })
 })
+
+describe("GET /api/materials/by-ids", () => {
+  it("returns empty for missing ids", async () => {
+    const res = await SELF.fetch("http://localhost/api/materials/by-ids")
+    expect(res.status).toBe(200)
+    const body = await res.json<{ materials: unknown[] }>()
+    expect(body.materials).toEqual([])
+  })
+
+  it("returns only the requested materials with subject names", async () => {
+    const res = await SELF.fetch(
+      "http://localhost/api/materials/by-ids?ids=ma2-vezbe-01,ma2-k1-kolokvijum-2015-11-15,nonexistent",
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json<{
+      materials: Array<{ id: string }>
+      subjectNameMap: Record<string, string>
+    }>()
+    expect(body.materials.map((m) => m.id).sort()).toEqual([
+      "ma2-k1-kolokvijum-2015-11-15",
+      "ma2-vezbe-01",
+    ])
+    expect(body.subjectNameMap["matematicka-analiza-2"]).toBe("Matematička analiza 2")
+  })
+
+  it("merges chunks past the bind-parameter limit", async () => {
+    const ids = [
+      ...Array.from({ length: 120 }, (_, i) => `missing-${i}`),
+      "ma2-vezbe-01",
+      "ma2-k1-kolokvijum-2015-11-15",
+    ]
+    const res = await SELF.fetch(`http://localhost/api/materials/by-ids?ids=${ids.join(",")}`)
+    expect(res.status).toBe(200)
+    const body = await res.json<{
+      materials: Array<{ id: string }>
+      subjectNameMap: Record<string, string>
+    }>()
+    expect(body.materials.map((m) => m.id).sort()).toEqual([
+      "ma2-k1-kolokvijum-2015-11-15",
+      "ma2-vezbe-01",
+    ])
+    expect(body.subjectNameMap["matematicka-analiza-2"]).toBe("Matematička analiza 2")
+  })
+})

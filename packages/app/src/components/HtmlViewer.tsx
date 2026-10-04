@@ -6,10 +6,16 @@ import { useFetchBytes } from "@/lib/useFetchBytes"
 export default function HtmlViewer({ url, title }: { url: string; title: string }) {
   const { t } = useI18n()
   const { data, error } = useFetchBytes(url)
-  const src = useMemo(
-    () => (data ? URL.createObjectURL(new Blob([data as BlobPart], { type: "text/html" })) : null),
-    [data],
-  )
+  const src = useMemo(() => {
+    if (!data) return null
+    // Notebook exports fix the prompt gutter at 64px, which clips
+    // three-digit prompts (Out[114]:). Widen it at render time so every
+    // seeded notebook is fixed without touching stored bytes.
+    const text = new TextDecoder()
+      .decode(data)
+      .replace(/--jp-cell-prompt-width:\s*64px/g, "--jp-cell-prompt-width: 96px")
+    return URL.createObjectURL(new Blob([text], { type: "text/html;charset=utf-8" }))
+  }, [data])
   useEffect(
     () => () => {
       if (src) URL.revokeObjectURL(src)

@@ -151,7 +151,7 @@ export function AuthModal({ open, onClose, initialMode = "login" }: AuthModalPro
           <button
             type="submit"
             disabled={submitting}
-            className="h-9 w-full rounded-md bg-[var(--accent)] text-sm font-medium text-white transition-all duration-100 hover:opacity-85 active:scale-[0.98] disabled:opacity-50"
+            className="h-9 w-full rounded-md bg-[var(--accent)] text-sm font-medium text-[var(--bg-page)] transition-all duration-100 hover:opacity-85 active:scale-[0.98] disabled:opacity-50"
           >
             {submitting
               ? "..."

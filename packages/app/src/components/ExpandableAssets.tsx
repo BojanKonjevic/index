@@ -1,10 +1,10 @@
-import { ChevronRight, FileImage, Layers, Loader2 } from "lucide-react"
+import { ChevronRight, Layers, Loader2 } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 import type { MaterialAsset } from "@index/shared"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/hooks/useI18n"
-import { typeIconMap, typeTagStyles, typeBadgeStyles } from "@/lib/styles"
+import { formatVisual } from "@/lib/styles"
 
 export default function ExpandableAssets({
   assets,
@@ -78,8 +78,7 @@ export default function ExpandableAssets({
           ) : assets && assets.length > 0 ? (
             <div className={cn("flex flex-col gap-0.5 pb-1", !compact && "ml-6")}>
               {assets.map((a, i) => {
-                const TypeIcon = typeIconMap[a.fileType] || FileImage
-                const ts = typeTagStyles[a.fileType]
+                const { Icon: TypeIcon, tag, badge, labelKey } = formatVisual(a.fileType, a.url)
                 const isActive = currentAssetIndex === i + 1
                 return (
                   <Link
@@ -101,13 +100,13 @@ export default function ExpandableAssets({
                     <div
                       className={cn(
                         "flex shrink-0 items-center justify-center rounded-[0.313rem] border",
-                        ts?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]",
+                        tag.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]",
                         compact ? "size-6" : "size-7",
                       )}
                     >
                       <TypeIcon
                         className={cn(
-                          ts?.icon || "text-[var(--text-hint)]",
+                          tag.icon || "text-[var(--text-hint)]",
                           compact ? "size-3" : "size-3.5",
                         )}
                       />
@@ -124,12 +123,11 @@ export default function ExpandableAssets({
                     <span
                       className={cn(
                         "shrink-0 inline-block px-1.5 py-[0.063rem] rounded-full font-medium leading-snug",
-                        typeBadgeStyles[a.fileType] ||
-                          "bg-[var(--bg-subtle)] text-[var(--text-secondary)]",
+                        badge || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]",
                         compact ? "text-[0.5rem]" : "text-[0.563rem]",
                       )}
                     >
-                      {t(`materialType.${a.fileType}`) || a.fileType}
+                      {t(labelKey)}
                     </span>
                   </Link>
                 )

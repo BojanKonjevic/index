@@ -470,7 +470,7 @@ export default function PdfViewer({
               <div
                 style={{
                   boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
-                  filter: inverted ? "invert(1)" : "none",
+                  filter: inverted ? "invert(0.9) hue-rotate(180deg) sepia(0.15)" : "none",
                 }}
               >
                 <Page
