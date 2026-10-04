@@ -19,75 +19,60 @@
   <strong>Study materials, exams, and schedules for Applied Computer Science at FTN Novi Sad, all in one place.</strong>
 </p>
 
-All our FTN study materials are scattered across a dozen Google Drive folders, exam dates live on the faculty site (if you can find them), and every subject has its own system. Indeks wraps it all into a single searchable interface that gets you to the right document in seconds.
+FTN study materials are scattered across a dozen Drive folders, exam dates live on the faculty site (if you can find them), and every subject has its own system. Indeks wraps it all into a single searchable interface that gets you to the right document in seconds.
 
 ---
 
-## Features
+## Subjects, organized like an indeks
 
-- **Subject browser**: list of all 3rd-year subjects, filterable by semester and elective group
-- **Material viewer**: PDFs rendered in-app with a virtualized page viewer, keyboard navigation, zoom, fit-width, and dark-mode inversion
-- **Exam schedule**: upcoming exams with urgency indicators
-- **Global search**: fuzzy search across subjects, materials, and exams with Serbian diacritic normalization
-- **Bookmarks**: save materials for quick access, synced to your account (or stored locally as a guest)
-- **Guest mode**: browse everything immediately, no account required
-- **Accounts**: optional registration with password-based auth, syncs bookmarks and preferences across devices
-- **Dark mode**: light/dark theme toggle
-- **Bilingual UI**: Serbian by default, English available via toggle
+The home page is a ledger, not a file dump. Every subject sits under its semester in Roman numerals with a running ESPB total, so the page reads like the real indeks booklet. Each row shows the professor, the material count, and whether the subject is downloaded for offline reading. Semester, elective, and downloaded filters plus fuzzy search narrow the list instantly.
+
+Inside a subject, materials group the way students actually think: theory, exercises, and one shelf per exam sitting (K1, K2, final). Exercises with code companions render as single Vežba blocks, so the zadatak, rešenje, kod, and podaci for one session stay together instead of scattering across the page.
+
+## A reader built for studying, not just opening files
+
+**PDF viewer**: virtualized pages for 500+ page documents, find-in-document with per-page match counts, zoom with scroll anchoring, fit-width, keyboard navigation, and a dark mode that renders pages sepia instead of burning your eyes with inverted white.
+
+**Runnable SQL**: query blocks in SQL materials execute in the reader against the course datasets that ship alongside them. Run the whole block or just the selection, inspect result tables, export them as CSV, reset the session when you break something. One shared session per file, so later blocks see earlier ones, exactly like a console.
+
+**CSV tables**: data files render as sortable, filterable tables with live row counts instead of raw text.
+
+**Everything else**: Markdown notes render formatted, code files get editor-grade highlighting with line numbers ("linija 42" means the same thing for everyone), Jupyter notebooks open as readable pages with outputs intact, image sets open as galleries, videos play inline.
+
+## Find anything in seconds
+
+The command palette (`⌘K` or `/`) searches subjects, materials, exams, and inside documents, scoped to everything, the current subject, or the open file. Serbian diacritic normalization means `zadatak`, `zadaatak`, and `задатак`-style typos all still match. Recently opened materials wait on the home page, and bookmarks sync to your account (or stay in local storage as a guest, and keep working offline).
+
+## Exams without the faculty site
+
+Upcoming exams sit on the home page and on each subject with live countdowns. Anything within a week gets a red urgency stamp. Set your study group once and the schedule follows you.
+
+## Offline-first
+
+Download entire subjects, including PDFs, datasets, and search indexes, and read them with no connection. The app is an installable PWA; API responses and files are cached by a service worker, and only downloaded content is shown when offline so there are no dead ends.
+
+## Dark and light, Serbian and English
+
+A warm record-book theme in both modes, Source Serif for names and JetBrains Mono for numbers, full Serbian UI with an English toggle.
 
 ---
 
-## Getting Started
+## Development
 
 ```bash
 pnpm install
 cp packages/worker/.dev.vars.example packages/worker/.dev.vars # then set a real SESSION_SECRET
 pnpm db:migrate:local
-pnpm seed:r2
 pnpm dev
 ```
 
-- `SESSION_SECRET` is required: the API throws a 500 without it (the worker ships with a startup guard against missing or placeholder secrets).
-- `pnpm seed:r2` syncs the seeded files into your local R2 dev bucket; `pnpm index:local` / `pnpm index:remote` rebuild the full-text search index via `packages/worker/scripts/index-pdfs.mjs`.
-- Run `pnpm check` before committing; it runs prettier, ESLint, and typechecking across both packages (also enforced locally by husky pre-commit hooks).
-- `pnpm test` runs the worker and app test suites.
-
----
-
-## Stack
-
-|              |                                                                  |
-| ------------ | ---------------------------------------------------------------- |
-| **Frontend** | React 19, TanStack Router, Tailwind CSS v4, shadcn/ui, react-pdf |
-| **Backend**  | Cloudflare Workers (Hono), D1 (SQLite), R2 (object storage)      |
-| **Search**   | Client-side Fuse.js with Serbian diacritic normalization         |
-| **Monorepo** | pnpm workspaces: `app/`, `worker/`, `shared/`                    |
-
-Cloudflare is the unified infrastructure layer: Workers serve the SPA + handle the API, D1 stores structured data, and R2 holds all PDFs and files.
-
----
-
-## Architecture
-
-```
-┌─────────────┐     ┌──────────────┐     ┌───────────┐
-│  React SPA  │────▶│  Worker API  │────▶│    D1     │
-│  (Worker)   │     │  (Hono)      │     │  (SQLite) │
-└─────────────┘     └──────┬───────┘     └───────────┘
-                           │
-                    ┌──────▼───────┐
-                    │     R2       │
-                    │  (PDFs/etc)  │
-                    └──────────────┘
-```
-
-All API routes are prefixed with `/api/`. The Worker also serves the SPA as a static asset, so every non-API request falls back to `index.html` for client-side routing.
+React 19 + TanStack Router + Tailwind v4 on Cloudflare Workers (Hono, D1, R2). Run `pnpm check` before committing. Seed workflow lives in `seed/`.
 
 ---
 
 ## Current status
 
-In active development. The dataset currently covers a single subject (Matematička analiza 2) for testing; full 3rd-year coverage is the next milestone. The architecture is designed to scale to the entire faculty.
+In active development, seeded with 3rd-year Applied Computer Science subjects.
 
 **Live at [ftn-index.bojan-dev.workers.dev](https://ftn-index.bojan-dev.workers.dev/).**
 
