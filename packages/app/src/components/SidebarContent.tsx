@@ -1,10 +1,9 @@
 import { Link } from "@tanstack/react-router"
-import { FileText, FileImage } from "lucide-react"
 import { useI18n } from "@/hooks/useI18n"
 import ExpandableAssets from "@/components/ExpandableAssets"
 import { BookmarkButton } from "./BookmarkButton"
 import { OfflineBadge } from "./OfflineBadge"
-import { typeIconMap, typeTagStyles, typeBadgeStyles } from "@/lib/styles"
+import { formatVisual } from "@/lib/styles"
 import { sortGroupKeys, describeGroup } from "@/lib/categories"
 import type { Material } from "@index/shared"
 
@@ -40,18 +39,19 @@ export function SidebarContent({
   const { t } = useI18n()
 
   const modeBtnClass = (active: boolean) =>
-    `rounded-full border px-2.5 py-1 text-[0.688rem] transition-all duration-100 cursor-pointer ${
+    `shrink-0 cursor-pointer border-b-2 px-1 py-2 text-[0.75rem] transition-colors duration-100 ${
       active
-        ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-        : "border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
+        ? "border-[var(--accent)] font-medium text-[var(--text-primary)]"
+        : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
     }`
 
   return (
     <>
-      <div className="flex items-center gap-1.5 px-3 py-2.5">
+      <div className="flex items-center gap-4 overflow-x-auto border-b border-[var(--border-default)] px-3 no-scrollbar">
         {hasAssets && (
           <button
             onClick={() => setSidebarMode("this")}
+            aria-pressed={sidebarMode === "this"}
             className={modeBtnClass(sidebarMode === "this")}
           >
             {t("viewer.sidebar_this")}
@@ -59,12 +59,14 @@ export function SidebarContent({
         )}
         <button
           onClick={() => setSidebarMode("category")}
+          aria-pressed={sidebarMode === "category"}
           className={modeBtnClass(sidebarMode === "category")}
         >
           {categoryName}
         </button>
         <button
           onClick={() => setSidebarMode("all")}
+          aria-pressed={sidebarMode === "all"}
           className={modeBtnClass(sidebarMode === "all")}
         >
           {t("viewer.sidebar_all")}
@@ -84,8 +86,7 @@ export function SidebarContent({
                 {m.assets.length > 0 && (
                   <div className="flex flex-col gap-0.5 pb-1">
                     {m.assets.map((a, i) => {
-                      const AssetIcon = typeIconMap[a.fileType] || FileImage
-                      const ts = typeTagStyles[a.fileType]
+                      const { Icon: AssetIcon, tag } = formatVisual(a.fileType, a.url)
                       const isCurrentAsset = m.id === materialId && assetFromUrl === i + 1
                       return (
                         <Link
@@ -100,10 +101,10 @@ export function SidebarContent({
                           }}
                         >
                           <div
-                            className={`flex size-5 shrink-0 items-center justify-center rounded-[0.25rem] ${ts?.container || "text-[var(--text-hint)]"}`}
+                            className={`flex size-5 shrink-0 items-center justify-center rounded-[0.25rem] ${tag.container || "text-[var(--text-hint)]"}`}
                           >
                             <AssetIcon
-                              className={`size-3 ${ts?.icon || "text-[var(--text-hint)]"}`}
+                              className={`size-3 ${tag.icon || "text-[var(--text-hint)]"}`}
                             />
                           </div>
                           <span
@@ -196,9 +197,7 @@ function SidebarItem({
   onItemClick?: () => void
 }) {
   const { t } = useI18n()
-  const Icon = typeIconMap[material.fileType] || FileText
-  const ts = typeTagStyles[material.fileType]
-  const badge = typeBadgeStyles[material.fileType]
+  const { Icon, tag, badge, labelKey } = formatVisual(material.fileType, material.url)
   return (
     <Link
       to="/subjects/$subjectId/materials/$materialId"
@@ -209,9 +208,9 @@ function SidebarItem({
       className={`flex items-center gap-2 rounded-[0.438rem] px-2.5 py-1.5 text-left transition-colors duration-100 ${isActive ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)]" : "hover:bg-[var(--bg-subtle)]"}`}
     >
       <div
-        className={`flex size-6 shrink-0 items-center justify-center rounded-[0.313rem] border ${ts?.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]"}`}
+        className={`flex size-6 shrink-0 items-center justify-center rounded-[0.313rem] border ${tag.container || "border-[var(--border-default)] bg-[var(--bg-subtle)]"}`}
       >
-        <Icon className={`size-3 ${ts?.icon || "text-[var(--text-hint)]"}`} />
+        <Icon className={`size-3 ${tag.icon || "text-[var(--text-hint)]"}`} />
       </div>
       <div className="min-w-0 flex-1">
         <div
@@ -223,7 +222,7 @@ function SidebarItem({
           <span
             className={`inline-block px-1.5 py-[0.063rem] rounded-full text-[0.563rem] font-medium leading-snug ${badge || "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
           >
-            {t(`materialType.${material.fileType}`) || material.fileType}
+            {t(labelKey)}
           </span>
           {offline && <OfflineBadge size="xs" />}
         </div>

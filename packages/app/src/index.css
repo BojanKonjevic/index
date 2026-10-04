@@ -1,9 +1,23 @@
 @import "tailwindcss";
 @import "@fontsource-variable/geist";
+@import "@fontsource/source-serif-4/latin-400.css";
+@import "@fontsource/source-serif-4/latin-600.css";
+@import "@fontsource/source-serif-4/latin-700.css";
+@import "@fontsource/source-serif-4/latin-ext-400.css";
+@import "@fontsource/source-serif-4/latin-ext-600.css";
+@import "@fontsource/source-serif-4/latin-ext-700.css";
+@import "@fontsource/jetbrains-mono/latin-400.css";
+@import "@fontsource/jetbrains-mono/latin-500.css";
+@import "@fontsource/jetbrains-mono/latin-700.css";
+@import "@fontsource/jetbrains-mono/latin-ext-400.css";
+@import "@fontsource/jetbrains-mono/latin-ext-500.css";
+@import "@fontsource/jetbrains-mono/latin-ext-700.css";
 @import "tw-animate-css";
 
 @theme {
   --font-family-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -64,29 +78,40 @@
   --color-type-image-text: var(--type-image-text);
   --color-type-text-bg: var(--type-text-bg);
   --color-type-text-text: var(--type-text-text);
+  --color-type-py-bg: var(--type-py-bg);
+  --color-type-py-text: var(--type-py-text);
+  --color-type-md-bg: var(--type-md-bg);
+  --color-type-md-text: var(--type-md-text);
+  --color-type-txt-bg: var(--type-txt-bg);
+  --color-type-txt-text: var(--type-txt-text);
+  --color-type-html-bg: var(--type-html-bg);
+  --color-type-html-text: var(--type-html-text);
   --color-nav-active-bg: var(--nav-active-bg);
   --color-nav-active-text: var(--nav-active-text);
 }
 
 :root {
-  --bg-page: #f4f4f5;
-  --bg-surface: #fcfcfc;
-  --bg-raised: #fcfcfc;
-  --bg-subtle: #eaeaec;
-  --bg-inset: #dfdfe2;
+  --bg-page: #f3efe3;
+  --bg-surface: #faf7ee;
+  --bg-raised: #fffdf7;
+  --bg-subtle: #e9e3d2;
+  --bg-inset: #ddd4bd;
 
-  --border-default: #d4d4d8;
-  --border-strong: #b8b8be;
-  --border-faint: #e5e5e8;
+  --border-default: #d8cfb9;
+  --border-strong: #b3a78d;
+  --border-faint: #e4dcc8;
 
-  --text-primary: #161617;
-  --text-secondary: #737373;
-  --text-hint: #a8a8ad;
+  --text-primary: #1c1813;
+  --text-secondary: #6f6553;
+  --text-hint: #a39a83;
 
-  --accent: #4f6ef7;
-  --accent-bg: #edf0ff;
-  --accent-border: #c8d4ff;
-  --accent-strong: #334ac7;
+  --accent: #211c14;
+  --accent-bg: rgba(28, 24, 19, 0.07);
+  --accent-border: rgba(28, 24, 19, 0.28);
+  --accent-strong: #100d09;
+
+  --urgent: #c24a2e;
+  --urgent-bg: rgba(194, 74, 46, 0.1);
 
   --bookmark: #d4a828;
 
@@ -98,8 +123,8 @@
   --status-mid-text: #8a5010;
   --status-later-bg: #ecf4ec;
   --status-later-text: #2e5e14;
-  --status-info-bg: #ecf4ff;
-  --status-info-text: #1a4a8a;
+  --status-info-bg: #e7dfcb;
+  --status-info-text: #5c5340;
 
   --type-pdf-bg: #fef0e0;
   --type-pdf-text: #b85800;
@@ -109,30 +134,41 @@
   --type-image-text: #008060;
   --type-text-bg: #e8f0fe;
   --type-text-text: #2456c4;
+  --type-py-bg: #dcf0ec;
+  --type-py-text: #0e7a6e;
+  --type-md-bg: #f0e6cf;
+  --type-md-text: #8a6d2f;
+  --type-txt-bg: #e9e3d2;
+  --type-txt-text: #6f6553;
+  --type-html-bg: #f9e3ec;
+  --type-html-text: #b23a6d;
 
-  --nav-active-bg: #161617;
-  --nav-active-text: #fcfcfc;
+  --nav-active-bg: rgba(28, 24, 19, 0.09);
+  --nav-active-text: #211c14;
 }
 
 [data-theme="dark"] {
-  --bg-page: #0c0c0c;
-  --bg-surface: #141416;
-  --bg-raised: #1c1c1e;
-  --bg-subtle: #242426;
-  --bg-inset: #2c2c2e;
+  --bg-page: #100f0d;
+  --bg-surface: #171512;
+  --bg-raised: #1d1a16;
+  --bg-subtle: #23201a;
+  --bg-inset: #2c2721;
 
-  --border-default: rgba(255, 255, 255, 0.06);
-  --border-strong: rgba(255, 255, 255, 0.12);
-  --border-faint: rgba(255, 255, 255, 0.04);
+  --border-default: #2b2620;
+  --border-strong: #3d362b;
+  --border-faint: rgba(235, 229, 214, 0.06);
 
-  --text-primary: #ebebeb;
-  --text-secondary: #8a8a8a;
-  --text-hint: #555555;
+  --text-primary: #ebe5d6;
+  --text-secondary: #9a917e;
+  --text-hint: #6e6656;
 
-  --accent: #6b8aff;
-  --accent-bg: rgba(107, 138, 255, 0.12);
-  --accent-border: rgba(107, 138, 255, 0.25);
-  --accent-strong: #8ba4ff;
+  --accent: #ebe5d6;
+  --accent-bg: rgba(235, 229, 214, 0.13);
+  --accent-border: rgba(235, 229, 214, 0.35);
+  --accent-strong: #fffdf4;
+
+  --urgent: #e5664a;
+  --urgent-bg: rgba(229, 102, 74, 0.12);
 
   --bookmark: #e8b830;
 
@@ -144,20 +180,28 @@
   --type-image-text: #40c0a0;
   --type-text-bg: rgba(80, 130, 255, 0.12);
   --type-text-text: #7fa8ff;
+  --type-py-bg: rgba(79, 179, 169, 0.13);
+  --type-py-text: #6fd3c7;
+  --type-md-bg: rgba(201, 168, 106, 0.13);
+  --type-md-text: #d6ba88;
+  --type-txt-bg: rgba(235, 229, 214, 0.08);
+  --type-txt-text: #a89e89;
+  --type-html-bg: rgba(217, 122, 158, 0.13);
+  --type-html-text: #e095b3;
 
-  --status-soon-bg: rgba(220, 60, 40, 0.12);
-  --status-soon-text: #e86060;
+  --status-soon-bg: rgba(229, 102, 74, 0.13);
+  --status-soon-text: #ec7a5e;
   --status-mid-bg: rgba(232, 160, 64, 0.12);
   --status-mid-text: #e8a040;
   --status-later-bg: rgba(80, 160, 60, 0.12);
   --status-later-text: #78c058;
-  --status-info-bg: rgba(80, 140, 240, 0.12);
-  --status-info-text: #78b0f0;
+  --status-info-bg: rgba(235, 229, 214, 0.12);
+  --status-info-text: #fffdf4;
 
-  --nav-active-bg: rgba(107, 138, 255, 0.15);
-  --nav-active-text: #6b8aff;
+  --nav-active-bg: rgba(235, 229, 214, 0.14);
+  --nav-active-text: #fffdf4;
 
-  --pdf-bg: #1a1a1c;
+  --pdf-bg: #141210;
 }
 
 /* Code viewer token colors, both themes. */
@@ -436,6 +480,27 @@ html {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  opacity: 0.032;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain-overlay {
+    display: none;
+  }
+}
+
+@media print {
+  .grain-overlay {
+    display: none;
+  }
 }
 
 .pb-safe {

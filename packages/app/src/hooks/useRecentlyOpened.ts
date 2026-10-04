@@ -13,6 +13,7 @@ export interface RecentItem {
   solved: boolean | null
   assetCount: number
   timestamp: number
+  url?: string
 }
 
 function persistRecent(items: RecentItem[]) {

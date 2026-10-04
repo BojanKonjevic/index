@@ -8,7 +8,7 @@ import { test, expect } from "@playwright/test"
 
 async function continueAsGuest(page: import("@playwright/test").Page) {
   await page.goto("/")
-  const shellLink = page.locator('a[href="/subjects"]').first()
+  const shellLink = page.locator('a[href="/bookmarks"]').first()
   const guestButton = page.getByRole("button", { name: /gost|guest/i })
   // Either the app shell or the welcome screen: wait for whichever comes.
   await expect(shellLink.or(guestButton)).toBeVisible({ timeout: 20000 })
@@ -25,9 +25,15 @@ test("home loads with subject links", async ({ page }) => {
   await continueAsGuest(page)
 })
 
-test("palette search finds a subject", async ({ page }) => {
+test("legacy subjects path redirects home", async ({ page }) => {
   await continueAsGuest(page)
   await page.goto("/subjects")
+  await expect(page).toHaveURL(/\/$|\/#subjects$/)
+})
+
+test("palette search finds a subject", async ({ page }) => {
+  await continueAsGuest(page)
+  await page.goto("/")
   const subjectLink = page.locator('a[href*="/subjects/"]').first()
   await expect(subjectLink).toBeVisible()
   const subjectName = ((await subjectLink.innerText()) ?? "").split("\n")[0].trim()
@@ -49,7 +55,7 @@ test("palette search finds a subject", async ({ page }) => {
 
 test("material viewer route opens", async ({ page }) => {
   await continueAsGuest(page)
-  await page.goto("/subjects")
+  await page.goto("/")
   await page.locator('a[href*="/subjects/"]').first().click()
   await expect(page).toHaveURL(/\/subjects\/[^/]+/)
 

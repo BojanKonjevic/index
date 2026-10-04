@@ -105,6 +105,13 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
+            // sql.js loads lazily on first run; cache the wasm on demand
+            // instead of forcing it into every first-time precache.
+            urlPattern: ({ url }) => url.pathname.endsWith(".wasm"),
+            handler: "CacheFirst",
+            options: { cacheName: "wasm", expiration: { maxEntries: 4 } },
+          },
+          {
             // Files (PDFs/images/videos): cache-first with manual range
             // slicing; see fileStrategyHandler above. Entries are always
             // written as full files, so ranged reads slice complete entries.

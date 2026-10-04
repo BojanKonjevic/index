@@ -5,8 +5,6 @@ import { fetchApi } from "@/lib/api"
 interface PreferencesContextValue {
   group: string | null
   setGroup: (group: string) => Promise<void>
-  viewMode: "grid" | "list"
-  setViewMode: (mode: "grid" | "list") => void
 }
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null)
@@ -14,9 +12,6 @@ const PreferencesContext = createContext<PreferencesContextValue | null>(null)
 export function PreferencesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [group, setGroupState] = useState<string | null>(() => localStorage.getItem("group"))
-  const [viewMode, setViewModeState] = useState<"grid" | "list">(
-    () => (localStorage.getItem("viewMode") as "grid" | "list") || "grid",
-  )
   const fetchRef = useRef(0)
 
   useEffect(() => {
@@ -55,13 +50,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const setViewMode = (mode: "grid" | "list") => {
-    setViewModeState(mode)
-    localStorage.setItem("viewMode", mode)
-  }
-
   return (
-    <PreferencesContext.Provider value={{ group, setGroup, viewMode, setViewMode }}>
+    <PreferencesContext.Provider value={{ group, setGroup }}>
       {children}
     </PreferencesContext.Provider>
   )

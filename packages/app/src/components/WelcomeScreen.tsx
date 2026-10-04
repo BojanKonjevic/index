@@ -39,7 +39,7 @@ export function WelcomeScreen() {
               setAuthMode("login")
               setAuthOpen(true)
             }}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-sm font-medium text-white transition-all duration-100 hover:opacity-85 active:scale-[0.98]"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-sm font-medium text-[var(--bg-page)] transition-all duration-100 hover:opacity-85 active:scale-[0.98]"
           >
             <LogIn className="size-4" />
             {t("welcome.login")}

@@ -23,19 +23,26 @@ export function CopyButton({ text, label }: { text: string; label: string }) {
 export function Section({
   title,
   copyText,
+  actions,
+  className,
   children,
 }: {
   title: string
   copyText?: string
+  actions?: React.ReactNode
+  className?: string
   children: React.ReactNode
 }) {
   const { t } = useI18n()
   return (
-    <section className="overflow-hidden rounded-[0.625rem] border border-[var(--border-default)] bg-[var(--bg-surface)]">
-      <div className="flex items-center gap-2 border-b border-[var(--border-faint)] bg-[var(--bg-subtle)] px-3 py-1.5">
+    <section
+      className={`overflow-clip rounded-[0.625rem] border border-[var(--border-default)] bg-[var(--bg-surface)] ${className ?? ""}`}
+    >
+      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--border-faint)] bg-[var(--bg-subtle)] px-3 py-1.5">
         <span className="min-w-0 flex-1 truncate font-mono text-[0.688rem] font-medium text-[var(--text-secondary)]">
           {title}
         </span>
+        {actions}
         {copyText !== undefined && <CopyButton text={copyText} label={t("viewer.code_copy")} />}
       </div>
       {children}

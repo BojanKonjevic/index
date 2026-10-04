@@ -39,14 +39,40 @@ export function MaterialFilters({
 }: MaterialFiltersProps) {
   const { t } = useI18n()
 
-  const btnClass = (active: boolean) =>
-    `rounded-full border px-2.5 py-1 text-[0.75rem] transition-all duration-100 ${
-      variant === "mobile" ? "px-3 py-1.5" : ""
-    } ${
+  const tabClass = (active: boolean) =>
+    `shrink-0 cursor-pointer border-b-2 px-1 py-1.5 text-[0.75rem] transition-colors duration-100 ${
       active
-        ? "border-[var(--accent)] bg-[var(--accent-bg)] text-[var(--accent-strong)] font-medium"
-        : "border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]"
+        ? "border-[var(--accent)] font-medium text-[var(--text-primary)]"
+        : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
     }`
+
+  const renderGroup = (
+    label: string,
+    options: { key: string; label: string }[],
+    current: string,
+    onPick: (key: string) => void,
+    wrap = false,
+  ) => (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <div className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
+        {label}
+      </div>
+      <div
+        className={`flex gap-x-4 gap-y-0.5 ${wrap ? "flex-wrap" : "overflow-x-auto no-scrollbar"}`}
+      >
+        {options.map((opt) => (
+          <button
+            key={opt.key}
+            onClick={() => onPick(opt.key)}
+            aria-pressed={current === opt.key}
+            className={tabClass(current === opt.key)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 
   const handleFileType = (key: string) => {
     setFileTypeFilter(key)
@@ -60,79 +86,39 @@ export function MaterialFilters({
 
   if (variant === "mobile") {
     return (
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-            {t("subject.filter_file_type")}
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {fileTypeOptions(t).map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => handleFileType(opt.key)}
-                className={btnClass(fileTypeFilter === opt.key)}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <span className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-            {t("subject.filter_category")}
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {categoryOptions(t, categoryConfig).map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => handleCategory(opt.key)}
-                className={btnClass(categoryFilter === opt.key)}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="flex flex-col gap-3">
+        {renderGroup(
+          t("subject.filter_file_type"),
+          fileTypeOptions(t),
+          fileTypeFilter,
+          handleFileType,
+          true,
+        )}
+        {renderGroup(
+          t("subject.filter_category"),
+          categoryOptions(t, categoryConfig),
+          categoryFilter,
+          handleCategory,
+          true,
+        )}
       </div>
     )
   }
 
   return (
-    <div className="hidden md:flex flex-wrap items-start gap-6">
-      <div className="flex flex-col gap-1.5">
-        <div className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-          {t("subject.filter_file_type")}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {fileTypeOptions(t).map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => handleFileType(opt.key)}
-              className={btnClass(fileTypeFilter === opt.key)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <div className="text-[0.625rem] font-semibold uppercase tracking-[0.05rem] text-[var(--text-hint)]">
-          {t("subject.filter_category")}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {categoryOptions(t, categoryConfig).map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => handleCategory(opt.key)}
-              className={btnClass(categoryFilter === opt.key)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="hidden md:flex flex-wrap items-start gap-x-8 gap-y-2">
+      {renderGroup(
+        t("subject.filter_file_type"),
+        fileTypeOptions(t),
+        fileTypeFilter,
+        handleFileType,
+      )}
+      {renderGroup(
+        t("subject.filter_category"),
+        categoryOptions(t, categoryConfig),
+        categoryFilter,
+        handleCategory,
+      )}
     </div>
   )
 }

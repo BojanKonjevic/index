@@ -8,6 +8,7 @@ import { escapeHtml, languageForUrl, splitSqlBlocks } from "@/lib/codeText"
 import { useFetchBytes } from "@/lib/useFetchBytes"
 import CsvTable from "@/components/CsvTable"
 import { Section } from "@/components/Section"
+import { SqlFileView } from "@/components/SqlRunner"
 
 hljs.registerLanguage("sql", sql)
 hljs.registerLanguage("python", python)
@@ -45,7 +46,7 @@ function decodeText(data: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: false }).decode(data)
 }
 
-export default function TextViewer({ url }: { url: string }) {
+export default function TextViewer({ url, dataUrls }: { url: string; dataUrls?: string[] }) {
   const { t } = useI18n()
   const { data, error } = useFetchBytes(url)
   const language = languageForUrl(url)
@@ -69,8 +70,12 @@ export default function TextViewer({ url }: { url: string }) {
   }
 
   return (
-    <div className="codeblock flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
-      <div className="mx-auto flex max-w-3xl flex-col gap-3 pb-8">
+    <div
+      className={`codeblock flex min-h-0 flex-1 flex-col ${
+        language === "csv" ? "overflow-hidden" : "overflow-y-auto"
+      }`}
+    >
+      <div className="mx-auto flex min-h-0 w-full flex-1 flex-col gap-3 px-3 pt-3 pb-3 sm:px-6 sm:pt-4 sm:pb-4">
         {language === "md" ? (
           <Section title={fileName} copyText={source}>
             <article
@@ -81,19 +86,11 @@ export default function TextViewer({ url }: { url: string }) {
             />
           </Section>
         ) : language === "csv" ? (
-          <Section title={fileName}>
+          <Section title={fileName} className="flex min-h-0 flex-1 flex-col">
             <CsvTable source={source} url={url} name={fileName} />
           </Section>
         ) : language === "sql" ? (
-          splitSqlBlocks(source).map((block) => (
-            <Section
-              key={block.id}
-              title={block.header ?? fileName}
-              copyText={block.header ? `${block.header}\n${block.code}` : block.code}
-            >
-              <CodeLines lines={block.code.split("\n")} language={language} />
-            </Section>
-          ))
+          <SqlFileView blocks={splitSqlBlocks(source)} fileName={fileName} dataUrls={dataUrls} />
         ) : (
           <Section title={fileName} copyText={source}>
             <CodeLines lines={source.split("\n")} language={language} />

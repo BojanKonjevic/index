@@ -1,16 +1,19 @@
 import type { Material } from "@index/shared"
 import { useI18n } from "@/hooks/useI18n"
-import { typeBadgeStyles, categoryBadgeStyles } from "@/lib/styles"
+import { formatVisual, categoryBadgeStyles } from "@/lib/styles"
 import { getVirtualCategory } from "@/lib/categories"
 
 interface Props {
-  material: Pick<Material, "fileType" | "category" | "examPart" | "solved">
+  material: Pick<Material, "fileType" | "category" | "examPart" | "solved"> & {
+    url?: string | null
+  }
   size?: "sm" | "xs"
 }
 
 export function MaterialBadges({ material, size = "sm" }: Props) {
   const { t } = useI18n()
   const vcat = getVirtualCategory(material as Material)
+  const { badge, labelKey } = formatVisual(material.fileType, material.url ?? undefined)
   const cls =
     size === "xs"
       ? "inline-block px-[0.438rem] py-[0.125rem] rounded-full text-[0.563rem] font-medium"
@@ -18,10 +21,8 @@ export function MaterialBadges({ material, size = "sm" }: Props) {
 
   return (
     <>
-      <span
-        className={`${cls} ${typeBadgeStyles[material.fileType] ?? "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
-      >
-        {t(`materialType.${material.fileType}`)}
+      <span className={`${cls} ${badge ?? "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}>
+        {t(labelKey)}
       </span>
       <span
         className={`${cls} ${categoryBadgeStyles[vcat] ?? "bg-[var(--bg-subtle)] text-[var(--text-secondary)]"}`}
