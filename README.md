@@ -23,9 +23,22 @@ FTN study materials are scattered across a dozen Drive folders, exam dates live 
 
 ---
 
-## Subjects, organized like an indeks
+## Screenshots
 
-The home page is a ledger, not a file dump. Every subject sits under its semester in Roman numerals with a running ESPB total, so the page reads like the real indeks booklet. Each row shows the professor, the material count, and whether the subject is downloaded for offline reading. Semester, elective, and downloaded filters plus fuzzy search narrow the list instantly.
+![Search](demo/02-search.png)
+<p align="center"><em>One search across subjects, materials, and inside documents.</em></p>
+
+![Reader](demo/04-viewer.png)
+<p align="center"><em>Reader that renders real content fast, with find-in-document and offline downloads.</em></p>
+
+![Home](demo/01-grid.png)
+<p align="center"><em>Six subjects across two semesters.</em></p>
+
+---
+
+## Subjects by semester
+
+The home page groups every subject under its semester in Roman numerals with a running ESPB total. Each row shows the professor, the material count, and whether the subject is downloaded for offline reading. Semester, elective, and downloaded filters plus fuzzy search narrow the list instantly.
 
 Inside a subject, materials group the way students actually think: theory, exercises, and one shelf per exam sitting (K1, K2, final). Exercises with code companions render as single Vežba blocks, so the zadatak, rešenje, kod, and podaci for one session stay together instead of scattering across the page.
 
