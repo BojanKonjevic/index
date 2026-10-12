@@ -10,18 +10,10 @@
 //   node strip-annotations.mjs --files a.pdf b.pdf [--verify-only]
 //
 // --r2 processes every .pdf key served from R2 (materials plus assets, read
-// from D1). Originals are backed up to --backup-dir, but only for files
-// that actually change. Anything that fails to parse, verify, or upload is
-// reported and exits nonzero; failed files are never uploaded.
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs"
+// from D1). Anything that fails to parse, verify, or upload is reported and
+// exits nonzero; failed files are never uploaded. No backups: the drive
+// dump is the source of truth, stripping runs at seed time.
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { PDFDocument, PDFArray, PDFName, PDFRef } from "pdf-lib"
@@ -42,7 +34,6 @@ const keysFlag = args.find((a) => a.startsWith("--keys="))
 const onlyKeys = keysFlag
   ? new Set(keysFlag.slice("--keys=".length).split(",").filter(Boolean))
   : null
-const backupFlag = args.find((a) => a.startsWith("--backup-dir="))
 const fileArgs = modeFiles
   ? args.slice(args.indexOf("--files") + 1).filter((a) => !a.startsWith("--"))
   : []
@@ -197,9 +188,6 @@ async function stripAnnotations(bytes) {
   return { removed, bytes: await doc.save() }
 }
 
-const backupDir =
-  backupFlag?.slice("--backup-dir=".length) ??
-  join(tmpdir(), `strip-backup-${new Date().toISOString().slice(0, 10)}`)
 const tmpDir = mkdtempSync(join(tmpdir(), "strip-annots-"))
 const failures = []
 let scanned = 0
@@ -258,15 +246,6 @@ async function processBytes(label, getBytes, putBytes) {
     failures.push(`${label}: verify failed: ${err.message}`)
     return
   }
-  mkdirSync(backupDir, { recursive: true })
-  const backupPath = join(backupDir, label.replaceAll("/", "__"))
-  try {
-    writeFileSync(join(tmpDir, "orig.pdf"), bytes)
-    copyFileSync(join(tmpDir, "orig.pdf"), backupPath)
-  } catch (err) {
-    failures.push(`${label}: backup failed: ${err.message}`)
-    return
-  }
   try {
     await putBytes(stripped.bytes, stripped.bytes.length)
   } catch (err) {
@@ -275,7 +254,7 @@ async function processBytes(label, getBytes, putBytes) {
   }
   changed++
   console.log(
-    `stripped ${label} (removed=${stripped.removed}, pages=${scan.pages}, ${bytes.length} -> ${stripped.bytes.length} bytes, backup=${backupPath})`,
+    `stripped ${label} (removed=${stripped.removed}, pages=${scan.pages}, ${bytes.length} -> ${stripped.bytes.length} bytes)`,
   )
 }
 
@@ -324,7 +303,6 @@ try {
 console.log(
   `\nDone: scanned=${scanned} changed=${changed} highlightsFound=${highlightsFound} failed=${failures.length}`,
 )
-if (!verifyOnly) console.log(`Backups of changed originals: ${backupDir}`)
 if (failures.length > 0) {
   console.error("Failures:\n" + failures.join("\n"))
   process.exit(1)
