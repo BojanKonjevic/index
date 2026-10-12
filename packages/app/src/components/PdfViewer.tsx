@@ -7,9 +7,12 @@ import { cn } from "@/lib/utils"
 import { useEffect, useRef, useState, useCallback, type RefObject } from "react"
 import {
   clearHighlights,
+  clearSelectionOverlays,
   getOrderedHighlights,
   getTextLayer,
   highlightMatches,
+  paintSelection,
+  registerPdfDocument,
 } from "@/lib/textLayer"
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"
@@ -339,6 +342,58 @@ export default function PdfViewer({
     onHighlightCountRef.current = onHighlightCount
   }, [onHighlightCount])
 
+  // Custom selection paint: the text layer's fallback font metrics make the
+  // native ::selection background leave gaps between font runs, so the real
+  // Selection is mirrored as merged per-line overlay bars (see textLayer).
+  // Copy, drag and touch handles keep working because the range is untouched.
+  // The paint is rAF coalesced (plus a timer fallback, since rAF never fires
+  // in a hidden tab and would stick the flag), scoped to selections inside
+  // the viewer, and skipped entirely when nothing was painted, so idle
+  // scrolling and typing elsewhere cost a single contains check per
+  // selectionchange at most. Measured steady-state repaint is a fraction of
+  // a millisecond; per-span font measuring happens once per span element
+  // and text extraction once per page, both off the drag path.
+  useEffect(() => {
+    const root = parentRef.current
+    if (!root) return
+    let raf = 0
+    let fallback: ReturnType<typeof setTimeout> | undefined
+    let queued = false
+    const run = () => {
+      if (!queued) return
+      queued = false
+      const el = parentRef.current
+      if (el) paintSelection(el)
+    }
+    const schedule = () => {
+      if (queued) return
+      queued = true
+      raf = requestAnimationFrame(run)
+      // rAF never fires while the tab is hidden, which would stick the flag
+      // and drop every later paint. The timer guarantees progress; whichever
+      // fires second is a no-op via the flag.
+      clearTimeout(fallback)
+      fallback = setTimeout(run, 100)
+    }
+    const onSelectionChange = () => schedule()
+    document.addEventListener("selectionchange", onSelectionChange)
+    // Text layers (re)render async after zoom, page window changes and
+    // document loads; repaint then so a held selection tracks the new boxes.
+    // Own overlay writes reuse the same signature and write nothing twice,
+    // so this observer cannot loop.
+    const observer = new MutationObserver(schedule)
+    observer.observe(root, { childList: true, subtree: true })
+    schedule()
+    return () => {
+      document.removeEventListener("selectionchange", onSelectionChange)
+      observer.disconnect()
+      cancelAnimationFrame(raf)
+      clearTimeout(fallback)
+      queued = false
+      clearSelectionOverlays(root)
+    }
+  }, [parentRef, url])
+
   const scrolledForRef = useRef<{ hl: string; page: number } | null>(null)
   useEffect(() => {
     scrolledForRef.current = null
@@ -420,6 +475,7 @@ export default function PdfViewer({
         file={url}
         onLoadSuccess={async (pdf) => {
           setPdfLoading(false)
+          registerPdfDocument(url, pdf)
           const page1 = await pdf.getPage(1)
           const viewport = page1.getViewport({ scale: 1 })
           setDocWidth({ url, width: viewport.width })

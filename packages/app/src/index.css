@@ -529,9 +529,9 @@ html {
 }
 
 /* Viewer highlight overlay: one positioned box per visual line per match,
- * painted on top of the pdf.js TextLayer instead of styling the per-span
- * text nodes inside it (whose fragmented geometry would never join into a
- * clean bar). The text layer itself stays untouched. */
+ *  painted on top of the pdf.js TextLayer instead of styling the per-span
+ *  text nodes inside it (whose fragmented geometry would never join into a
+ *  clean bar). The text layer itself stays untouched. */
 .search-hit-overlay {
   position: absolute;
   inset: 0;
@@ -549,9 +549,57 @@ html {
   color: transparent !important;
 }
 
-.react-pdf__Page__textContent span::selection {
-  background-color: rgb(0 100 255 / 0.25) !important;
+/* Native selection is hidden inside the text layer: per-span ::selection
+ *  boxes assume the layer's fallback font and leave visible gaps between
+ *  font runs. paintSelection() draws the real Selection as merged overlay
+ *  bars instead, so this only removes the broken paint, never the range. */
+.react-pdf__Page__textContent::selection,
+.react-pdf__Page__textContent span::selection,
+.react-pdf__Page__textContent br::selection {
+  background: transparent !important;
+  background-color: transparent !important;
   color: transparent !important;
+}
+
+/* User selection overlay: merged per-line bars mirroring the real
+ *  Selection, painted above the text layer (and above find hits) with
+ *  pointer events disabled so text stays selectable and copyable. */
+.pdf-selection-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  overflow: hidden;
+}
+
+.pdf-selection-overlay .pdf-selection-box {
+  position: absolute;
+  background: rgb(0 100 255 / 0.28);
+  border-radius: 1px;
+}
+
+/* PDF highlight annotations: pdf.js renders the annotated run into a
+ *  <mark> that keeps the browser default yellow background, but the mark
+ *  often holds more text than its quad box fits, so wrapped lines spill
+ *  out of position (even onto the next page). Constrain the mark to its
+ *  box and turn it into a translucent wash so the canvas glyphs stay
+ *  readable through it; the quad itself is already exact at every zoom
+ *  level. Annotations stay non-interactive visuals, like highlighter ink
+ *  (clicking them was never wired to anything). */
+.annotationLayer .highlightAnnotation {
+  overflow: hidden;
+}
+
+.annotationLayer .highlightAnnotation mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  background-color: rgb(255 235 59 / 0.45);
+  color: transparent !important;
+  user-select: none;
+  pointer-events: none;
 }
 
 .react-pdf__Page__textContent br {
