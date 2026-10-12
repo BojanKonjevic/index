@@ -85,3 +85,45 @@ Why: filenames are assigned by whoever held the phone. The printed header is the
 Case: robotZad.zip next to an identical robotZad/ tree.
 Call: skipped, nothing new inside.
 Why: the zip rule says unpack and merge; merging here yields zero new files, so there is nothing to seed.
+
+## Empty popups and "???" freetext (highlight cleanup round)
+
+Case: bp1-skripta carried 3 Highlight annots with empty child popups, plus a red "???" FreeText with empty contents.
+Call: all six annots plus the FreeText removed (6 and 1 removals respectively); Links kept.
+Why: highlights are pure emphasis with nothing behind them, and their boxes fight the reader. The "???" mark is the same category, an empty-authored mark with no note to show.
+
+## RL slide Picture mapping (HTML companion recovery)
+
+Case: ori-kurs-rl index.html referenced Picture3-8.jpg but no image files shipped; the source pptx holds ~36 media files with PowerPoint shape names repeating per slide (Picture 5-8 on every episode slide).
+Call: map by shape name in document order, disambiguated by byte-identical duplicates (image1=image8, image2=image6, image3=image5, image4=image7), verified visually (Mario, Bowser, Toad, mushroom match the alt texts). Uploaded under the exact referenced .jpg keys even for PNG bytes, browsers sniff the magic fine, because renaming would mean rewriting and recaching the shipped HTML.
+Why: the mapping has to be faithful to what the slides show, not to filenames. Guessing by number order would have swapped the characters.
+
+## HTML companion recovery batch (parity round)
+
+Case: 15 of 36 HTML materials referenced companions missing from R2 (slide folders, notebook .py/.csv, RL images).
+Call: recover from the drive dump by normalized full-path matching (not bare basenames: vezba variants and space/dash dir names collide), preferring resenja-variant .py for resenje materials after proving stub/solution contents differ, and upload under the exact referenced keys. PNG bytes keep their referenced .jpg keys (browsers sniff the magic; renaming would force an HTML rewrite plus recache). webm/ogg alternates with no source stay absent deliberately, browsers use the shipped mp4/mp3. tomcat.gif has no source anywhere and stays broken, the single exception.
+Why: the goal is zero experience loss versus source. Guessing by number order or basename would have swapped characters and solutions.
+
+## Space-named R2 keys become slugs (HTML companion round)
+
+Case: ori-vezbe-v5 notebook images lived under keys with literal spaces, which resolve on remote R2 but can never resolve on the local toolchain (rule 7), breaking local verification.
+Call: renamed to slugs (spam-filter.gif etc.), rewrote the four refs in the notebook HTML, deleted the exact old keys on both envs, reuploaded, bumped FILES_CACHE, reindexed the material.
+Why: rule 7 exists precisely because the local toolchain mangles such keys. Keeping pretty parity with the dump loses to verifiability; the dump keeps the originals either way.
+
+## Demo-stub and fallback refs stay missing (HTML companion round)
+
+Case: default.asp and primer11.html (W3Schools-style placeholder hrefs, absent in source), chrome_japan.webm and rushus-modal_blues.ogg (unused fallbacks for shipped mp4/mp3), tomcat.gif (no source anywhere).
+Call: left 404ing, recorded in seed/html-refs-exceptions.json which audit-html-refs.mjs honors, so the guarantee stays green without pretending.
+Why: fabricating files the source never had would be inventing content. The audit failing forever on purpose is worse than a documented exception list.
+
+## RL slides back to PDF (pptx policy round)
+
+Case: ori-kurs-rl was a hand-linearized HTML converted from a pptx (pipe-text tables, floating images, 6 companions to seed and map), the only pptx-derived material in the corpus.
+Call: converted the dump pptx with headless LibreOffice and swapped the material to PDF (new slug key, old HTML plus companions deleted by exact key, D1 url/file_type updated directly like the indexer does, done files reset and rerun).
+Why: the PDF keeps slide layout, real tables, and embedded images with zero companion machinery, and the reader already handles everything else. Custom HTML linearization is retired as a pattern per rule 3.
+
+## Sticky notes with solutions are content (markup cleanup round)
+
+Case: bp1-k1-grupa1/3-filmovi carry Text annotations whose contents are the solved SQL queries, with empty child popups.
+Call: notes kept, empty popups removed; the FreeText "???" in bp1-skripta removed.
+Why: stripping the notes would delete the solutions, the entire study value of those docs. The rule strips ink and empty shells, never note text. Judgment proxy for the future: if the annotation's removal deletes information a student would study, it stays.
