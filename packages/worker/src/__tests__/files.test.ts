@@ -31,6 +31,19 @@ describe("GET /api/file/*", () => {
     expect(res.headers.get("Content-Type")).toBe("image/jpeg")
   })
 
+  it("serves code and data companions as inline text", async () => {
+    for (const [key, type] of [
+      ["ma2/dir/code.py", "text/plain; charset=utf-8"],
+      ["ma2/dir/data.csv", "text/plain; charset=utf-8"],
+      ["ma2/dir/data.tsv", "text/plain; charset=utf-8"],
+      ["ma2/dir/notes.md", "text/markdown; charset=utf-8"],
+    ] as const) {
+      await BUCKET.put(key, BODY)
+      const res = await SELF.fetch(`http://localhost/api/file/${key}`)
+      expect(res.headers.get("Content-Type")).toBe(type)
+    }
+  })
+
   it("returns 404 for a missing object", async () => {
     const res = await SELF.fetch("http://localhost/api/file/ma2/dir/missing.pdf")
     expect(res.status).toBe(404)
@@ -73,6 +86,47 @@ describe("GET /api/file/*", () => {
 
     const withoutOrigin = await SELF.fetch("http://localhost/api/file/ma2/dir/file.pdf")
     expect(withoutOrigin.headers.get("Access-Control-Allow-Origin")).toBe("*")
+  })
+
+  it("marks file responses revalidatable instead of long-lived", async () => {
+    const res = await SELF.fetch("http://localhost/api/file/ma2/dir/file.pdf")
+    expect(res.headers.get("Cache-Control")).toBe("public, no-cache")
+  })
+
+  it("answers matching If-None-Match with an empty 304", async () => {
+    const first = await SELF.fetch("http://localhost/api/file/ma2/dir/file.pdf")
+    const etag = first.headers.get("ETag")!
+    expect(etag).toBeTruthy()
+    const res = await SELF.fetch("http://localhost/api/file/ma2/dir/file.pdf", {
+      headers: { "If-None-Match": etag },
+    })
+    expect(res.status).toBe(304)
+    expect(await res.text()).toBe("")
+  })
+
+  it("answers a stale If-None-Match with the full body", async () => {
+    const res = await SELF.fetch("http://localhost/api/file/ma2/dir/file.pdf", {
+      headers: { "If-None-Match": '"stale"' },
+    })
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe(BODY)
+  })
+
+  it("answers If-Modified-Since past the upload with an empty 304", async () => {
+    const res = await SELF.fetch("http://localhost/api/file/ma2/dir/file.pdf", {
+      headers: { "If-Modified-Since": new Date(Date.now() + 60_000).toUTCString() },
+    })
+    expect(res.status).toBe(304)
+    expect(await res.text()).toBe("")
+    expect(res.headers.get("ETag")).toBeTruthy()
+  })
+
+  it("answers If-Modified-Since before the upload with the full body", async () => {
+    const res = await SELF.fetch("http://localhost/api/file/ma2/dir/file.pdf", {
+      headers: { "If-Modified-Since": new Date("2000-01-01").toUTCString() },
+    })
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe(BODY)
   })
 
   it("does not serve bucket content on traversal attempts", async () => {
