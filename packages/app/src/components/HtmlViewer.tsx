@@ -2,20 +2,16 @@ import { useEffect, useMemo } from "react"
 import { ExternalLink, Loader2 } from "lucide-react"
 import { useI18n } from "@/hooks/useI18n"
 import { useFetchBytes } from "@/lib/useFetchBytes"
+import { prepareHtmlBytes } from "@/lib/prepareHtml"
 
 export default function HtmlViewer({ url, title }: { url: string; title: string }) {
   const { t } = useI18n()
   const { data, error } = useFetchBytes(url)
   const src = useMemo(() => {
     if (!data) return null
-    // Notebook exports fix the prompt gutter at 64px, which clips
-    // three-digit prompts (Out[114]:). Widen it at render time so every
-    // seeded notebook is fixed without touching stored bytes.
-    const text = new TextDecoder()
-      .decode(data)
-      .replace(/--jp-cell-prompt-width:\s*64px/g, "--jp-cell-prompt-width: 96px")
+    const text = prepareHtmlBytes(data, url, document.baseURI)
     return URL.createObjectURL(new Blob([text], { type: "text/html;charset=utf-8" }))
-  }, [data])
+  }, [data, url])
   useEffect(
     () => () => {
       if (src) URL.revokeObjectURL(src)
