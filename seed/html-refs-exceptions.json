@@ -1,0 +1,22 @@
+[
+  {
+    "url": "/api/file/web/predavanja-css/primer11.html",
+    "reason": "demo stub link, no such file in source either"
+  },
+  {
+    "url": "/api/file/web/predavanja-css/default.asp",
+    "reason": "W3Schools-style placeholder hrefs in pseudo-class demos, absent in source"
+  },
+  {
+    "url": "/api/file/web/predavanja-html5/06_audio-i-video/chrome_japan.webm",
+    "reason": "unused fallback format, shipped mp4 plays everywhere"
+  },
+  {
+    "url": "/api/file/web/predavanja-html5/06_audio-i-video/rushus-modal_blues.ogg",
+    "reason": "unused fallback format, shipped mp3 plays everywhere"
+  },
+  {
+    "url": "/api/file/web/vezbe/tomcat.gif",
+    "reason": "no source anywhere on disk, unrecoverable"
+  }
+]
