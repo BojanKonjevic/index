@@ -27,7 +27,7 @@ declare const caches: {
 // themselves on the next online load.
 export async function fileStrategyHandler({ request }: { request: Request }): Promise<Response> {
   const fullRequest = new Request(request.url)
-  const cache = await caches.open("files")
+  const cache = await caches.open("files-v6")
 
   let full = await cache.match(fullRequest)
   if (!full || full.status !== 200) {
